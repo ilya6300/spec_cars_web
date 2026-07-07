@@ -1,0 +1,23 @@
+.game-viewport {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* Идеальное центрирование на экране */
+
+  /* Задаем фиксированные пропорции 16:9 */
+  width: 100vw;
+  height: 100vh; /* 100 * 9 / 16 */
+
+  /* Ограничиваем, чтобы игра не вылезала за границы экрана по высоте */
+  max-height: 100vh;
+  /* max-width: 177.78vh; 100 * 16 / 9 */
+
+  /* overflow: hidden; */
+  background-color: #000; /* Черные полосы по бокам, если экран другой формы */
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+.game {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}

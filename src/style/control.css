@@ -1,0 +1,82 @@
+.controllers_container {
+  position: absolute;
+  z-index: 10;
+  bottom: 0;
+  right: 10%;
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+}
+.gas_pedal {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  min-width: 40px;
+  height: 15vh;
+  min-height: 100px;
+
+  /* НОВОЕ: Задаем ось вращения в самом верху педали */
+  transform-origin: top center;
+
+  /* НОВОЕ: Плавный возврат педали в исходное состояние (за 0.1 секунды) */
+  transition: transform 0.2s ease-out;
+
+  /* Начальное положение (ровное) */
+  transform: perspective(500px) rotateX(0deg);
+}
+/* НОВОЕ: Эффект при нажатии */
+.gas_pedal.pressed {
+  /* ИЗМЕНЕНО: знак минус перед градусами (-35deg вместо 35deg) */
+  /* Теперь нижняя часть педали будет уходить «в пол» вглубь экрана */
+  transform: perspective(500px) rotateX(-15deg) scaleY(0.95);
+
+  /* При нажатии переход делается мгновенным (0.05с) для резкого отклика */
+  transition: transform 0.25s ease-in;
+}
+
+/* Стили для ключа зажигания */
+.ignition-key {
+  width: 60px;
+  height: 60px;
+  cursor: pointer;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.2s ease;
+}
+.ignition-sirena-on,
+.ignition-sirena {
+  width: 60px;
+  height: 60px;
+  cursor: pointer;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.ignition-sirena-on {
+  animation: anim_siren 1.5s infinite ease-in-out;
+}
+.ignition-key:hover,
+.ignition-sirena:hover,
+.ignition-sirena-on:hover {
+  opacity: 0.8;
+}
+
+@keyframes anim_siren {
+  0% {
+    /* Синее свечение (левая половина мигалки) */
+    filter: drop-shadow(0px 0px 8px #0055ff) drop-shadow(0px 0px 15px #0022aa);
+    transform: scale(1);
+  }
+  50% {
+    /* Красное свечение (правая половина мигалки) */
+    filter: drop-shadow(0px 0px 8px #ff0000) drop-shadow(0px 0px 15px #aa0000);
+    transform: scale(1.05); /* Легкая пульсация размера для сочности эффекта */
+  }
+  100% {
+    /* Возврат к синему */
+    filter: drop-shadow(0px 0px 8px #0055ff) drop-shadow(0px 0px 15px #0022aa);
+    transform: scale(1);
+  }
+}

@@ -1,0 +1,213 @@
+import { makeAutoObservable, runInAction } from "mobx";
+import carStartSound from "../assets/audio/effects/car_start.mp3";
+import theEngineIsRunning from "../assets/audio/effects/the_engine_is_running.wav";
+import sirenaPolice from "../assets/audio/effects/police_siren.wav";
+
+class CarStore {
+  id = 0;
+  type = "";
+  name = "";
+  urlBody = "";
+  urlShell = "";
+
+  maxSpeed = 0;
+  currentSpeed = 0;
+  acceleration = 120;
+  friction = 160;
+
+  // ИСПРАВЛЕНО: Явно объявляем свойство, чтобы MobX взял его на контроль
+  wheelRotation = 0;
+
+  fuel = 65000;
+  maxFuel = 65000;
+  fuelConsumption = 500;
+
+  isGasPressed = false;
+
+  // Зажигание (заведён двигатель или нет)
+  isIgnitionOn = false;
+
+  // Хранилища для объектов аудио
+  audioStart = null;
+  audioEngine = null;
+  ignitionTimeoutId = null; // Для отмены таймера, если зажигание выключили до старта мотора
+
+  // Пройденное расстояние в метрах
+  distanceMeters = 0;
+
+  // Сирена
+  sirena = false;
+  sirenaBuffer = null;
+  sirenaSource = null;
+
+  constructor(carData) {
+    Object.assign(this, carData);
+    makeAutoObservable(this);
+  }
+
+  // МЕТОДЫ УПРАВЛЕНИЯ
+  // Функция-помощник для скачивания аудиофайла в Web Audio буфер
+  async loadSound(url) {
+    if (!this.audioCtx) return null;
+    try {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      return await this.audioCtx.decodeAudioData(arrayBuffer);
+    } catch (e) {
+      console.error("Ошибка загрузки звука игры:", e);
+      return null;
+    }
+  }
+
+  async toggleSirena() {
+    this.sirena = !this.sirena;
+
+    if (this.sirena) {
+      // Инициализация AudioContext если нет
+      if (!this.audioCtx) {
+        this.audioCtx = new (
+          window.AudioContext || window.webkitAudioContext
+        )();
+      }
+      if (this.audioCtx.state === "suspended") {
+        await this.audioCtx.resume();
+      }
+
+      // Загрузка звука если нет буфера
+      if (!this.sirenaBuffer) {
+        this.sirenaBuffer = await this.loadSound(sirenaPolice);
+      }
+
+      if (this.sirenaBuffer) {
+        this.sirenaSource = this.audioCtx.createBufferSource();
+        this.sirenaSource.buffer = this.sirenaBuffer;
+        this.sirenaSource.loop = true;
+        this.sirenaSource.connect(this.audioCtx.destination);
+        this.sirenaSource.start(0);
+      }
+    } else {
+      // Остановка сирены
+      if (this.sirenaSource) {
+        try {
+          this.sirenaSource.stop();
+        } catch (e) {}
+        this.sirenaSource.disconnect();
+        this.sirenaSource = null;
+      }
+    }
+  }
+
+  async toggleIgnition() {
+    this.isIgnitionOn = !this.isIgnitionOn;
+
+    // 1. Инициализируем аудиоконтекст при первом запуске (требование браузеров)
+    if (!this.audioCtx) {
+      this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      // Предзагружаем оба файла в память (укажите ваши переменные импорта)
+      this.startSound = await this.loadSound(carStartSound);
+      this.engineBuffer = await this.loadSound(theEngineIsRunning);
+    }
+
+    if (this.isIgnitionOn) {
+      // Включаем контекст (если он заснул)
+      if (this.audioCtx.state === "suspended") {
+        await this.audioCtx.resume();
+      }
+
+      // ---- ИГРАЕМ ЗВУК СТАРТЕРА ----
+      if (this.startSound) {
+        const startNode = this.audioCtx.createBufferSource();
+        startNode.buffer = this.startSound;
+        startNode.connect(this.audioCtx.destination);
+        startNode.start(0);
+      }
+
+      // ---- ПЛАНИРУЕМ БЕСШОВНЫЙ МОТОР ЧЕРЕЗ 1 СЕКУНДУ ----
+      this.ignitionTimeoutId = setTimeout(() => {
+        if (!this.isIgnitionOn || !this.engineBuffer) return;
+
+        // Создаем узел источника звука
+        this.engineSource = this.audioCtx.createBufferSource();
+        this.engineSource.buffer = this.engineBuffer;
+
+        // МЕГА-КЛЮЧЕВОЙ МОМЕНТ: Аппаратное зацикливание Web Audio API без микропауз
+        this.engineSource.loop = true;
+
+        // Подключаем к динамикам и запускаем
+        this.engineSource.connect(this.audioCtx.destination);
+        this.engineSource.start(0);
+      }, 1000);
+    } else {
+      // ---- ВЫКЛЮЧЕНИЕ ЗАЖИГАНИЯ ----
+      if (this.ignitionTimeoutId) {
+        clearTimeout(this.ignitionTimeoutId);
+        this.ignitionTimeoutId = null;
+      }
+
+      // Плавно или мгновенно останавливаем зацикленный мотор
+      if (this.engineSource) {
+        try {
+          this.engineSource.stop();
+        } catch (e) {}
+        this.engineSource.disconnect();
+        this.engineSource = null;
+      }
+
+      this.isGasPressed = false;
+    }
+  }
+
+  pressGas() {
+    if (this.fuel > 0) {
+      this.isGasPressed = true;
+    }
+  }
+
+  releaseGas() {
+    this.isGasPressed = false;
+  }
+
+  refuel(amount) {
+    this.fuel = Math.min(this.maxFuel, this.fuel + amount);
+  }
+
+  // ОДИН МЕТОД ДЛЯ ВНЕШНЕГО ОБЩИТЫВАНИЯ ФИЗИКИ
+  updatePhysics(deltaTime) {
+    runInAction(() => {
+      // 1. Логика расхода топлива
+      if (this.isGasPressed && this.fuel > 0) {
+        const currentConsumption =
+          (this.currentSpeed / this.maxSpeed) * this.fuelConsumption;
+        this.fuel = Math.max(0, this.fuel - currentConsumption * deltaTime);
+
+        if (this.fuel === 0) {
+          this.isGasPressed = false;
+        }
+      }
+
+      // 2. Логика разгона и торможения
+      if (this.isGasPressed && this.fuel > 0 && this.isIgnitionOn) {
+        this.currentSpeed = Math.min(
+          this.maxSpeed,
+          this.currentSpeed + this.acceleration * deltaTime,
+        );
+      } else {
+        this.currentSpeed = Math.max(
+          0,
+          this.currentSpeed - this.friction * deltaTime,
+        );
+      }
+      // 3. НОВОЕ: Расчет угла вращения колес
+      // Коэффициент 5 подобран для реалистичной скорости визуального вращения
+      this.wheelRotation += this.currentSpeed * deltaTime * 5;
+
+      // Зацикливаем угол в пределах 360 градусов, чтобы число не росло до бесконечности
+      this.wheelRotation %= 360;
+
+      // 4. Накопление пройденного расстояния (метры)
+      this.distanceMeters += (this.currentSpeed * deltaTime) / 20;
+    });
+  }
+}
+
+export default CarStore;

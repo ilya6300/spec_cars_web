@@ -2,6 +2,7 @@ import { makeAutoObservable, runInAction } from "mobx";
 import carStartSound from "../assets/audio/effects/car_start.mp3";
 import theEngineIsRunning from "../assets/audio/effects/the_engine_is_running.wav";
 import sirenaPolice from "../assets/audio/effects/police_siren.wav";
+import stateVariable from "./state_app";
 
 class CarStore {
   id = 0;
@@ -34,6 +35,10 @@ class CarStore {
 
   // Пройденное расстояние в метрах
   distanceMeters = 0;
+
+  // Состояние светофора
+  isTrafficLightOnScreen = false;
+  trafficLightColor = null; // 'red' | 'green' | null
 
   // Сирена
   sirena = false;
@@ -171,11 +176,45 @@ class CarStore {
     this.fuel = Math.min(this.maxFuel, this.fuel + amount);
   }
 
+  // Принудительная остановка (сброс скорости, двигатель не глушим)
+  forceStop() {
+    runInAction(() => {
+      if (!this.sirena) {
+        this.isGasPressed = false;
+      }
+      // this.currentSpeed = 0;
+    });
+  }
+
+  // Обновление состояния светофора из mapStore
+  checkTrafficLight(mapStore) {
+    runInAction(() => {
+      this.isTrafficLightOnScreen = mapStore.trafficLightOnTheMap;
+      this.trafficLightColor = mapStore.trafficLightOnTheMap
+        ? mapStore.trafficLightColor
+        : null;
+    });
+  }
+
+  // Готовый признак: нужно ли останавливаться из-за светофора
+  get shouldStopForLight() {
+    return this.isTrafficLightOnScreen && this.trafficLightColor === "red";
+  }
+
   // ОДИН МЕТОД ДЛЯ ВНЕШНЕГО ОБЩИТЫВАНИЯ ФИЗИКИ
   updatePhysics(deltaTime) {
     runInAction(() => {
       // 1. Логика расхода топлива
-      if (this.isGasPressed && this.fuel > 0) {
+      if (
+        this.isGasPressed &&
+        this.fuel > 0 &&
+        this.trafficLightColor !== "red"
+      ) {
+        console.log(
+          this.trafficLightColor,
+          this.trafficLightOnTheMap,
+          this.isTrafficLightOnScreen,
+        );
         const currentConsumption =
           (this.currentSpeed / this.maxSpeed) * this.fuelConsumption;
         this.fuel = Math.max(0, this.fuel - currentConsumption * deltaTime);
@@ -183,6 +222,9 @@ class CarStore {
         if (this.fuel === 0) {
           this.isGasPressed = false;
         }
+      }
+      if (this.trafficLightColor === "red") {
+        this.forceStop();
       }
 
       // 2. Логика разгона и торможения
@@ -205,7 +247,8 @@ class CarStore {
       this.wheelRotation %= 360;
 
       // 4. Накопление пройденного расстояния (метры)
-      this.distanceMeters += (this.currentSpeed * deltaTime) / 20;
+      this.distanceMeters +=
+        (this.currentSpeed * deltaTime) / stateVariable.distanceMetersFactor;
     });
   }
 }

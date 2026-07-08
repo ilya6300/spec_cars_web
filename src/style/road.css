@@ -36,3 +36,11 @@
 
   z-index: 2;
 }
+
+/* Стили для объектов окружения */
+.game-object {
+  position: absolute;
+  background-repeat: no-repeat;
+  background-size: contain;
+  cursor: pointer;
+}

@@ -1,3 +1,4 @@
+import { makeAutoObservable, runInAction } from "mobx";
 class stateApp {
   constructor() {
     makeAutoObservable(this);
@@ -11,4 +12,4 @@ class stateApp {
   //   });
   // }
 }
-export default stateApp;
+export default new stateApp();

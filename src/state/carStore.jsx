@@ -3,6 +3,7 @@ import carStartSound from "../assets/audio/effects/car_start.mp3";
 import theEngineIsRunning from "../assets/audio/effects/the_engine_is_running.wav";
 import sirenaPolice from "../assets/audio/effects/police_siren.wav";
 import stateVariable from "./state_app";
+import stateApp from "./state_app";
 
 class CarStore {
   id = 0;
@@ -182,7 +183,6 @@ class CarStore {
       if (!this.sirena) {
         this.isGasPressed = false;
       }
-      // this.currentSpeed = 0;
     });
   }
 
@@ -210,14 +210,9 @@ class CarStore {
         this.fuel > 0 &&
         this.trafficLightColor !== "red"
       ) {
-        console.log(
-          this.trafficLightColor,
-          this.trafficLightOnTheMap,
-          this.isTrafficLightOnScreen,
-        );
         const currentConsumption =
           (this.currentSpeed / this.maxSpeed) * this.fuelConsumption;
-        this.fuel = Math.max(0, this.fuel - currentConsumption * deltaTime);
+        this.fuel = this.fuel - 0.5;
 
         if (this.fuel === 0) {
           this.isGasPressed = false;
@@ -248,7 +243,7 @@ class CarStore {
 
       // 4. Накопление пройденного расстояния (метры)
       this.distanceMeters +=
-        (this.currentSpeed * deltaTime) / stateVariable.distanceMetersFactor;
+        (this.currentSpeed * deltaTime) / stateApp.distanceMetersFactor;
     });
   }
 }

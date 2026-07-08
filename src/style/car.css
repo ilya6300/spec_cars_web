@@ -49,3 +49,36 @@
 .right-shell {
   left: 69%; /* Второе колесо справа */
 }
+
+.sirena-car-on {
+  position: absolute;
+  width: 35px;
+  /* height: 6px; */
+  top: 2px;
+  left: 38%;
+  background-color: transparent;
+  border: none;
+  /* border-radius: 50%; */
+  animation: anim_siren_in_car 1.5s infinite ease-in-out;
+}
+
+@keyframes anim_siren_in_car {
+  0% {
+    /* Синее неоновое свечение. Первое число — плотное, второе — рассеянное */
+    box-shadow:
+      0px 0px 10px 4px #0055ff,
+      0px 0px 25px 8px #0022aa;
+  }
+  50% {
+    /* Красное неоновое свечение */
+    box-shadow:
+      0px 0px 10px 4px #ff0000,
+      0px 0px 25px 8px #aa0000;
+  }
+  100% {
+    /* Возврат к синему */
+    box-shadow:
+      0px 0px 10px 4px #0055ff,
+      0px 0px 25px 8px #0022aa;
+  }
+}

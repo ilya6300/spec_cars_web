@@ -52,7 +52,7 @@ const gasStationObj = new ObjectConfig({
   image: gasStation,
   zIndex: 2,
   width: 180,
-  height: 200,
+  height: 100,
   minDistance: 2000,
   maxDistance: 5000,
   onClick: (obj, mapStore, carStore) => {

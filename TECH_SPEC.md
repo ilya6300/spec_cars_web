@@ -9,6 +9,7 @@
 - Кликабельны (клик → действие, долгое нажатие → действие)
 - Имеют события при появлении в поле зрения (светофор → полиция останавливается)
 - Здания могут идти подряд, бензоколонки — с большим интервалом
+- **Не накладываются друг на друга** (anti-overlap через `lastObjectEndMeter`)
 
 ---
 
@@ -598,6 +599,406 @@ z-index: var(--object-z-index); /_ динамический z-index из config.
 3. **Observer**: компонент Maps должен быть обёрнут в observer для реактивности.
 4. **Очистка таймеров**: при размонтировании компонента очищать setInterval (светофор, заправка).
 5. **Адаптивность**: viewport width обновляется при resize, объекты позиционируются относительно него.
+
+---
+
+# TECH SPEC — Отслеживание светофора в carStore (текущая задача)
+
+## 🎯 Цель
+
+В `carStore` корректно отслеживать наличие светофора на экране (`isTrafficLightOnScreen`) и его цвет (`trafficLightColor`), заменяя текущий `console.log(MapStore.trafficLightOnTheMap)` на рабочую логику.
+
+---
+
+## 1. Изменения в `@src/state/mapStore.jsx`
+
+### 1.1. Исправление `triggerAppearEvents()` (строка ~77)
+
+**Сейчас (закомментировано):**
+
+```js
+if (obj.typeId === "traffic_light") {
+  // this.trafficLightOnTheMap = true;
+}
+```
+
+**Нужно:**
+
+```js
+if (obj.typeId === "traffic_light") {
+  this.trafficLightOnTheMap = true;
+}
+```
+
+### 1.2. Исправление `despawnObjects()` (строка ~66)
+
+**Сейчас (баг):** флаг `trafficLightOnTheMap = false` сбрасывается для всех объектов, а не только для светофора.
+**Нужно:** перенести сброс внутрь условия фильтрации для светофора:
+
+```js
+this.activeObjects = this.activeObjects.filter((obj) => {
+  const config = configMap[obj.typeId];
+  const screenX = obj.worldX - this.offsetX;
+  if (obj.typeId === "traffic_light" && screenX <= -config.width) {
+    this.trafficLightOnTheMap = false;
+  }
+  return screenX > -config.width;
+});
+```
+
+### 1.3. Новое computed-свойство `isTrafficLightRed`
+
+Добавить после полей класса (автоматически станет computed благодаря `makeAutoObservable`):
+
+```js
+get isTrafficLightRed() {
+  return this.trafficLightOnTheMap && this.trafficLightColor === "red";
+}
+```
+
+---
+
+## 2. Изменения в `@src/state/carStore.jsx`
+
+### 2.1. Новые observable-поля
+
+Добавить в конструктор (перед `makeAutoObservable`):
+
+```js
+// Состояние светофора
+isTrafficLightOnScreen = false;
+trafficLightColor = null; // 'red' | 'green' | null
+```
+
+### 2.2. Новый метод `checkTrafficLight(mapStore)`
+
+```js
+checkTrafficLight(mapStore) {
+  runInAction(() => {
+    this.isTrafficLightOnScreen = mapStore.trafficLightOnTheMap;
+    this.trafficLightColor = mapStore.trafficLightOnTheMap
+      ? mapStore.trafficLightColor
+      : null;
+  });
+}
+```
+
+### 2.3. Исправление `updatePhysics()` (строка ~189)
+
+**Сейчас:**
+
+```js
+console.log(MapStore.trafficLightOnTheMap);
+```
+
+**Нужно:** убрать console.log. Метод `checkTrafficLight` будет вызываться из Game.jsx в игровом цикле.
+
+### 2.4. Новое computed-свойство `shouldStopForLight`
+
+```js
+get shouldStopForLight() {
+  return this.isTrafficLightOnScreen && this.trafficLightColor === "red";
+}
+```
+
+---
+
+## 3. Интеграция (Game.jsx / игровой цикл)
+
+В игровом цикле, после `mapStore.update()`, добавить вызов:
+
+```js
+carStore.checkTrafficLight(mapStore);
+```
+
+---
+
+## 4. Зависимости
+
+- Новые npm-пакеты: **не требуются**
+- Только изменения в `mapStore.jsx` и `carStore.jsx`
+
+---
+
+# TECH SPEC — Anti-overlap объектов (CONCEPT.md)
+
+## 🎯 Цель
+
+Исправить наложение объектов (дома, светофоры, бензоколонки) друг на друга. Проблема: при спавне каждый тип объекта рассчитывает дистанцию только до своего «следующего двойника». Решение: добавить общий `lastObjectEndMeter` — метр, на котором закончился самый последний созданный объект любого типа. Новый объект спавнится только после этой отметки.
+
+## 📐 Изменения в @src/state/mapStore.jsx
+
+### 4.1. Новое observable-поле
+
+```js
+// Метр, на котором закончился самый последний созданный объект любого типа
+lastObjectEndMeter = 0;
+```
+
+### 4.2. Модификация spawnObjects
+
+**Сейчас:**
+
+```js
+spawnObjects(viewportWidth) {
+  objectConfigs.forEach((config) => {
+    const nextSpawn = this.nextSpawnDistances[config.type];
+    if (this.offsetX >= nextSpawn) {
+      const uid = `obj_${config.type}_${Date.now()}_${Math.random()}`;
+      const worldX = this.offsetX + viewportWidth + Math.random() * 100;
+      runInAction(() => {
+        this.activeObjects.push({ uid, typeId: config.type, worldX, appeared: false });
+      });
+      this.nextSpawnDistances[config.type] =
+        nextSpawn + config.minDistance + Math.random() * (config.maxDistance - config.minDistance);
+    }
+  });
+}
+```
+
+**Нужно:**
+
+```js
+spawnObjects(viewportWidth) {
+  objectConfigs.forEach((config) => {
+    const nextSpawn = this.nextSpawnDistances[config.type];
+
+    if (this.offsetX >= nextSpawn) {
+      // Ключевое изменение: worldX не может быть меньше lastObjectEndMeter
+      const worldX = Math.max(
+        this.offsetX + viewportWidth,
+        this.lastObjectEndMeter
+      ) + Math.random() * 100;
+
+      const uid = `obj_${config.type}_${Date.now()}_${Math.random()}`;
+
+      runInAction(() => {
+        this.activeObjects.push({
+          uid,
+          typeId: config.type,
+          worldX,
+          appeared: false,
+        });
+        // Обновляем метр конца последнего объекта
+        this.lastObjectEndMeter = worldX + config.width;
+      });
+
+      this.nextSpawnDistances[config.type] =
+        nextSpawn +
+        config.minDistance +
+        Math.random() * (config.maxDistance - config.minDistance);
+    }
+  });
+}
+```
+
+### 4.3. Обновление despawnObjects
+
+После удаления ушедших объектов нужно скорректировать `lastObjectEndMeter`:
+
+```js
+despawnObjects() {
+  runInAction(() => {
+    const configMap = {};
+    objectConfigs.forEach((c) => {
+      configMap[c.type] = c;
+    });
+
+    this.activeObjects = this.activeObjects.filter((obj) => {
+      const config = configMap[obj.typeId];
+      const screenX = obj.worldX - this.offsetX;
+      if (obj.typeId === "traffic_light" && screenX <= -config.width) {
+        this.trafficLightOnTheMap = false;
+      }
+      return screenX > -config.width;
+    });
+
+    // Корректировка lastObjectEndMeter: если последний видимый объект ушёл,
+    // сбрасываем на его конец + ширину
+    const sorted = [...this.activeObjects].sort((a, b) => b.worldX - a.worldX);
+    if (sorted.length > 0) {
+      const lastConfig = configMap[sorted[0].typeId];
+      this.lastObjectEndMeter = sorted[0].worldX + lastConfig.width;
+    } else {
+      // Нет активных объектов — сбрасываем
+      this.lastObjectEndMeter = this.offsetX;
+    }
+  });
+}
+```
+
+---
+
+# TECH SPEC — Задача #11: Исправить refuelCar
+
+## Проблема
+
+Метод `refuelCar` в MapStore имеет `return;` на первой строке, который блокирует весь код.
+
+## Исправление @src/state/mapStore.jsx
+
+**Сейчас:**
+
+```js
+refuelCar(amount) {
+  return;
+  if (this.carStore) {
+    runInAction(() => {
+      this.carStore.fuel = Math.min(this.carStore.fuel + amount, this.carStore.maxFuel);
+    });
+  }
+}
+```
+
+**Нужно:**
+
+```js
+refuelCar(amount) {
+  if (this.carStore) {
+    runInAction(() => {
+      this.carStore.fuel = Math.min(this.carStore.fuel + amount, this.carStore.maxFuel);
+    });
+  }
+}
+```
+
+---
+
+# TECH SPEC — Задача #13: Убрать console.log из carStore
+
+## Исправление @src/state/carStore.jsx
+
+В `updatePhysics` (строка ~189) убрать `console.log`:
+
+**Сейчас:**
+
+```js
+if (this.isGasPressed && this.fuel > 0 && this.trafficLightColor !== "red") {
+  console.log(
+    this.trafficLightColor,
+    this.trafficLightOnTheMap,
+    this.isTrafficLightOnScreen,
+  );
+  // ...
+}
+```
+
+**Нужно:**
+
+```js
+if (this.isGasPressed && this.fuel > 0 && this.trafficLightColor !== "red") {
+  const currentConsumption =
+    (this.currentSpeed / this.maxSpeed) * this.fuelConsumption;
+  this.fuel = this.fuel - 0.5;
+
+  if (this.fuel === 0) {
+    this.isGasPressed = false;
+  }
+}
+```
+
+---
+
+# TECH SPEC — Задача #14: Исправить forceStop
+
+## Исправление @src/state/carStore.jsx
+
+**Сейчас:**
+
+```js
+forceStop() {
+  runInAction(() => {
+    if (!this.sirena) {
+      this.isGasPressed = false;
+    }
+    // this.currentSpeed = 0;  ← закомментировано
+  });
+}
+```
+
+**Нужно:**
+
+```js
+forceStop() {
+  runInAction(() => {
+    if (!this.sirena) {
+      this.isGasPressed = false;
+    }
+    this.currentSpeed = 0;
+  });
+}
+```
+
+---
+
+# TECH SPEC — Задача #15: Исправить onPointerDown в Maps.jsx
+
+## Проблема
+
+Таймер long press сохраняется на объекте данных (`obj.longPressTimeout`), а не на DOM-элементе. При `onPointerLeave` таймер ищется на объекте данных, но если объект был перерендерен (MobX re-render), ссылка теряется.
+
+## Исправление @src/components/map/Maps.jsx
+
+**Сейчас:**
+
+```jsx
+onPointerDown={(e) => {
+  e.stopPropagation();
+  const timeout = setTimeout(() => {
+    if (config.onLongPress) {
+      config.onLongPress(obj, map, carStore);
+    }
+  }, 500);
+  obj.longPressTimeout = timeout;
+}}
+onPointerUp={(e) => {
+  e.stopPropagation();
+  if (obj.longPressTimeout) {
+    clearTimeout(obj.longPressTimeout);
+    obj.longPressTimeout = null;
+  }
+}}
+onPointerLeave={(e) => {
+  e.stopPropagation();
+  if (obj.longPressTimeout) {
+    clearTimeout(obj.longPressTimeout);
+    obj.longPressTimeout = null;
+  }
+}}
+```
+
+**Нужно:** использовать `e.currentTarget` для хранения таймера:
+
+```jsx
+onPointerDown={(e) => {
+  e.stopPropagation();
+  const timeout = setTimeout(() => {
+    if (config.onLongPress) {
+      config.onLongPress(obj, map, carStore);
+    }
+  }, 500);
+  e.currentTarget.longPressTimeout = timeout;
+}}
+onPointerUp={(e) => {
+  e.stopPropagation();
+  const el = e.currentTarget;
+  if (el.longPressTimeout) {
+    clearTimeout(el.longPressTimeout);
+    el.longPressTimeout = null;
+  }
+  if (map.isRefueling) {
+    map.stopRefueling();
+  }
+}}
+onPointerLeave={(e) => {
+  e.stopPropagation();
+  const el = e.currentTarget;
+  if (el.longPressTimeout) {
+    clearTimeout(el.longPressTimeout);
+    el.longPressTimeout = null;
+  }
+}}
+```
 
 ---
 

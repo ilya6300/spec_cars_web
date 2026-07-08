@@ -15,7 +15,7 @@
   min-width: 40px;
   height: 15vh;
   min-height: 100px;
-
+  cursor: pointer;
   /* НОВОЕ: Задаем ось вращения в самом верху педали */
   transform-origin: top center;
 

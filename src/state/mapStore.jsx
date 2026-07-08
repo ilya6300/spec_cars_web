@@ -30,6 +30,9 @@ class MapStore {
   isRefueling = false;
   refuelInterval = null;
 
+  // Метр, на котором закончился самый последний созданный объект любого типа
+  lastObjectEndMeter = 0;
+
   // Ссылка на carStore для заправки
   carStore = null;
 
@@ -51,9 +54,13 @@ class MapStore {
       const nextSpawn = this.nextSpawnDistances[config.type];
 
       if (this.offsetX >= nextSpawn) {
+        // Ключевое изменение: worldX не может быть меньше lastObjectEndMeter
+        // Это предотвращает наложение объектов друг на друга
+        const worldX =
+          Math.max(this.offsetX + viewportWidth, this.lastObjectEndMeter) +
+          Math.random() * 100;
+
         const uid = `obj_${config.type}_${Date.now()}_${Math.random()}`;
-        // Мировая координата X — объект впереди, за правым краем экрана
-        const worldX = this.offsetX + viewportWidth + Math.random() * 100;
 
         runInAction(() => {
           this.activeObjects.push({
@@ -62,6 +69,8 @@ class MapStore {
             worldX,
             appeared: false,
           });
+          // Обновляем метр конца последнего объекта
+          this.lastObjectEndMeter = worldX + config.width;
         });
 
         this.nextSpawnDistances[config.type] =
@@ -88,6 +97,17 @@ class MapStore {
         }
         return screenX > -config.width;
       });
+      // Корректировка lastObjectEndMeter после удаления ушедших объектов
+      const sorted = [...this.activeObjects].sort(
+        (a, b) => b.worldX - a.worldX,
+      );
+      if (sorted.length > 0) {
+        const lastConfig = configMap[sorted[0].typeId];
+        this.lastObjectEndMeter = sorted[0].worldX + lastConfig.width;
+      } else {
+        // Нет активных объектов — сбрасываем на текущую позицию
+        this.lastObjectEndMeter = this.offsetX;
+      }
     });
   }
 
@@ -151,7 +171,7 @@ class MapStore {
       if (this.carStore && this.isRefueling) {
         runInAction(() => {
           this.carStore.fuel = Math.min(
-            this.carStore.fuel + 1,
+            this.carStore.fuel + 200,
             this.carStore.maxFuel,
           );
         });

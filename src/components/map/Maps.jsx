@@ -67,13 +67,14 @@ export const Maps = observer(({ map, distance, carStore, onClickObject }) => {
                   config.onLongPress(obj, map, carStore);
                 }
               }, 500);
-              obj.longPressTimeout = timeout;
+              e.currentTarget.longPressTimeout = timeout;
             }}
             onPointerUp={(e) => {
               e.stopPropagation();
-              if (obj.longPressTimeout) {
-                clearTimeout(obj.longPressTimeout);
-                obj.longPressTimeout = null;
+              const el = e.currentTarget;
+              if (el.longPressTimeout) {
+                clearTimeout(el.longPressTimeout);
+                el.longPressTimeout = null;
               }
               // Останавливаем заправку при отпускании
               if (map.isRefueling) {
@@ -82,9 +83,10 @@ export const Maps = observer(({ map, distance, carStore, onClickObject }) => {
             }}
             onPointerLeave={(e) => {
               e.stopPropagation();
-              if (obj.longPressTimeout) {
-                clearTimeout(obj.longPressTimeout);
-                obj.longPressTimeout = null;
+              const el = e.currentTarget;
+              if (el.longPressTimeout) {
+                clearTimeout(el.longPressTimeout);
+                el.longPressTimeout = null;
               }
             }}
           />

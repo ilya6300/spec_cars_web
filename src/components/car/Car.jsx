@@ -23,6 +23,7 @@ export const Car = observer(({ carStore }) => {
       <p>Пройдено: {(distanceMeters / 1000).toFixed(3)} км</p>
       {/* Отрендерим кузов автомобиля */}
       <div className="car_container">
+        <div className={carStore.sirena ? "sirena-car-on" : null}></div>
         <img src={urlBody} alt="Кузов" className="car-body" />
         <img
           src={urlShell}

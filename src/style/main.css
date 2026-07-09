@@ -1,9 +1,10 @@
 html, body {
   margin: 0;
   padding: 0;
-  /* 100dvh = динамический viewport с учётом адресной строки */
-  height: 100dvh;
-  overflow: hidden;
+  /* 100vh = БОЛЬШОЙ viewport. Когда адресная строка видна, 100vh > видимой области
+     → появляется скролл → пользователь скроллит вниз → адресная строка скроется. */
+  height: 100vh;
+  overflow: auto;
 }
 
 #root {
@@ -11,18 +12,18 @@ html, body {
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: 100vh;
   overflow: hidden;
 }
 
 .game-viewport {
   width: 100vw;
-  height: 100dvh;
-  max-height: 100dvh;
+  height: 100vh;
+  max-height: 100vh;
   background-color: #000;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
 }
 .game {
   width: 100vw;
-  height: 100dvh;
+  height: 100vh;
 }

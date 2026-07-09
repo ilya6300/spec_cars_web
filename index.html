@@ -9,53 +9,73 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="/spec_cars_web/manifest.json" />
     <style>
-      html {
-        height: 100%;
+      html, body {
         margin: 0;
         padding: 0;
-      }
-      body {
-        margin: 0;
-        padding: 0;
-        /* Чуть больше экрана — даёт возможность скролла, чтобы браузер скрыл адресную строку */
-        min-height: 101vh;
+        /* body чуть выше экрана — это создаёт реальный скролл,
+           без которого браузер НИКОГДА не скроет адресную строку */
+        min-height: 100.1vh;
       }
       #root {
-        position: fixed;
-        top: 0;
-        left: 0;
         width: 100vw;
-        height: 100vh;
+        height: 100dvh;
         overflow: hidden;
+        position: relative;
+      }
+      /* Скрытый распорщик внизу — даёт браузеру реальный контент для скролла */
+      #scroll-spacer {
+        height: 1px;
+        width: 100%;
+        pointer-events: none;
       }
     </style>
     <title>spec_cars</title>
   </head>
   <body>
     <div id="root"></div>
+    <div id="scroll-spacer"></div>
     <script>
-      // === Скрытие адресной строки на мобильных ===
+      // === Агрессивное скрытие адресной строки ===
+      // Современные браузеры скрывают адресную строку только при РЕАЛЬНОМ скролле вниз.
+      // scrollTo(0,1) больше не работает — нужен скролл на большую величину с возвратом.
+
+      var scrollDone = false;
+
       function hideAddressBar() {
-        // Прокрутка на 1px вниз — триггерит скрытие адресной строки в iOS Safari и Android Chrome
-        window.scrollTo(0, 1);
+        if (scrollDone) return;
+
+        // Запоминаем позицию
+        var startY = window.scrollY;
+
+        // Скроллим вниз — браузер прячет адресную строку
+        window.scrollTo(0, document.documentElement.scrollHeight);
+
+        // Через мгновение возвращаемся наверх — адресная строка остаётся скрытой
+        setTimeout(function () {
+          window.scrollTo(0, 0);
+          scrollDone = true;
+        }, 50);
       }
 
+      // Попытка при загрузке
       window.addEventListener('load', function () {
+        setTimeout(hideAddressBar, 100);
+      });
+
+      // Главная триггер — ПЕРВОЕ касание пользователя.
+      // Браузеры скрывают адресную строку только после пользовательского жеста.
+      function onFirstInteraction() {
         hideAddressBar();
-        // Повтор через 300мс — на случай медленного рендера
-        setTimeout(hideAddressBar, 300);
-      });
+        window.removeEventListener('touchstart', onFirstInteraction);
+        window.removeEventListener('click', onFirstInteraction);
+      }
+      window.addEventListener('touchstart', onFirstInteraction, { passive: true });
+      window.addEventListener('click', onFirstInteraction);
 
-      // При смене ориентации адресная строка снова появляется — скрываем повторно
+      // При смене ориентации — сбрасываем и скрываем заново
       window.addEventListener('orientationchange', function () {
+        scrollDone = false;
         setTimeout(hideAddressBar, 500);
-      });
-
-      // При любом resize (появление/скрытие клавиатуры и т.п.)
-      window.addEventListener('resize', function () {
-        if (window.scrollY === 0) {
-          hideAddressBar();
-        }
       });
     </script>
     <script type="module" src="/src/main.jsx"></script>

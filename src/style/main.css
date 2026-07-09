@@ -1,18 +1,15 @@
 html, body {
   margin: 0;
   padding: 0;
-  /* min-height 101vh позволяет скролл, что триггерит скрытие адресной строки */
-  min-height: 101vh;
-  overscroll-behavior: none;
+  /* body чуть выше экрана — создаёт реальный скролл для скрытия адресной строки */
+  min-height: 100.1vh;
 }
 
 #root {
-  position: fixed;
-  top: 0;
-  left: 0;
   width: 100vw;
   height: 100dvh;
   overflow: hidden;
+  position: relative;
 }
 
 .game-viewport {

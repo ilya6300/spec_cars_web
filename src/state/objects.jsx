@@ -3,6 +3,9 @@ import gasStation from "../assets/objects/gas_station.png";
 import trafficLightRed from "../assets/objects/traffic_light_red.png";
 import trafficLightGreen from "../assets/objects/traffic_light_green.png";
 import whiteLine from "../assets/objects/road_white_line.png";
+import tree1Img from "../assets/objects/tree_1.png";
+import tree2Img from "../assets/objects/tree_2.png";
+import tree3Img from "../assets/objects/tree_3.png";
 
 class ObjectsClass {
   white_line = whiteLine;
@@ -88,7 +91,71 @@ const trafficLightObj = new ObjectConfig({
   },
 });
 
-const objectConfigs = [buildings, gasStationObj, trafficLightObj];
+const tree1 = new ObjectConfig({
+  id: "tree1",
+  type: "tree",
+  image: tree1Img,
+  zIndex: 1,
+  width: 100,
+  height: 300,
+  minDistance: 50,
+  maxDistance: 3000,
+  onClick: (obj, mapStore, carStore) => {
+    /* ничего */
+  },
+  onLongPress: (obj, mapStore, carStore) => {
+    /* ничего */
+  },
+  onAppear: (obj, mapStore, carStore) => {
+    /* ничего */
+  },
+});
+const tree2 = new ObjectConfig({
+  id: "tree2",
+  type: "tree",
+  image: tree2Img,
+  zIndex: 1,
+  width: 100,
+  height: 300,
+  minDistance: 50,
+  maxDistance: 3000,
+  onClick: (obj, mapStore, carStore) => {
+    /* ничего */
+  },
+  onLongPress: (obj, mapStore, carStore) => {
+    /* ничего */
+  },
+  onAppear: (obj, mapStore, carStore) => {
+    /* ничего */
+  },
+});
+const tree3 = new ObjectConfig({
+  id: "tree3",
+  type: "tree",
+  image: tree3Img,
+  zIndex: 1,
+  width: 100,
+  height: 300,
+  minDistance: 50,
+  maxDistance: 3000,
+  onClick: (obj, mapStore, carStore) => {
+    /* ничего */
+  },
+  onLongPress: (obj, mapStore, carStore) => {
+    /* ничего */
+  },
+  onAppear: (obj, mapStore, carStore) => {
+    /* ничего */
+  },
+});
+const objectConfigs = [
+  buildings,
+  gasStationObj,
+  trafficLightObj,
+  tree1,
+  tree2,
+  tree3,
+];
 
 const Objects = new ObjectsClass();
 export default Objects;

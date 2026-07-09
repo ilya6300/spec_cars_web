@@ -19,6 +19,9 @@ class MapStore {
     building: 0,
     gas_station: 20000,
     traffic_light: 5000,
+    tree1: 350,
+    tree2: 450,
+    tree3: 750,
   };
 
   // Состояние светофора

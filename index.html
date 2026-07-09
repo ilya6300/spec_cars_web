@@ -12,17 +12,16 @@
       html, body {
         margin: 0;
         padding: 0;
-        /* 100vh = БОЛЬШОЙ viewport (без адресной строки).
-           Когда адресная строка видна, 100vh > видимой области →
-           появляется скролл → браузер скрывает адресную строку. */
-        height: 100vh;
+        /* 100dvh = динамический viewport с учётом адресной строки */
+        height: 100dvh;
+        overflow: hidden;
       }
       #root {
         position: fixed;
         top: 0;
         left: 0;
-        width: 100vw;
-        height: 100vh;
+        width: 100%;
+        height: 100%;
         overflow: hidden;
       }
     </style>
@@ -30,6 +29,30 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Скрытие адресной строки на мобильных
+      function hideAddressBar() {
+        // iOS Safari: скроллим вниз на 1px, затем обратно
+        if (window.scrollY !== 0) window.scrollTo(0, 0);
+        setTimeout(() => window.scrollTo(0, 1), 50);
+      }
+
+      // Пытаемся скрыть при загрузке
+      window.addEventListener('load', () => {
+        setTimeout(hideAddressBar, 300);
+      });
+
+      // При первом касании — скрываем адресную строку
+      document.addEventListener('touchstart', function handler() {
+        hideAddressBar();
+        document.removeEventListener('touchstart', handler);
+      });
+
+      // При изменении размера viewport (появление/скрытие адресной строки)
+      window.visualViewport?.addEventListener('resize', () => {
+        setTimeout(hideAddressBar, 100);
+      });
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -22,6 +22,22 @@ class MapStore {
     tree1: 350,
     tree2: 450,
     tree3: 750,
+    human1: 150,
+    human2: 50,
+    human3: 350,
+    human4: 550,
+    human5: 250,
+    human6: 180,
+    human7: 800,
+    human8: 100,
+    human9: 50,
+    human10: 550,
+    human11: 1000,
+    human12: 250,
+    human13: 80,
+    human14: 1950,
+    human15: 400,
+    human16: 200,
   };
 
   // Состояние светофора

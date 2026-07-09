@@ -1,6 +1,7 @@
 import React from "react";
 // 1. Правильный импорт для функциональных компонентов
 import { observer } from "mobx-react-lite";
+import { CarModel } from "./CarModel";
 
 // 2. Оборачиваем компонент в observer и принимаем store через props
 export const Car = observer(({ carStore }) => {
@@ -24,7 +25,7 @@ export const Car = observer(({ carStore }) => {
       <p>Пройдено: {(distanceMeters / 1000).toFixed(3)} км</p>
       <p>Счётчик помощи: {countHelp}</p>
       {/* Отрендерим кузов автомобиля */}
-      <div className="car_container">
+      {/* <div className="car_container">
         <div className={carStore.sirena ? "sirena-car-on" : null}></div>
         <img src={urlBody} alt="Кузов" className="car-body" />
         <img
@@ -39,7 +40,8 @@ export const Car = observer(({ carStore }) => {
           className="right-shell"
           style={{ transform: `rotate(${wheelRotation}deg)` }}
         />
-      </div>
+      </div> */}
+      <CarModel carStore={carStore} />
     </div>
   );
 });

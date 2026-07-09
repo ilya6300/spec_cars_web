@@ -1,5 +1,6 @@
 import { observer } from "mobx-lite";
 import React from "react";
+import { GearBox } from "./GearBox";
 import gasPedal from "../../assets/objects/gas_pedal.png";
 import keyActiveImg from "../../assets/objects/key_active.png";
 import keyDeactiveImg from "../../assets/objects/key_deactive.png";
@@ -15,15 +16,11 @@ export const Conntollers = observer(({ activeCarStore }) => {
         onClick={() => activeCarStore.toggleIgnition()}
         onContextMenu={(e) => e.preventDefault()}
       />
-      <img
-        className={
-          activeCarStore.sirena ? "ignition-sirena-on" : "ignition-sirena"
-        }
-        alt="Сирена"
-        src={sirenaBtn}
-        onClick={() => activeCarStore.toggleSirena()}
-        onContextMenu={(e) => e.preventDefault()}
+      <GearBox
+        gear={activeCarStore.gear}
+        shiftGear={(g) => activeCarStore.shiftGear(g)}
       />
+
       <img
         // Добавляем динамический класс pressed, если педаль зажата
         className={`gas_pedal ${activeCarStore.isGasPressed ? "pressed" : ""}`}
@@ -45,6 +42,15 @@ export const Conntollers = observer(({ activeCarStore }) => {
           e.preventDefault();
           activeCarStore.releaseGas();
         }}
+      />
+      <img
+        className={
+          activeCarStore.sirena ? "ignition-sirena-on" : "ignition-sirena"
+        }
+        alt="Сирена"
+        src={sirenaBtn}
+        onClick={() => activeCarStore.toggleSirena()}
+        onContextMenu={(e) => e.preventDefault()}
       />
     </div>
   );

@@ -13,6 +13,11 @@ class ObjectsClass {
   white_line = whiteLine;
   trafficLightRed = trafficLightRed;
   trafficLightGreen = trafficLightGreen;
+
+  // Police quest images
+  humanAggr1Img = humanAggr1Img;
+  humanAggr2Img = humanAggr2Img;
+  humanAggr3Img = humanAggr3Img;
 }
 
 export class ObjectConfig {
@@ -44,8 +49,50 @@ const getPolicequest = () => {
     minDistance: 3000,
     maxDistance: 6000,
     onClick: (obj, mapStore, carStore) => {
-      console.log("Поймал", obj);
+      mapStore.startQuest(obj);
+      carStore.toggleSirena();
+    },
+    onLongPress: (obj, mapStore, carStore) => {
       /* ничего */
+    },
+    onAppear: () => {
+      // Логика торможения перенесена в carStore.updatePhysics
+      // и привязана к видимости светофора на экране
+    },
+  });
+  const humanAggr2Obj = new ObjectConfig({
+    id: "human_aggr2",
+    type: "human_aggr2",
+    image: humanAggr2Img,
+    zIndex: 2,
+    width: 110,
+    height: 100,
+    minDistance: 3000,
+    maxDistance: 6000,
+    onClick: (obj, mapStore, carStore) => {
+      mapStore.startQuest(obj);
+      carStore.toggleSirena();
+    },
+    onLongPress: (obj, mapStore, carStore) => {
+      /* ничего */
+    },
+    onAppear: () => {
+      // Логика торможения перенесена в carStore.updatePhysics
+      // и привязана к видимости светофора на экране
+    },
+  });
+  const humanAggr3Obj = new ObjectConfig({
+    id: "human_aggr3",
+    type: "human_aggr3",
+    image: humanAggr3Img,
+    zIndex: 2,
+    width: 110,
+    height: 100,
+    minDistance: 3000,
+    maxDistance: 6000,
+    onClick: (obj, mapStore, carStore) => {
+      mapStore.startQuest(obj);
+      carStore.toggleSirena();
     },
     onLongPress: (obj, mapStore, carStore) => {
       /* ничего */
@@ -56,7 +103,7 @@ const getPolicequest = () => {
     },
   });
 
-  objectConfigs.push(humanAggr1Obj);
+  objectConfigs.push(humanAggr1Obj, humanAggr2Obj, humanAggr3Obj);
 };
 
 const createDataObjects = () => {

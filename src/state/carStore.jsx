@@ -2,7 +2,6 @@ import { makeAutoObservable, runInAction } from "mobx";
 import carStartSound from "../assets/audio/effects/car_start.mp3";
 import theEngineIsRunning from "../assets/audio/effects/the_engine_is_running.wav";
 import sirenaPolice from "../assets/audio/effects/police_siren.wav";
-import stateVariable from "./state_app";
 import stateApp from "./state_app";
 
 class CarStore {
@@ -41,6 +40,9 @@ class CarStore {
   // Состояние светофора
   isTrafficLightOnScreen = false;
   trafficLightColor = null; // 'red' | 'green' | null
+
+  // Передача (МКПП)
+  gear = "N"; // 'N' | '1' | '2' | '3' | '4'
 
   // Сирена
   sirena = false;
@@ -187,13 +189,63 @@ class CarStore {
     });
   }
 
-  // Обновление состояния светофора из mapStore
-  checkTrafficLight(mapStore) {
+  // Переключение передачи
+  shiftGear(newGear) {
     runInAction(() => {
-      this.isTrafficLightOnScreen = mapStore.trafficLightOnTheMap;
-      this.trafficLightColor = mapStore.trafficLightOnTheMap
-        ? mapStore.trafficLightColor
-        : null;
+      const validGears = ["N", "1", "2", "3", "4"];
+      if (!validGears.includes(newGear)) return;
+
+      // Безопасность: блокировка при высокой скорости
+      if (newGear === "N" && this.currentSpeed > 120) return;
+      if (newGear === "1" && this.currentSpeed > 200) return;
+
+      this.gear = newGear;
+    });
+  }
+
+  // Передаточное отношение
+  get gearRatio() {
+    switch (this.gear) {
+      case "N":
+        return 0; // Нейтралка — скорость 0
+      case "1":
+        return 4; // Делим на 4
+      case "2":
+        return 3; // Делим на 3
+      case "3":
+        return 2; // Делим на 2
+      case "4":
+        return 1; // Прямая передача
+      default:
+        return 1;
+    }
+  }
+
+  // Обновление состояния светофора из mapStore
+  // Срабатывает только когда расстояние до светофора <= 200px
+  checkTrafficLight(mapStore) {
+    const trafficLight = mapStore.activeObjects.find(
+      (obj) => obj.typeId === "traffic_light",
+    );
+
+    if (!trafficLight) {
+      runInAction(() => {
+        this.isTrafficLightOnScreen = false;
+        this.trafficLightColor = null;
+      });
+      return;
+    }
+
+    const distance = trafficLight.worldX - mapStore.offsetX;
+
+    runInAction(() => {
+      if (distance <= 700 && distance > 0) {
+        this.isTrafficLightOnScreen = true;
+        this.trafficLightColor = mapStore.trafficLightColor;
+      } else {
+        this.isTrafficLightOnScreen = false;
+        this.trafficLightColor = null;
+      }
     });
   }
 
@@ -211,22 +263,30 @@ class CarStore {
         this.fuel > 0 &&
         this.trafficLightColor !== "red"
       ) {
-        const currentConsumption =
-          (this.currentSpeed / this.maxSpeed) * this.fuelConsumption;
-        this.fuel = this.fuel - 0.5;
+        this.fuel -= 0.5;
 
-        if (this.fuel === 0) {
+        if (this.fuel <= 0) {
+          this.fuel = 0;
           this.isGasPressed = false;
         }
       }
+
+      // 1.5. Остановка на красном светофоре
       if (this.trafficLightColor === "red") {
         this.forceStop();
+        this.currentSpeed = Math.max(
+          0,
+          this.currentSpeed - this.friction * deltaTime,
+        );
       }
 
-      // 2. Логика разгона и торможения
+      // 2. Логика разгона и торможения с учётом передачи
+      const effectiveMaxSpeed =
+        this.gear === "N" ? 0 : this.maxSpeed / this.gearRatio;
+
       if (this.isGasPressed && this.fuel > 0 && this.isIgnitionOn) {
         this.currentSpeed = Math.min(
-          this.maxSpeed,
+          effectiveMaxSpeed,
           this.currentSpeed + this.acceleration * deltaTime,
         );
       } else {

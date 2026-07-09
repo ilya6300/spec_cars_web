@@ -6,6 +6,7 @@ import MapsStore from "../../state/maps";
 import MapStore from "../../state/mapStore";
 import { Maps } from "../map/Maps";
 import { Conntollers } from "../contollers/Conntollers";
+import { PoliceQuestModal } from "./PoliceQuestModal";
 
 export const Game = () => {
   const [activeCarStore] = useState(() => new CarStore(Cars.cars[0]));
@@ -80,6 +81,9 @@ export const Game = () => {
       />
       <Car carStore={activeCarStore} />
       <Conntollers activeCarStore={activeCarStore} />
+
+      {/* Police Quest Modal - всегда рендерится, observer внутри сам управляет видимостью */}
+      <PoliceQuestModal mapStore={activeMapStore} carStore={activeCarStore} />
     </div>
   );
 };

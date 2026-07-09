@@ -39,6 +39,8 @@ class MapStore {
     human15: 400,
     human16: 200,
     human_aggr1: 300,
+    human_aggr2: 3000,
+    human_aggr3: 1500,
   };
 
   // Состояние светофора
@@ -55,6 +57,11 @@ class MapStore {
 
   // Ссылка на carStore для заправки
   carStore = null;
+
+  // Police Quest state
+  isPoliceQuestActive = false;
+  questTargetObject = null;
+  questCarPosition = -150;
 
   constructor(mapData) {
     Object.assign(this, mapData);
@@ -225,6 +232,48 @@ class MapStore {
   // Готовый признак: светофор на экране И красный
   get isTrafficLightRed() {
     return this.trafficLightOnTheMap && this.trafficLightColor === "red";
+  }
+
+  startQuest(targetObj) {
+    runInAction(() => {
+      this.isPoliceQuestActive = true;
+      this.questTargetObject = targetObj;
+      this.questCarPosition = -150;
+    });
+  }
+
+  finishQuest() {
+    runInAction(() => {
+      this.isPoliceQuestActive = false;
+      this.questTargetObject = null;
+      this.questCarPosition = -150;
+    });
+  }
+
+  removeObjectByUid(uid) {
+    runInAction(() => {
+      const idx = this.activeObjects.findIndex((obj) => obj.uid === uid);
+      if (idx !== -1) {
+        this.activeObjects.splice(idx, 1);
+        const configMap = {};
+        objectConfigs.forEach((c) => (configMap[c.type] = c));
+        const sorted = [...this.activeObjects].sort(
+          (a, b) => b.worldX - a.worldX,
+        );
+        if (sorted.length > 0) {
+          const lastConfig = configMap[sorted[0].typeId];
+          this.lastObjectEndMeter = sorted[0].worldX + lastConfig.width;
+        } else {
+          this.lastObjectEndMeter = this.offsetX;
+        }
+      }
+    });
+  }
+
+  updateQuestCarPosition(newPosition) {
+    runInAction(() => {
+      this.questCarPosition = newPosition;
+    });
   }
 }
 

@@ -3,19 +3,61 @@
   <head>
     <meta charset="UTF-8" />
     <!-- <link rel="icon" type="image/svg+xml" href="/favicon.svg" /> -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, height=device-height, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/spec_cars_web/manifest.json" />
     <style>
-      html, body {
-        height: 100dvh;
-        overflow: hidden;
+      html {
+        height: 100%;
         margin: 0;
         padding: 0;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        /* Чуть больше экрана — даёт возможность скролла, чтобы браузер скрыл адресную строку */
+        min-height: 101vh;
+      }
+      #root {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
       }
     </style>
     <title>spec_cars</title>
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // === Скрытие адресной строки на мобильных ===
+      function hideAddressBar() {
+        // Прокрутка на 1px вниз — триггерит скрытие адресной строки в iOS Safari и Android Chrome
+        window.scrollTo(0, 1);
+      }
+
+      window.addEventListener('load', function () {
+        hideAddressBar();
+        // Повтор через 300мс — на случай медленного рендера
+        setTimeout(hideAddressBar, 300);
+      });
+
+      // При смене ориентации адресная строка снова появляется — скрываем повторно
+      window.addEventListener('orientationchange', function () {
+        setTimeout(hideAddressBar, 500);
+      });
+
+      // При любом resize (появление/скрытие клавиатуры и т.п.)
+      window.addEventListener('resize', function () {
+        if (window.scrollY === 0) {
+          hideAddressBar();
+        }
+      });
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -1,15 +1,19 @@
 html, body {
   margin: 0;
   padding: 0;
-  /* body чуть выше экрана — создаёт реальный скролл для скрытия адресной строки */
-  min-height: 100.1vh;
+  /* 100vh = БОЛЬШОЙ viewport (без адресной строки).
+     Когда адресная строка видна, 100vh > видимой области →
+     появляется скролл → браузер скрывает адресную строку. */
+  height: 100vh;
 }
 
 #root {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100vw;
-  height: 100dvh;
+  height: 100vh;
   overflow: hidden;
-  position: relative;
 }
 
 .game-viewport {
@@ -20,10 +24,10 @@ html, body {
 
   /* Задаем фиксированные пропорции 16:9 */
   width: 100vw;
-  height: 100dvh;
+  height: 100vh;
 
   /* Ограничиваем, чтобы игра не вылезала за границы экрана по высоте */
-  max-height: 100dvh;
+  max-height: 100vh;
   /* max-width: 177.78vh; 100 * 16 / 9 */
 
   /* overflow: hidden; */
@@ -33,5 +37,5 @@ html, body {
 .game {
   position: relative;
   width: 100vw;
-  height: 100dvh;
+  height: 100vh;
 }

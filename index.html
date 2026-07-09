@@ -12,72 +12,24 @@
       html, body {
         margin: 0;
         padding: 0;
-        /* body чуть выше экрана — это создаёт реальный скролл,
-           без которого браузер НИКОГДА не скроет адресную строку */
-        min-height: 100.1vh;
+        /* 100vh = БОЛЬШОЙ viewport (без адресной строки).
+           Когда адресная строка видна, 100vh > видимой области →
+           появляется скролл → браузер скрывает адресную строку. */
+        height: 100vh;
       }
       #root {
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100vw;
-        height: 100dvh;
+        height: 100vh;
         overflow: hidden;
-        position: relative;
-      }
-      /* Скрытый распорщик внизу — даёт браузеру реальный контент для скролла */
-      #scroll-spacer {
-        height: 1px;
-        width: 100%;
-        pointer-events: none;
       }
     </style>
     <title>spec_cars</title>
   </head>
   <body>
     <div id="root"></div>
-    <div id="scroll-spacer"></div>
-    <script>
-      // === Агрессивное скрытие адресной строки ===
-      // Современные браузеры скрывают адресную строку только при РЕАЛЬНОМ скролле вниз.
-      // scrollTo(0,1) больше не работает — нужен скролл на большую величину с возвратом.
-
-      var scrollDone = false;
-
-      function hideAddressBar() {
-        if (scrollDone) return;
-
-        // Запоминаем позицию
-        var startY = window.scrollY;
-
-        // Скроллим вниз — браузер прячет адресную строку
-        window.scrollTo(0, document.documentElement.scrollHeight);
-
-        // Через мгновение возвращаемся наверх — адресная строка остаётся скрытой
-        setTimeout(function () {
-          window.scrollTo(0, 0);
-          scrollDone = true;
-        }, 50);
-      }
-
-      // Попытка при загрузке
-      window.addEventListener('load', function () {
-        setTimeout(hideAddressBar, 100);
-      });
-
-      // Главная триггер — ПЕРВОЕ касание пользователя.
-      // Браузеры скрывают адресную строку только после пользовательского жеста.
-      function onFirstInteraction() {
-        hideAddressBar();
-        window.removeEventListener('touchstart', onFirstInteraction);
-        window.removeEventListener('click', onFirstInteraction);
-      }
-      window.addEventListener('touchstart', onFirstInteraction, { passive: true });
-      window.addEventListener('click', onFirstInteraction);
-
-      // При смене ориентации — сбрасываем и скрываем заново
-      window.addEventListener('orientationchange', function () {
-        scrollDone = false;
-        setTimeout(hideAddressBar, 500);
-      });
-    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

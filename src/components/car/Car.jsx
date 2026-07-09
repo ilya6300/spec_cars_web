@@ -13,6 +13,7 @@ export const Car = observer(({ carStore }) => {
     urlShell,
     wheelRotation,
     distanceMeters,
+    countHelp,
   } = carStore;
 
   return (
@@ -21,6 +22,7 @@ export const Car = observer(({ carStore }) => {
       <p>Скорость: {Math.round(currentSpeed / 7.5)} км/ч</p>
       <p>Топливо: {Math.round(fuel).toLocaleString("de-DE")} л.</p>
       <p>Пройдено: {(distanceMeters / 1000).toFixed(3)} км</p>
+      <p>Счётчик помощи: {countHelp}</p>
       {/* Отрендерим кузов автомобиля */}
       <div className="car_container">
         <div className={carStore.sirena ? "sirena-car-on" : null}></div>

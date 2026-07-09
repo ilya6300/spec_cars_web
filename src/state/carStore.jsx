@@ -11,6 +11,7 @@ class CarStore {
   name = "";
   urlBody = "";
   urlShell = "";
+  countHelp = 0;
 
   maxSpeed = 0;
   currentSpeed = 0;

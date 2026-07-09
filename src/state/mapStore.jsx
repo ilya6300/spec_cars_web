@@ -38,6 +38,7 @@ class MapStore {
     human14: 1950,
     human15: 400,
     human16: 200,
+    human_aggr1: 300,
   };
 
   // Состояние светофора
@@ -101,7 +102,7 @@ class MapStore {
   }
 
   // Удаление объектов, ушедших за левый край экрана
-  despawnObjects() {
+  despawnObjects(viewportWidth) {
     runInAction(() => {
       const configMap = {};
       objectConfigs.forEach((c) => {
@@ -111,8 +112,12 @@ class MapStore {
       this.activeObjects = this.activeObjects.filter((obj) => {
         const config = configMap[obj.typeId];
         const screenX = obj.worldX - this.offsetX;
-        if (obj.typeId === "traffic_light" && screenX <= -config.width) {
-          this.trafficLightOnTheMap = false;
+        if (obj.typeId === "traffic_light") {
+          // Светофор виден на экране ТОЛЬКО когда его правый край вошёл
+          // за правую границу (screenX < viewportWidth) И левый край ещё
+          // не ушёл за левую границу (screenX + width > 0)
+          this.trafficLightOnTheMap =
+            screenX < viewportWidth && screenX + config.width > 0;
         }
         return screenX > -config.width;
       });
@@ -136,12 +141,8 @@ class MapStore {
     objectConfigs.forEach((c) => {
       configMap[c.type] = c;
     });
-    // typeId traffic_light
     this.activeObjects.forEach((obj) => {
       if (!obj.appeared) {
-        if (obj.typeId === "traffic_light") {
-          this.trafficLightOnTheMap = true;
-        }
         const config = configMap[obj.typeId];
         if (config.onAppear) {
           config.onAppear({ ...obj, config }, this, carStore);

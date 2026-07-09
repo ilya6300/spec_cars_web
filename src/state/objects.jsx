@@ -4,6 +4,10 @@ import trafficLightRed from "../assets/objects/traffic_light_red.png";
 import trafficLightGreen from "../assets/objects/traffic_light_green.png";
 import whiteLine from "../assets/objects/road_white_line.png";
 import { getDataSubObects, dataObjectsSub } from "./subobject";
+// полиция
+import humanAggr1Img from "../assets/objects/\police_quest/human_aggr1.png";
+import humanAggr2Img from "../assets/objects/\police_quest/human_aggr2.png";
+import humanAggr3Img from "../assets/objects/\police_quest/human_aggr3.png";
 
 class ObjectsClass {
   white_line = whiteLine;
@@ -29,9 +33,36 @@ export class ObjectConfig {
 
 const objectConfigs = [];
 
+const getPolicequest = () => {
+  const humanAggr1Obj = new ObjectConfig({
+    id: "human_aggr1",
+    type: "human_aggr1",
+    image: humanAggr1Img,
+    zIndex: 2,
+    width: 110,
+    height: 100,
+    minDistance: 3000,
+    maxDistance: 6000,
+    onClick: (obj, mapStore, carStore) => {
+      console.log("Поймал", obj);
+      /* ничего */
+    },
+    onLongPress: (obj, mapStore, carStore) => {
+      /* ничего */
+    },
+    onAppear: () => {
+      // Логика торможения перенесена в carStore.updatePhysics
+      // и привязана к видимости светофора на экране
+    },
+  });
+
+  objectConfigs.push(humanAggr1Obj);
+};
+
 const createDataObjects = () => {
   // Инициализируем lthtdmz при загрузке модуля
   getDataSubObects();
+  getPolicequest();
   try {
     const buildings = new ObjectConfig({
       id: "building",
@@ -88,10 +119,9 @@ const createDataObjects = () => {
       onLongPress: (obj, mapStore, carStore) => {
         /* ничего */
       },
-      onAppear: (obj, mapStore, carStore) => {
-        if (mapStore.trafficLightColor === "red" && !carStore.isSirenOn) {
-          carStore.forceStop();
-        }
+      onAppear: () => {
+        // Логика торможения перенесена в carStore.updatePhysics
+        // и привязана к видимости светофора на экране
       },
     });
 

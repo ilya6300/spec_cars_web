@@ -43,7 +43,7 @@ export const Game = () => {
       activeMapStore.update(activeCarStore.currentSpeed, deltaTime);
       activeCarStore.checkTrafficLight(activeMapStore);
       activeMapStore.spawnObjects(viewportWidthRef.current);
-      activeMapStore.despawnObjects();
+      activeMapStore.despawnObjects(viewportWidthRef.current);
       activeMapStore.triggerAppearEvents(activeCarStore);
       animationFrameId = requestAnimationFrame(gameLoop);
     };

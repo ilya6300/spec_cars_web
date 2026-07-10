@@ -3,59 +3,66 @@ import { observer } from "mobx-react-lite";
 import { CarModel } from "../car/CarModel";
 import { runInAction } from "mobx";
 import { dataObjectsSub } from "../../state/subobject";
+import crossingImage from "../../assets/quest_location/police_pedestrian crossing.png";
 
 export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
-  const animationRef = useRef(null);
-  const lastTimeRef = useRef(performance.now());
+  const pedRafRef = useRef(null);
+  const carRafRef = useRef(null);
   const timerRef = useRef(null);
   const [pedestrianImage, setPedestrianImage] = useState(null);
-  const [showFineButton, setShowFineButton] = useState(false);
-  const [pedestrianY, setPedestrianY] = useState(0);
+  const [pedestrianY, setPedestrianY] = useState(110);
 
   const handleFine = useCallback(() => {
+    if (carRafRef.current) {
+      cancelAnimationFrame(carRafRef.current);
+      carRafRef.current = null;
+    }
     mapStore.finishPedestrianCrossingQuest();
     runInAction(() => {
       carStore.countHelp += 1;
     });
-    setShowFineButton(false);
   }, [mapStore, carStore]);
 
   const handlePedestrianClick = useCallback(() => {
     if (mapStore.pedestrianState !== "walking") return;
+
     if (!carStore.sirena) {
       carStore.toggleSirena();
     }
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-    }
+
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
+
+    const targetX = window.innerWidth / 2 - 70;
+    let startTime = performance.now();
+    let startPos = -150;
+
     runInAction(() => {
       mapStore.pedestrianState = "stopped";
+      mapStore.pedestrianCarPosition = startPos;
     });
-    const modalWidth = window.innerWidth;
-    const carWidth = 120;
-    const centerPosition = (modalWidth - carWidth) / 2;
+
+    console.error("Car anim start:", { targetX, startTime });
+
     const animateCar = (currentTime) => {
-      const deltaTime = (currentTime - lastTimeRef.current) / 1000;
-      lastTimeRef.current = currentTime;
-      const speed = 400;
-      const delta = speed * deltaTime;
-      if (mapStore.pedestrianCarPosition < centerPosition) {
-        mapStore.updatePedestrianCarPosition(
-          Math.min(mapStore.pedestrianCarPosition + delta, centerPosition),
-        );
-        animationRef.current = requestAnimationFrame(animateCar);
+      const elapsed = (currentTime - startTime) / 1000;
+      const pos = startPos + 400 * elapsed;
+      
+      console.error("Car anim tick:", { elapsed, pos, targetX });
+      
+      if (pos < targetX) {
+        mapStore.updatePedestrianCarPosition(pos);
+        carRafRef.current = requestAnimationFrame(animateCar);
       } else {
-        setShowFineButton(true);
+        mapStore.updatePedestrianCarPosition(targetX);
+        console.error("Car arrived!");
+        mapStore.pedestrianIsCarArrived = true;
       }
     };
 
-    lastTimeRef.current = performance.now();
-    animationRef.current = requestAnimationFrame(animateCar);
+    carRafRef.current = requestAnimationFrame(animateCar);
   }, [mapStore, carStore]);
 
   useEffect(() => {
@@ -84,29 +91,28 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
   useEffect(() => {
     if (mapStore.pedestrianState !== "walking") return;
 
-    const startY = 0;
-    const endY = 200;
+    const endY = 300;
+    let prevTime = performance.now();
+    let animId = null;
 
-    const animatePedestrian = (currentTime) => {
-      const deltaTime = (currentTime - lastTimeRef.current) / 1000;
-      lastTimeRef.current = currentTime;
-      const speed = 80;
-      const delta = speed * deltaTime;
+    const animate = (currentTime) => {
+      const dt = (currentTime - prevTime) / 1000;
+      prevTime = currentTime;
       if (mapStore.pedestrianState === "walking") {
         setPedestrianY((prev) => {
-          const newY = prev + delta;
-          if (newY >= endY - startY) return 0;
-          return newY;
+          const next = prev + 80 * dt;
+          return next >= endY ? 0 : next;
         });
-        animationRef.current = requestAnimationFrame(animatePedestrian);
+        animId = requestAnimationFrame(animate);
+        pedRafRef.current = animId;
       }
     };
 
-    lastTimeRef.current = performance.now();
-    animationRef.current = requestAnimationFrame(animatePedestrian);
+    animId = requestAnimationFrame(animate);
+    pedRafRef.current = animId;
 
     return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      if (animId) cancelAnimationFrame(animId);
     };
   }, [mapStore.pedestrianState]);
 
@@ -117,10 +123,10 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
 
   return (
     <div className="pedestrian-crossing-modal">
-      {/* Фон — полосатый пешеходный переход (CSS-заглушка, пока нет изображения) */}
-      <div className="modal-background" />
-
-      {/* Машина по центру, чуть выше центра экрана */}
+      <div
+        className="modal-background"
+        style={{ backgroundImage: `url(${crossingImage})` }}
+      />
       <div
         className="quest-car"
         style={{
@@ -130,21 +136,18 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
       >
         <CarModel carStore={carStore} />
       </div>
-
-      {/* Пешеход по центру X, чуть выше центра Y, идёт вниз по оси Y */}
       <div
         className="quest-pedestrian"
         onClick={handlePedestrianClick}
         style={{
           left: "50%",
           transform: "translateX(-50%)",
-          top: `calc(50% + ${pedestrianY}px)`,
+          top: `calc(20% + ${pedestrianY}px)`,
         }}
       >
         <img src={pedestrianImage} alt="Pedestrian" className="pedestrian-image" />
       </div>
-
-      {showFineButton && (
+      {mapStore.pedestrianIsCarArrived && (
         <button className="fine-button" onClick={handleFine}>
           Выписать штраф
         </button>

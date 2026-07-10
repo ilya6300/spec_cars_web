@@ -68,6 +68,7 @@ class MapStore {
   pedestrianCrossingTargetObject = null;
   pedestrianCarPosition = -150;
   pedestrianState = "waiting"; // "waiting" | "walking" | "stopped"
+  pedestrianIsCarArrived = false;
 
   constructor(mapData) {
     Object.assign(this, mapData);
@@ -295,6 +296,7 @@ class MapStore {
       this.pedestrianCrossingTargetObject = targetObj;
       this.pedestrianCarPosition = -150;
       this.pedestrianState = "waiting";
+      this.pedestrianIsCarArrived = false;
     });
   }
 
@@ -304,6 +306,7 @@ class MapStore {
       this.pedestrianCrossingTargetObject = null;
       this.pedestrianCarPosition = -150;
       this.pedestrianState = "waiting";
+      this.pedestrianIsCarArrived = false;
     });
   }
 }

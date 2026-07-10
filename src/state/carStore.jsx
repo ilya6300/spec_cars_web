@@ -257,7 +257,7 @@ class CarStore {
       this.trafficLightColor === "red" &&
       !this.pedestrianQuestTriggered &&
       !mapStore.isPedestrianCrossingQuestActive &&
-      !mapStore.isPoliceQuestActive
+      !mapStore.isPoliceQuestActive && !this.sirena
     ) {
       if (Math.random() < 0.5) {
         const humanTypes = [

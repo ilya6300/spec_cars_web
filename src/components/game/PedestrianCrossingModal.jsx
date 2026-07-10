@@ -20,6 +20,7 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
     mapStore.finishPedestrianCrossingQuest();
     runInAction(() => {
       carStore.countHelp += 1;
+      carStore.toggleSirena();
     });
   }, [mapStore, carStore]);
 
@@ -35,7 +36,7 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
       timerRef.current = null;
     }
 
-    const targetX = window.innerWidth / 2 - 70;
+    const targetX = window.innerWidth / 4.5;
     let startTime = performance.now();
     let startPos = -150;
 
@@ -44,21 +45,18 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
       mapStore.pedestrianCarPosition = startPos;
     });
 
-    console.error("Car anim start:", { targetX, startTime });
-
+    
     const animateCar = (currentTime) => {
       const elapsed = (currentTime - startTime) / 1000;
       const pos = startPos + 400 * elapsed;
       
-      console.error("Car anim tick:", { elapsed, pos, targetX });
-      
+            
       if (pos < targetX) {
         mapStore.updatePedestrianCarPosition(pos);
         carRafRef.current = requestAnimationFrame(animateCar);
       } else {
         mapStore.updatePedestrianCarPosition(targetX);
-        console.error("Car arrived!");
-        mapStore.pedestrianIsCarArrived = true;
+                mapStore.pedestrianIsCarArrived = true;
       }
     };
 
@@ -91,7 +89,7 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
   useEffect(() => {
     if (mapStore.pedestrianState !== "walking") return;
 
-    const endY = 380;
+    const endY = 300;
     let prevTime = performance.now();
     let animId = null;
 
@@ -102,8 +100,7 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
       if (mapStore.pedestrianState === "walking") {
         setPedestrianY((prev) => {
           const next = prev + 40 * dt;
-          console.log('animate', prev, pedestrianY, next, dt)
-          return next >= endY ? -30 : next;
+          return next >= endY ? mapStore.finishPedestrianCrossingQuest() : next;
         });
         animId = requestAnimationFrame(animate);
         pedRafRef.current = animId;

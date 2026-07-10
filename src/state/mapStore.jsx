@@ -38,8 +38,8 @@ class MapStore {
     human14: 1950,
     human15: 400,
     human16: 200,
-    human_aggr1: 300,
-    human_aggr2: 3000,
+    human_aggr1: 7700,
+    human_aggr2: 10000,
     human_aggr3: 1500,
   };
 

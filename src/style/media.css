@@ -3,3 +3,83 @@
     top: 61%;
   }
 }
+/* ==========================================================================
+   ЭРГОНОМИЧНАЯ МОБИЛЬНАЯ АДАПТАЦИЯ (Экраны до 900px, например, смартфоны в ландшафте)
+   ========================================================================== */
+@media (max-width: 900px) and (orientation: landscape), (max-height: 500px) {
+  
+  /* Главный контейнер прижимаем к самому низу и растягиваем */
+  .controllers_container {
+    right: 2%;
+    /* left: 2%; */
+    bottom: 5px !important;
+    padding: 6px 16px !important;
+    gap: 15px;
+    border-radius: 12px;
+    background: rgba(20, 25, 35, 0.8); /* Чуть плотнее фон, чтобы не сливалось */
+    align-items: center;
+    height: auto;
+  }
+
+  /* Педаль газа делаем ниже и компактнее, чтобы не росла вверх */
+  .gas_pedal {
+    height: 65px;
+    min-height: 65px;
+    min-width: 45px;
+  }
+
+  /* Уменьшаем круглые кнопки зажигания и сирены */
+  .ignition-key,
+  .ignition-sirena,
+  .ignition-sirena-on {
+    width: 48px;
+    height: 48px;
+    padding: 3px;
+  }
+
+  /* Компактный блок МКПП */
+  .gearbox-buttons {
+    padding: 4px 6px;
+    gap: 4px;
+    border-radius: 8px;
+    flex-grow: 1; /* Позволяет МКПП занять свободное место по центру */
+    max-width: 260px;
+  }
+
+  /* Текст "МКПП" ужимаем, чтобы не занимал высоту */
+  .gearbox-title {
+    font-size: 9px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Нейтралку делаем меньше по высоте и в один ряд со всеми элементами, если нужно */
+  .gear-btn.neutral {
+    min-width: 36px;
+    height: 24px;
+    font-size: 11px;
+  }
+
+  /* Кнопки передач 1-4 делаем меньше, чтобы по ним было удобно тапать */
+  .gearbox-buttons-container {
+    gap: 4px;
+  }
+
+  .gear-btn {
+    min-width: 36px;
+    height: 36px;
+    font-size: 14px;
+    border-radius: 6px;
+  }
+}
+
+/* Дополнительный фикс для совсем маленьких экранов (портретную ориентацию в таких играх обычно блокируют, но на всякий случай) */
+@media (max-width: 500px) and (orientation: portrait) {
+  .controllers_container {
+    flex-wrap: wrap;
+    justify-content: center;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    border-radius: 0;
+  }
+}

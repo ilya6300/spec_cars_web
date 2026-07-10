@@ -10,7 +10,7 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
   const carRafRef = useRef(null);
   const timerRef = useRef(null);
   const [pedestrianImage, setPedestrianImage] = useState(null);
-  const [pedestrianY, setPedestrianY] = useState(110);
+  const [pedestrianY, setPedestrianY] = useState(-50);
 
   const handleFine = useCallback(() => {
     if (carRafRef.current) {
@@ -91,17 +91,19 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
   useEffect(() => {
     if (mapStore.pedestrianState !== "walking") return;
 
-    const endY = 300;
+    const endY = 380;
     let prevTime = performance.now();
     let animId = null;
 
     const animate = (currentTime) => {
+
       const dt = (currentTime - prevTime) / 1000;
       prevTime = currentTime;
       if (mapStore.pedestrianState === "walking") {
         setPedestrianY((prev) => {
-          const next = prev + 80 * dt;
-          return next >= endY ? 0 : next;
+          const next = prev + 40 * dt;
+          console.log('animate', prev, pedestrianY, next, dt)
+          return next >= endY ? -30 : next;
         });
         animId = requestAnimationFrame(animate);
         pedRafRef.current = animId;

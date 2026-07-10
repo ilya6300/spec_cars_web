@@ -211,9 +211,9 @@ class CarStore {
       case "1":
         return 4; // Делим на 4
       case "2":
-        return 3; // Делим на 3
+        return 2; // Делим на 3
       case "3":
-        return 2; // Делим на 2
+        return 1.333333; // Делим на 2
       case "4":
         return 1; // Прямая передача
       default:
@@ -239,7 +239,7 @@ class CarStore {
     const distance = trafficLight.worldX - mapStore.offsetX;
 
     runInAction(() => {
-      if (distance <= 700 && distance > 0) {
+      if (distance <= 700 && distance > 300) {
         this.isTrafficLightOnScreen = true;
         this.trafficLightColor = mapStore.trafficLightColor;
       } else {
@@ -274,10 +274,6 @@ class CarStore {
       // 1.5. Остановка на красном светофоре
       if (this.trafficLightColor === "red") {
         this.forceStop();
-        this.currentSpeed = Math.max(
-          0,
-          this.currentSpeed - this.friction * deltaTime,
-        );
       }
 
       // 2. Логика разгона и торможения с учётом передачи

@@ -7,6 +7,7 @@ import MapStore from "../../state/mapStore";
 import { Maps } from "../map/Maps";
 import { Conntollers } from "../contollers/Conntollers";
 import { PoliceQuestModal } from "./PoliceQuestModal";
+import { PedestrianCrossingModal } from "./PedestrianCrossingModal";
 
 export const Game = () => {
   const [activeCarStore] = useState(() => new CarStore(Cars.cars[0]));
@@ -84,6 +85,9 @@ export const Game = () => {
 
       {/* Police Quest Modal - всегда рендерится, observer внутри сам управляет видимостью */}
       <PoliceQuestModal mapStore={activeMapStore} carStore={activeCarStore} />
+
+      {/* Pedestrian Crossing Quest Modal */}
+      <PedestrianCrossingModal mapStore={activeMapStore} carStore={activeCarStore} />
     </div>
   );
 };

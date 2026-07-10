@@ -1,34 +1,11 @@
-﻿# Project Backlog — Квест полиции (Арест)
+# Project Backlog: Kvest pedestrian crossing
 
-📋 Список задач
-
-- [x] 1. [Высокий] Добавить состояние квеста в MapStore: `isPoliceQuestActive` (boolean), `questTargetObject` (объект клика), `questCarPosition` (число, позиция машины для анимации). Зависимости: нет. DoD: поля observable, методы `startQuest(targetObj)` и `finishQuest()` меняют состояние через `runInAction`.
-
-- [x] 2. [Высокий] Добавить метод `removeObjectByUid(uid)` в MapStore — удаление объекта из `activeObjects` по uid. Зависимости: нет. DoD: вызов метода удаляет объект из массива, `lastObjectEndMeter` корректируется.
-
-- [x] 3. [Средний] Создать компонент `PoliceQuestModal.jsx` в `src/components/game/` — полноэкранное модальное окно с: а) отображением целевого объекта (humanAggr\*) справа, б) анимированной машиной, подъезжающей слева, в) большой кнопкой "Арестовать" снизу. Зависимости: нет. DoD: компонент рендерится при `isPoliceQuestActive`, корректно позиционирует элементы.
-
-- [x] 4. [Высокий] Реализовать `getPolicequest` в onClick для объектов humanAggr1Obj, humanAggr2Obj, humanAggr3Obj в `@state/objects.jsx`: при клике — вызывает `mapStore.startQuest(obj)`, включает сирену через `carStore.toggleSirena()`. Зависимости: #1. DoD: клик по humanAggr запускает квест, сирена включается.
-
-- [x] 5. [Средний] Реализовать анимацию подъезда машины в PoliceQuestModal — машина движется от левого края к цели с использованием `requestAnimationFrame` и `deltaTime`. Зависимости: #3. DoD: машина плавно подъезжает к правому краю экрана и останавливается.
-
-- [x] 6. [Высокий] Реализовать обработчик кнопки "Арестовать" в PoliceQuestModal: а) закрывает модалку (`mapStore.finishQuest()`), б) удаляет целевой объект (`mapStore.removeObjectByUid(target.uid)`), в) увеличивает `carStore.countHelp` на +1. Зависимости: #2, #3. DoD: после нажатия модалка закрывается, объект исчезает с карты, счётчик увеличивается.
-
-- [x] 7. [Средний] Подключить PoliceQuestModal к Game.jsx — рендер модалки при `activeMapStore.isPoliceQuestActive`. Зависимости: #3, #6. DoD: модалка отображается только при активном квесте, закрывается после ареста.
-
----
-
-## 🆕 Новые задачи: МКПП (Переключение передач)
-
-- [x] 8. [Критический] Создание компонента GearBox.jsx с визуальной схемой МКПП. Зависимости: нет.
-  - DoD: Компонент рендерит сетку 1x5 с кнопками N, 1, 2, 3, 4 в flex-column контейнере ✅
-- [x] 9. [Критический] Интеграция GearBox в Conntollers.jsx между зажиганием и сиреной. Зависимости: #8.
-  - DoD: Компонент отображается в правильном месте UI контроллеров ✅
-- [x] 10. [Критический] Реализация логики переключения передач в CarStore. Зависимости: #8.
-  - DoD: Метод `shiftGear(gear)` устанавливает передаточное отношение, N = деление на 0 (скорость 0), 1 = /4, 2 = /3, 3 = /2, 4 = /1 ✅
-- [x] 11. [Высокий] Привязка передаточного отношения к скорости в updatePhysics. Зависимости: #10.
-  - DoD: Реальная скорость = maxSpeed / gearRatio, при N скорость принудительно 0 ✅
-- [x] 12. [Высокий] Визуальная индикация текущей передачи в UI. Зависимости: #10.
-  - DoD: Кнопка активной передачи подсвечивается (active state) ✅
-- [x] 13. [Средний] Безопасность: блокировка переключения при высокой скорости. Зависимости: #11.
-  - DoD: При скорости > 120 км/ч переключение на N или низшие передачи блокируется с визуальным фидбеком ✅
+- [ ] 1. [Critical] MapStore: isPedestrianCrossingQuestActive, pedestrianCrossingTargetObject, pedestrianCarPosition, pedestrianState. Methods: startPedestrianCrossingQuest(), finishPedestrianCrossingQuest().
+- [ ] 2. [Critical] CarStore: pedestrianQuestTriggered flag.
+- [ ] 3. [High] PedestrianCrossingModal.jsx with background, CarModel, random human, fine button.
+- [ ] 4. [High] Pedestrian walking animation after 1-3 seconds via requestAnimationFrame.
+- [ ] 5. [High] Click handler: toggleSirena, car moves to center, button appears.
+- [ ] 6. [Medium] pedestrian_crossing.css with positioning and fine-button style.
+- [ ] 7. [High] Integration in checkTrafficLight with 50% chance on red light.
+- [ ] 8. [High] Connect PedestrianCrossingModal to Game.jsx.
+- [ ] 9. [Medium] Update ARCHITECTURE.md.

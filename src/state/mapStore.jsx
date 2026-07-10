@@ -63,6 +63,12 @@ class MapStore {
   questTargetObject = null;
   questCarPosition = -150;
 
+  // Pedestrian Crossing Quest state
+  isPedestrianCrossingQuestActive = false;
+  pedestrianCrossingTargetObject = null;
+  pedestrianCarPosition = -150;
+  pedestrianState = "waiting"; // "waiting" | "walking" | "stopped"
+
   constructor(mapData) {
     Object.assign(this, mapData);
     makeAutoObservable(this);
@@ -273,6 +279,31 @@ class MapStore {
   updateQuestCarPosition(newPosition) {
     runInAction(() => {
       this.questCarPosition = newPosition;
+    });
+  }
+
+  updatePedestrianCarPosition(newPosition) {
+    runInAction(() => {
+      this.pedestrianCarPosition = newPosition;
+    });
+  }
+
+  // Pedestrian Crossing Quest methods
+  startPedestrianCrossingQuest(targetObj) {
+    runInAction(() => {
+      this.isPedestrianCrossingQuestActive = true;
+      this.pedestrianCrossingTargetObject = targetObj;
+      this.pedestrianCarPosition = -150;
+      this.pedestrianState = "waiting";
+    });
+  }
+
+  finishPedestrianCrossingQuest() {
+    runInAction(() => {
+      this.isPedestrianCrossingQuestActive = false;
+      this.pedestrianCrossingTargetObject = null;
+      this.pedestrianCarPosition = -150;
+      this.pedestrianState = "waiting";
     });
   }
 }

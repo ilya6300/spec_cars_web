@@ -1,0 +1,79 @@
+.pedestrian-crossing-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: modalScale 0.3s ease-out forwards;
+}
+
+@keyframes modalScale {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1001;  
+  background-image: url('../assets/\quest_location/police_pedestrian crossing.png');
+  background-size: auto 100%;  
+  background-position: center center;
+}
+
+.quest-car {
+  position: absolute;
+  width: 120px;
+  height: 80px;
+  z-index: 1004;
+  left: 0;
+  transition: none;
+}
+
+.quest-pedestrian {
+  position: absolute;
+  width: 60px;
+  height: 100px;
+  z-index: 1002;
+  cursor: pointer;
+}
+
+.pedestrian-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.fine-button {
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 20px 60px;
+  font-size: 24px;
+  font-weight: bold;
+  background: #ff4444;
+  color: white;
+  border: 2px solid #fff;
+  border-radius: 12px;
+  cursor: pointer;
+  z-index: 1003;
+}
+
+.fine-button:hover {
+  background: #cc0000;
+}

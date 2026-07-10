@@ -40,6 +40,7 @@ class CarStore {
   // Состояние светофора
   isTrafficLightOnScreen = false;
   trafficLightColor = null; // 'red' | 'green' | null
+  pedestrianQuestTriggered = false;
 
   // Передача (МКПП)
   gear = "N"; // 'N' | '1' | '2' | '3' | '4'
@@ -232,6 +233,7 @@ class CarStore {
       runInAction(() => {
         this.isTrafficLightOnScreen = false;
         this.trafficLightColor = null;
+        this.pedestrianQuestTriggered = false;
       });
       return;
     }
@@ -245,8 +247,47 @@ class CarStore {
       } else {
         this.isTrafficLightOnScreen = false;
         this.trafficLightColor = null;
+        this.pedestrianQuestTriggered = false;
       }
     });
+
+    // Запуск квеста пешеходного перехода при остановке на красном светофоре (50% шанс)
+    if (
+      this.isTrafficLightOnScreen &&
+      this.trafficLightColor === "red" &&
+      !this.pedestrianQuestTriggered &&
+      !mapStore.isPedestrianCrossingQuestActive &&
+      !mapStore.isPoliceQuestActive
+    ) {
+      if (Math.random() < 0.5) {
+        const humanTypes = [
+          "human1",
+          "human2",
+          "human3",
+          "human4",
+          "human5",
+          "human6",
+          "human7",
+          "human8",
+          "human9",
+          "human10",
+          "human11",
+          "human12",
+          "human13",
+          "human14",
+          "human15",
+          "human16",
+        ];
+        const randomType =
+          humanTypes[Math.floor(Math.random() * humanTypes.length)];
+        const targetObj = {
+          uid: `pedestrian_quest_${Date.now()}_${Math.random()}`,
+          typeId: randomType,
+        };
+        mapStore.startPedestrianCrossingQuest(targetObj);
+        this.pedestrianQuestTriggered = true;
+      }
+    }
   }
 
   // Готовый признак: нужно ли останавливаться из-за светофора

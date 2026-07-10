@@ -1,0 +1,6 @@
+import { useEffect, useRef, useCallback, useState } from "react";
+import { observer } from "mobx-react-lite";
+import { CarModel } from "./car/CarModel";
+import Objects from "../../state/objects";
+import { runInAction } from "mobx";
+import roadImage from "../../assets/maps/road_1.png";

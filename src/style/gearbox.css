@@ -1,4 +1,5 @@
-.gearbox-container {
+/* Старай версия */
+/* .gearbox-container {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -36,4 +37,171 @@
 
 .gearbox-buttons button.active:hover {
   background: #45a049;
+} */
+/* Версия гугла */
+/* Общий контейнер - Эффект футуристичной панели */
+.controllers_container {
+  position: absolute;
+  z-index: 10;
+  bottom: 15px;
+  right: 5%;
+  display: flex;
+  gap: 24px;
+  align-items: center; /* Центрируем по вертикали для лучшего хвата */
+  padding: 15px 25px;
+  background: rgba(20, 25, 35, 0.65); /* Стеклянный темный фон */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 
+              inset 0 1px 2px rgba(255, 255, 255, 0.15);
+}
+
+/* Педаль газа - Спортивный вид и глубокий 3D прогиб */
+.gas_pedal {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  min-width: 50px;
+  height: 16vh;
+  min-height: 110px;
+  cursor: pointer;
+  transform-origin: top center;
+  transition: transform 0.15s cubic-bezier(0.25, 1, 0.5, 1);
+  filter: drop-shadow(0px 5px 8px rgba(0, 0, 0, 0.4));
+}
+
+.gas_pedal.pressed {
+  transform: perspective(400px) rotateX(-22deg) scale(0.92);
+  filter: drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.2)) brightness(0.9);
+}
+
+/* Кнопки Зажигания и Сирены */
+.ignition-key,
+.ignition-sirena,
+.ignition-sirena-on {
+  width: 65px;
+  height: 65px;
+  cursor: pointer;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s ease, filter 0.2s ease, opacity 0.2s ease;
+  border-radius: 50%;
+  padding: 5px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ignition-key:active,
+.ignition-sirena:active {
+  transform: scale(0.92);
+}
+
+/* Улучшенная анимация сирены - более агрессивная и яркая */
+.ignition-sirena-on {
+  animation: anim_siren 1s infinite alternate cubic-bezier(0.45, 0.05, 0.55, 0.95);
+  border-color: rgba(255, 0, 0, 0.4);
+  background: rgba(255, 0, 0, 0.05);
+}
+
+@keyframes anim_siren {
+  0% {
+    filter: drop-shadow(0px 0px 10px #0066ff) brightness(1.2);
+    transform: scale(0.95);
+  }
+  100% {
+    filter: drop-shadow(0px 0px 15px #ff0055) brightness(1.3);
+    transform: scale(1.05);
+  }
+}
+
+/* Секция МКПП */
+.gearbox-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Верхняя панель МКПП (Текст + Нейтралка) */
+.gearbox-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.gearbox-title {
+  font-family: 'Segoe UI', Roboto, sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 700;
+  padding-left: 2px;
+}
+
+/* Сетка для передач 1-4 */
+.gearbox-buttons-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+/* Базовый эргономичный стиль кнопок передач */
+.gear-btn {
+  min-width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+  font-family: monospace;
+  font-weight: 900;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Отдельный стиль для нейтралки (чтобы выделялась) */
+.gear-btn.neutral {
+  min-width: 46px;
+  height: 32px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+/* Эффект наведения */
+.gear-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Неоновый Активный статус (Передача включена) */
+.gear-btn.active {
+  background: linear-gradient(135deg, #0072ff 0%, #00c6ff 100%);
+  color: #ffffff;
+  border-color: #00c6ff;
+  box-shadow: 0 0 15px rgba(0, 198, 255, 0.5), 
+              inset 0 1px 2px rgba(255, 255, 255, 0.4);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Активная нейтралка (делаем оранжевой/желтой для предупреждения) */
+.gear-btn.neutral.active {
+  background: linear-gradient(135deg, #ff9900 0%, #ff5500 100%);
+  border-color: #ff9900;
+  box-shadow: 0 0 15px rgba(255, 85, 0, 0.5);
+}
+
+.gear-btn:active {
+  transform: scale(0.92);
 }

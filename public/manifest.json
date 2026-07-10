@@ -3,6 +3,6 @@
   "short_name": "spec_cars",
   "display": "fullscreen",
   "orientation": "any",
-  "start_url": "/",
+  "start_url": "/spec_cars_web/",
   "icons": []
 }

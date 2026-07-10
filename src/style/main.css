@@ -1,29 +1,31 @@
 html, body {
   margin: 0;
   padding: 0;
-  /* 100vh = БОЛЬШОЙ viewport. Когда адресная строка видна, 100vh > видимой области
-     → появляется скролл → пользователь скроллит вниз → адресная строка скроется. */
-  height: 100vh;
-  overflow: auto;
-}
-
-#root {
-  position: fixed;
-  top: 0;
-  left: 0;
   width: 100%;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
 }
 
+#root {
+  width: 100%;
+  height: 100%;
+}
+
 .game-viewport {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
   width: 100vw;
   height: 100vh;
+
   max-height: 100vh;
   background-color: #000;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
 }
 .game {
+  position: relative;
   width: 100vw;
   height: 100vh;
 }

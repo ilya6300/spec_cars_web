@@ -1,0 +1,71 @@
+.quest-car {
+  position: absolute;
+  width: 250px;
+  height: auto;
+  top: 58%;
+  z-index: 50;
+  transition: none;
+}
+
+.quest-car-enemy {
+  position: absolute;
+  width: 250px;
+  height: auto;
+  top: 58%;
+  z-index: 50;
+  transition: none;
+}
+
+.quest-car-civilian {
+  position: absolute;
+  width: 250px;
+  height: auto;
+  top: 58%;
+  z-index: 50;
+  transition: none;
+}
+
+.speed-display {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  font-size: 32px;
+  font-weight: bold;
+  color: white;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px 20px;
+  border-radius: 8px;
+  transition:
+    transform 0.3s ease,
+    color 0.3s ease;
+}
+
+.speed-display.critical {
+  color: red;
+  animation: speed-pulse 0.5s ease-in-out infinite alternate;
+}
+.arrest-button-quest-car-map {
+  position: fixed;
+  bottom: 20px;
+  left: 50px;
+  padding: 20px 60px;
+  font-size: 24px;
+  font-weight: bold;
+  background: #ff4444;
+  color: white;
+  border: 2px solid #fff;
+  border-radius: 12px;
+  cursor: pointer;
+  z-index: 1003;
+}
+.arrest-button-quest-car-map:hover {
+  background: #cc0000;
+}
+@keyframes speed-pulse {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.2);
+  }
+}

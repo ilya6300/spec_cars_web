@@ -76,3 +76,23 @@
 .fine-button:hover {
   background: #cc0000;
 }
+
+.arrest-button {
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 20px 60px;
+  font-size: 24px;
+  font-weight: bold;
+  background: #ff4444;
+  color: white;
+  border: 2px solid #fff;
+  border-radius: 12px;
+  cursor: pointer;
+  z-index: 1003;
+}
+
+.arrest-button:hover {
+  background: #cc0000;
+}

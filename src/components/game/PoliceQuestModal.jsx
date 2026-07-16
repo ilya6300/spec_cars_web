@@ -1,11 +1,17 @@
 import { useEffect, useRef, useCallback } from "react";
 import { observer } from "mobx-react-lite";
 import { CarModel } from "../car/CarModel";
+import CarStore from "../../state/carStore";
+import Cars from "../../state/cars";
 import Objects from "../../state/objects";
 import { runInAction } from "mobx";
 import roadImage from "../../assets/maps/road_1.png";
 
 export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
+  const policeCarStore = useRef(null);
+  if (!policeCarStore.current) {
+    policeCarStore.current = new CarStore(Cars.cars[0]);
+  }
   const animationRef = useRef(null);
   const lastTimeRef = useRef(performance.now());
 
@@ -20,6 +26,23 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
         carStore.toggleSirena();
       }
       mapStore.finishQuest();
+    }
+
+    const questCar = mapStore.questCarForArrest;
+    if (questCar) {
+      const index = mapStore.questCars.indexOf(questCar);
+      if (index !== -1) {
+        runInAction(() => {
+          carStore.countHelp += 1;
+        });
+        mapStore.removeQuestCarByIndex(index);
+        mapStore.questCarForArrest = null;
+        mapStore.questCarActive = false;
+        if (carStore.sirena) {
+          carStore.toggleSirena();
+        }
+        mapStore.finishQuest();
+      }
     }
   }, [mapStore, carStore]);
 
@@ -91,9 +114,9 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
       {/* Машина подъезжает слева */}
       <div
         className="quest-car"
-        style={{ left: `${mapStore.questCarPosition}px` }}
+        style={{ left: `${mapStore.questCarPosition}px`, zIndex: 100 }}
       >
-        <CarModel carStore={carStore} />
+        <CarModel carStore={policeCarStore.current} />
       </div>
 
       {/* Целевой объект справа */}
@@ -101,9 +124,11 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
         <img src={targetImage} alt="Target" className="target-image" />
       </div>
 
-      <button className="arrest-button" onClick={handleArrest}>
-        Арестовать
-      </button>
+      {mapStore.questCarForArrest && (
+        <button className="arrest-button" onClick={handleArrest}>
+          Арестовать
+        </button>
+      )}
     </div>
   );
 });

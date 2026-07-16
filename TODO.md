@@ -1,11 +1,13 @@
-# Project Backlog: Kvest pedestrian crossing
+Project Backlog
 
-- [ ] 1. [Critical] MapStore: isPedestrianCrossingQuestActive, pedestrianCrossingTargetObject, pedestrianCarPosition, pedestrianState. Methods: startPedestrianCrossingQuest(), finishPedestrianCrossingQuest().
-- [ ] 2. [Critical] CarStore: pedestrianQuestTriggered flag.
-- [ ] 3. [High] PedestrianCrossingModal.jsx with background, CarModel, random human, fine button.
-- [ ] 4. [High] Pedestrian walking animation after 1-3 seconds via requestAnimationFrame.
-- [ ] 5. [High] Click handler: toggleSirena, car moves to center, button appears.
-- [ ] 6. [Medium] pedestrian_crossing.css with positioning and fine-button style.
-- [ ] 7. [High] Integration in checkTrafficLight with 50% chance on red light.
-- [ ] 8. [High] Connect PedestrianCrossingModal to Game.jsx.
-- [ ] 9. [Medium] Update ARCHITECTURE.md.
+📋 Список задач
+
+- [ ] 1. [Критический] Добавить таймер видимости для enemy=false машин. Добавить поле `lastVisibleTime` в QuestCarStore. Запускать таймер при уходе машины за границу видимости. Завершать квест, если `enemy=false` и время скрытия > 5 сек. Зависимости: нет.
+
+- [ ] 2. [Критический] Изменить логику сброса квеста для enemy=true. Квест должен сбрасываться ТОЛЬКО при аресте (`removeQuestCarByIndex`), а не при уходе за границу видимости. Убрать фильтрацию по границам экрана из `updateQuestCars` для `enemy=true`. Зависимости: #1.
+
+- [ ] 3. [Высокий] Обновить `mapStore.spawnQuestCar()` чтобы разрешить спавн через 3-8 секунд после завершения предыдущего квеста (сбросить `questCarSpawnTimer`). Зависимости: #1, #2.
+
+- [ ] 4. [Средний] Добавить флаг `questCarActive` в MapStore и обновлять его в `spawnQuestCar()` и при сбросе квеста. Зависимости: #3.
+
+- [ ] 5. [Средний] Обновить `instructions.md` с новыми правилами таймера видимости для enemy=false машин и условиями сброса квеста. Зависимости: #1, #2.

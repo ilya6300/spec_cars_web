@@ -1,6 +1,8 @@
 ﻿import { makeAutoObservable, runInAction } from "mobx";
 import { objectConfigs } from "./objects";
 import stateApp from "./state_app";
+import QuestCarStore from "./questCarStore";
+import Cars from "./cars";
 
 class MapStore {
   id = 0;
@@ -18,7 +20,7 @@ class MapStore {
   nextSpawnDistances = {
     building: 0,
     gas_station: 20000,
-    traffic_light: 5000,
+    traffic_light: 1000,
     tree1: 350,
     tree2: 450,
     tree3: 750,
@@ -70,6 +72,12 @@ class MapStore {
   pedestrianState = "waiting"; // "waiting" | "walking" | "stopped"
   pedestrianIsCarArrived = false;
 
+  // Quest Cars state
+  questCars = [];
+  questCarSpawnTimer = 3;
+  questCarActive = false;
+  questCarForArrest = null;
+
   constructor(mapData) {
     Object.assign(this, mapData);
     makeAutoObservable(this);
@@ -83,7 +91,18 @@ class MapStore {
   }
 
   // Спавн новых объектов справа за экраном
-  spawnObjects(viewportWidth) {
+  spawnObjects(viewportWidth, deltaTime) {
+    if (!this.isPedestrianCrossingQuestActive) {
+      this.questCarSpawnTimer -= deltaTime;
+      if (this.questCarSpawnTimer <= 0) {
+        const beforeLength = this.questCars.length;
+        this.spawnQuestCar();
+        if (this.questCars.length > beforeLength) {
+          this.questCarSpawnTimer = 3 + Math.random() * 5;
+        }
+      }
+    }
+
     objectConfigs.forEach((config) => {
       const nextSpawn = this.nextSpawnDistances[config.type];
 
@@ -234,6 +253,9 @@ class MapStore {
       clearInterval(this.refuelInterval);
       this.refuelInterval = null;
     }
+    this.questCars.forEach((car) => car.deactivate());
+    this.questCars = [];
+    this.questCarForArrest = null;
   }
 
   // Готовый признак: светофор на экране И красный
@@ -287,6 +309,103 @@ class MapStore {
     runInAction(() => {
       this.pedestrianCarPosition = newPosition;
     });
+  }
+
+  spawnQuestCar() {
+    if (this.isPedestrianCrossingQuestActive) {
+      return;
+    }
+
+    if (this.questCars.length > 0 || this.questCarActive) {
+      return;
+    }
+
+    if (!this.carStore.gear || (this.carStore.gear !== "2" && this.carStore.gear !== "3")) {
+      return;
+    }
+
+    const otherCars = Cars.otherCars;
+    const randomCarData = otherCars[Math.floor(Math.random() * otherCars.length)];
+
+    const questCar = new QuestCarStore(randomCarData);
+
+    const viewportWidth = window.innerWidth;
+    let positionX;
+    let speed = questCar.currentSpeed;
+
+    if (questCar.enemy) {
+      positionX = -200;
+    } else {
+      positionX = viewportWidth + 200;
+    }
+
+    questCar.spawn(positionX, speed);
+
+    runInAction(() => {
+      this.questCars.push(questCar);
+      this.questCarActive = true;
+      this.questCarSpawnTimer = 3 + Math.random() * 5;
+    });
+  }
+
+  updateQuestCars(deltaTime) {
+    if (this.questCars.length === 0) return;
+
+    const viewportWidth = window.innerWidth;
+    const policeSpeed = this.carStore.currentSpeed;
+
+    runInAction(() => {
+      for (const questCar of this.questCars) {
+        if (questCar.active) {
+          questCar.updatePosition(deltaTime, policeSpeed);
+          questCar.updateWheelRotation(deltaTime);
+          questCar.updateVisibility(deltaTime, viewportWidth, this.offsetX);
+        }
+      }
+
+      this.questCars = this.questCars.filter((questCar) => {
+        if (!questCar.active) return false;
+        return true;
+      });
+    });
+  }
+
+  removeQuestCarByIndex(index) {
+    runInAction(() => {
+      if (index >= 0 && index < this.questCars.length) {
+        this.questCars.splice(index, 1);
+        if (this.questCars.length === 0) {
+          this.questCarActive = false;
+          this.questCarSpawnTimer = 3 + Math.random() * 5;
+        }
+      }
+    });
+  }
+
+  checkQuestCarDistance(questCarStores, viewportWidth, distance) {
+    const policeScreenX = 30;
+    const policeWidth = 250;
+    const policeRightEdge = policeScreenX + policeWidth * 0.5;
+    const maxDistance = policeRightEdge + 200;
+
+    let closestQuestCar = null;
+
+    for (const questCar of questCarStores) {
+      if (questCar.enemy && questCar.active) {
+        try {
+          const questCarScreenX = questCar.positionX - distance;
+          if (questCarScreenX > policeRightEdge && questCarScreenX <= maxDistance) {
+            if (!closestQuestCar || questCarScreenX < closestQuestCar.positionX - distance) {
+              closestQuestCar = questCar;
+            }
+          }
+        } catch (error) {
+          console.error("Error checking quest car distance:", error);
+        }
+      }
+    }
+
+    this.questCarForArrest = closestQuestCar;
   }
 
   // Pedestrian Crossing Quest methods

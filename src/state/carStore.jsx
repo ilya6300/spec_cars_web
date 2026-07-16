@@ -318,8 +318,10 @@ class CarStore {
       }
 
       // 2. Логика разгона и торможения с учётом передачи
+      const speedMultiplier = this.speedMultiplier !== undefined ? this.speedMultiplier : 1;
       const effectiveMaxSpeed =
-        this.gear === "N" ? 0 : this.maxSpeed / this.gearRatio;
+        this.gear === "N" ? 0 : (this.maxSpeed / this.gearRatio) * speedMultiplier;
+      const realSpeed = effectiveMaxSpeed;
 
       if (this.isGasPressed && this.fuel > 0 && this.isIgnitionOn) {
         this.currentSpeed = Math.min(
@@ -339,9 +341,11 @@ class CarStore {
       // Зацикливаем угол в пределах 360 градусов, чтобы число не росло до бесконечности
       this.wheelRotation %= 360;
 
-      // 4. Накопление пройденного расстояния (метры)
-      this.distanceMeters +=
-        (this.currentSpeed * deltaTime) / stateApp.distanceMetersFactor;
+      // 4. Накопление пройденного расстояния (только при нажатом газе)
+      if (this.isGasPressed) {
+        this.distanceMeters +=
+          (realSpeed * deltaTime) / stateApp.distanceMetersFactor;
+      }
     });
   }
 }

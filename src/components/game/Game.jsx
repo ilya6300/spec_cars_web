@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
+import { runInAction } from "mobx";
+import { observer } from "mobx-react-lite";
 import { Car } from "../car/Car";
 import CarStore from "../../state/carStore";
 import Cars from "../../state/cars";
 import MapsStore from "../../state/maps";
 import MapStore from "../../state/mapStore";
 import { Maps } from "../map/Maps";
-import { Conntollers } from "../contollers/Conntollers";
+import { Controllers } from "../controllers/Controllers";
 import { PoliceQuestModal } from "./PoliceQuestModal";
 import { PedestrianCrossingModal } from "./PedestrianCrossingModal";
+import { PedestrianQuestModal } from "./PedestrianQuestModal";
+import { QuestCar } from "./QuestCar";
+import { SpeedDisplay } from "./SpeedDisplay";
 
-export const Game = () => {
+export const Game = observer(() => {
   const [activeCarStore] = useState(() => new CarStore(Cars.cars[0]));
   const [activeMapStore] = useState(() => {
     const store = new MapStore(MapsStore.maps[0]);
@@ -17,6 +22,7 @@ export const Game = () => {
     return store;
   });
 
+  const [questCarStores, setQuestCarStores] = useState([]);
   const [distance, setDistance] = useState(0);
   const lastTimeRef = useRef(performance.now());
   const viewportWidthRef = useRef(window.innerWidth);
@@ -44,15 +50,36 @@ export const Game = () => {
       // Обновляем offsetX в MapStore (синхронно с distance)
       activeMapStore.update(activeCarStore.currentSpeed, deltaTime);
       activeCarStore.checkTrafficLight(activeMapStore);
-      activeMapStore.spawnObjects(viewportWidthRef.current);
+      activeMapStore.spawnObjects(viewportWidthRef.current, deltaTime);
       activeMapStore.despawnObjects(viewportWidthRef.current);
       activeMapStore.triggerAppearEvents(activeCarStore);
+      activeMapStore.updateQuestCars(deltaTime);
+      activeMapStore.checkQuestCarDistance(
+        activeMapStore.questCars,
+        viewportWidthRef.current,
+        activeMapStore.offsetX,
+      );
+
+      if (
+        activeMapStore.questCars.length === 0 &&
+        activeMapStore.questCarActive
+      ) {
+        activeMapStore.questCarActive = false;
+      }
+
+
+
+      const newQuestCarStores = activeMapStore.questCars;
+      if (newQuestCarStores.length !== questCarStores.length) {
+        setQuestCarStores(newQuestCarStores);
+      }
+
       animationFrameId = requestAnimationFrame(gameLoop);
     };
 
     animationFrameId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [activeCarStore, activeMapStore]);
+  }, [activeCarStore, activeMapStore, questCarStores.length]);
 
   useEffect(() => {
     activeMapStore.startTrafficLightTimer();
@@ -60,6 +87,12 @@ export const Game = () => {
       activeMapStore.dispose();
     };
   }, [activeMapStore]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.__PLAYWRIGHT__) {
+      window.__TEST_STATE__ = { activeMapStore, activeCarStore, distance };
+    }
+  }, [activeMapStore, activeCarStore, distance]);
 
   const handleObjectClick = (obj, config, mapStore, carStore) => {
     if (obj.longPressTimeout) {
@@ -81,13 +114,53 @@ export const Game = () => {
         onClickObject={handleObjectClick}
       />
       <Car carStore={activeCarStore} />
-      <Conntollers activeCarStore={activeCarStore} />
+      <Controllers activeCarStore={activeCarStore} />
 
-      {/* Police Quest Modal - всегда рендерится, observer внутри сам управляет видимостью */}
+      {/* Police Quest Modal - для квеста со светофором и human_aggr* */}
       <PoliceQuestModal mapStore={activeMapStore} carStore={activeCarStore} />
 
-      {/* Pedestrian Crossing Quest Modal */}
-      <PedestrianCrossingModal mapStore={activeMapStore} carStore={activeCarStore} />
+      {/* Pedestrian Crossing Quest Modal - для квеста с пешеходным переходом */}
+      <PedestrianCrossingModal
+        mapStore={activeMapStore}
+        carStore={activeCarStore}
+      />
+
+      {/* Pedestrian Quest Modal - для квеста с human* (арест) */}
+      <PedestrianQuestModal
+        mapStore={activeMapStore}
+        carStore={activeCarStore}
+      />
+
+      {questCarStores.map((questCar) => (
+        <QuestCar key={questCar.id} questCarStore={questCar} mapStore={activeMapStore} distance={distance} />
+      ))}
+
+      {questCarStores.length > 0 && (
+        <SpeedDisplay currentSpeed={questCarStores[0].currentSpeed} />
+      )}
+
+      {activeMapStore.questCarForArrest && (
+        <button
+          className="arrest-button-quest-car-map"
+          onClick={() => {
+            if (activeMapStore.questCarForArrest) {
+              const index = activeMapStore.questCars.indexOf(activeMapStore.questCarForArrest);
+              if (index !== -1) {
+                runInAction(() => {
+                  activeCarStore.countHelp += 1;
+                  activeMapStore.questCarForArrest = null;
+                });
+                activeMapStore.removeQuestCarByIndex(index);
+                if (activeCarStore.sirena) {
+                  activeCarStore.toggleSirena();
+                }
+              }
+            }
+          }}
+        >
+          Арестовать
+        </button>
+      )}
     </div>
   );
-};
+});

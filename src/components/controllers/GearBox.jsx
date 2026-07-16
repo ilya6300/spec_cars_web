@@ -42,8 +42,8 @@ export const GearBox = observer(({ gear, shiftGear }) => {
   const gears = ["N", "1", "2", "3", "4"];
 
   return (
-    <div className="gearbox-buttons">
-      <div className="gearbox-header">
+    <>
+      <div className="gearbox-buttons">
         <span className="gearbox-title">МКПП</span>
         {gears
           .filter((g) => g === "N")
@@ -63,6 +63,7 @@ export const GearBox = observer(({ gear, shiftGear }) => {
           .map((g) => (
             <button
               key={g}
+              data-type={`gear-${g}`}
               className={`gear-btn ${gear === g ? "active" : ""}`}
               onClick={() => shiftGear(g)}
             >
@@ -70,6 +71,6 @@ export const GearBox = observer(({ gear, shiftGear }) => {
             </button>
           ))}
       </div>
-    </div>
+    </>
   );
 });

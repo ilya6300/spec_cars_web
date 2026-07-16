@@ -6,6 +6,17 @@ import { dataObjectsSub } from "../../state/subobject";
 import crossingImage from "../../assets/quest_location/police_pedestrian crossing.png";
 
 export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
+  const handleArrest = useCallback(() => {
+    if (carRafRef.current) {
+      cancelAnimationFrame(carRafRef.current);
+      carRafRef.current = null;
+    }
+    mapStore.finishPedestrianCrossingQuest();
+    runInAction(() => {
+      carStore.countHelp += 1;
+      carStore.toggleSirena();
+    });
+  }, [mapStore, carStore]);
   const pedRafRef = useRef(null);
   const carRafRef = useRef(null);
   const timerRef = useRef(null);
@@ -147,9 +158,14 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
         <img src={pedestrianImage} alt="Pedestrian" className="pedestrian-image" />
       </div>
       {mapStore.pedestrianIsCarArrived && (
-        <button className="fine-button" onClick={handleFine}>
-          Выписать штраф
-        </button>
+        <>
+          <button className="fine-button" onClick={handleFine}>
+            Выписать штраф
+          </button>
+          <button className="arrest-button" onClick={handleArrest}>
+            Арестовать
+          </button>
+        </>
       )}
     </div>
   );

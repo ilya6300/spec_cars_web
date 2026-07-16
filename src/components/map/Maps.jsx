@@ -46,6 +46,7 @@ export const Maps = observer(({ map, distance, carStore, onClickObject }) => {
           <div
             key={obj.uid}
             className="game-object"
+            data-type={obj.typeId}
             style={{
               backgroundImage: `url(${image})`,
               left: `${screenX}px`,

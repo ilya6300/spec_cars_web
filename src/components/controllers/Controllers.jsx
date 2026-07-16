@@ -6,11 +6,12 @@ import keyActiveImg from "../../assets/objects/key_active.png";
 import keyDeactiveImg from "../../assets/objects/key_deactive.png";
 import sirenaBtn from "../../assets/objects/sirena_btn.png";
 
-export const Conntollers = observer(({ activeCarStore }) => {
+export const Controllers = observer(({ activeCarStore }) => {
   return (
     <div className="controllers_container">
       <img
         className="ignition-key"
+        data-type="ignition"
         alt="Зажигание"
         src={activeCarStore.isIgnitionOn ? keyActiveImg : keyDeactiveImg}
         onClick={() => activeCarStore.toggleIgnition()}
@@ -24,6 +25,7 @@ export const Conntollers = observer(({ activeCarStore }) => {
       <img
         // Добавляем динамический класс pressed, если педаль зажата
         className={`gas_pedal ${activeCarStore.isGasPressed ? "pressed" : ""}`}
+        data-type="gas-pedal"
         alt="Педаль газа"
         src={gasPedal}
         onContextMenu={(e) => e.preventDefault()}

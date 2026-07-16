@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Pedestrian Quest E2E', () => {
   test('Pedestrian quest: red light -> quest modal -> click pedestrian -> siren -> car moves -> fine button -> countHelp increases', async ({ page }) => {
-    await page.goto('http://localhost:5173');
+    await page.goto('/');
     await page.waitForSelector('.game-viewport', { timeout: 10000 });
     
     await page.waitForTimeout(2000);

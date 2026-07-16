@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Integration: Full Quest Flow', () => {
   test.skip('Full flow: stop on red -> 50% chance -> pedestrian quest -> fine -> countHelp increases', async ({ page }) => {
-    await page.goto('http://localhost:5173');
+    await page.goto('/');
     await page.waitForSelector('.game-viewport', { timeout: 10000 });
     
     let questStarted = false;

@@ -6,7 +6,7 @@ test.describe('Traffic Light Cycle', () => {
     await page.addInitScript(() => {
       window.__PLAYWRIGHT__ = true;
     });
-    await page.goto('http://localhost:5173/spec_cars_web/');
+    await page.goto('/');
     await page.waitForSelector('#root', { timeout: 10000 });
     await page.waitForTimeout(5000);
     

@@ -355,24 +355,36 @@ class MapStore {
     const policeSpeed = this.carStore.currentSpeed;
 
     runInAction(() => {
-      for (const questCar of this.questCars) {
-        if (questCar.active) {
-          questCar.updatePosition(deltaTime, policeSpeed);
-          questCar.updateWheelRotation(deltaTime);
-          questCar.updateVisibility(deltaTime, viewportWidth, this.offsetX);
-        }
+    for (const questCar of this.questCars) {
+      if (questCar.active) {
+        questCar.updatePosition(deltaTime, policeSpeed);
+        questCar.updateWheelRotation(deltaTime);
+        questCar.updateVisibility(deltaTime, viewportWidth, this.offsetX);
+      } else if (questCar.enemy) {
+        // Для enemy=true обновляем позиции даже неактивной машины
+        // чтобы отследить возвращение на экран
+        questCar.updatePosition(deltaTime, policeSpeed);
+        questCar.updateWheelRotation(deltaTime);
+        questCar.updateVisibility(deltaTime, viewportWidth, this.offsetX);
       }
+    }
 
-      this.questCars = this.questCars.filter((questCar) => {
-        if (!questCar.active) return false;
-        return true;
-      });
+    // Удаляем только enemy=false с active=false (уехал и не вернётся)
+    // enemy=true остаётся в массиве (может вернуться)
+    this.questCars = this.questCars.filter((questCar) => {
+      if (!questCar.active && !questCar.enemy) return false;
+      return true;
+    });
     });
   }
 
   removeQuestCarByIndex(index) {
     runInAction(() => {
       if (index >= 0 && index < this.questCars.length) {
+        const removedCar = this.questCars[index];
+        if (removedCar) {
+          removedCar.dismissed = true;
+        }
         this.questCars.splice(index, 1);
         if (this.questCars.length === 0) {
           this.questCarActive = false;

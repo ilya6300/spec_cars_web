@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
@@ -7,6 +7,6 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     include: ['src/**/*.test.{js,jsx}'],
-    exclude: ['node_modules', 'cypress', 'dist', 'tests/e2e', 'cypress'],
+    exclude: ['node_modules', 'cypress', 'dist', 'tests/e2e'],
   },
 });

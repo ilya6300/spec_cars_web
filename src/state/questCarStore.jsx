@@ -31,6 +31,7 @@ class QuestCarStore {
     this.active = true;
     this.wheelRotation = 0;
     this.lastVisibleTime = null;
+    this.dismissed = false;
 
     makeAutoObservable(this);
   }
@@ -65,8 +66,10 @@ class QuestCarStore {
 
     if (isOffScreen && this.lastVisibleTime !== null) {
       const timeOffScreen = (performance.now() / 1000) - this.lastVisibleTime;
-      if (timeOffScreen > 5) {
+      const timeout = this.enemy ? 8 : 5;
+      if (timeOffScreen > timeout) {
         this.active = false;
+        this.dismissed = true;
       }
     }
 

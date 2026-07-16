@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Police Quest E2E', () => {
   test('Police quest: click aggro human, arrest, countHelp increases', async ({ page }) => {
-    await page.goto('http://localhost:5173');
+    await page.goto('/');
     await page.waitForSelector('.game-viewport', { timeout: 10000 });
     
     await page.waitForTimeout(2000);

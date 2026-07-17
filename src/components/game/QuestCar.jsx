@@ -11,8 +11,7 @@ export const QuestCar = observer(({ questCarStore, mapStore, distance }) => {
         left: `${screenX}px`,
       }}
     >
-      <span>{String(questCarStore.enemy)}</span>
-      <CarModel carStore={questCarStore} />
+      <CarModel carStore={questCarStore} typeBody={1}/>
     </div>
   );
 });

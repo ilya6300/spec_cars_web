@@ -42,7 +42,7 @@ export const Car = observer(({ carStore }) => {
           style={{ transform: `rotate(${wheelRotation}deg)` }}
         />
       </div> */}
-      <CarModel carStore={carStore} />
+      <CarModel carStore={carStore} typeBody={0} />
     </div>
   );
 });

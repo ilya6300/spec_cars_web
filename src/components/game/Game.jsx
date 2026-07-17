@@ -121,7 +121,7 @@ activeMapStore.checkQuestCarDistance(
         <SpeedDisplay currentSpeed={activeMapStore.questCars[0].currentSpeed} />
       )}
 
-      {activeMapStore.questCarForArrest && (
+      {activeMapStore.questCarForArrest && activeMapStore.isPedestrianCrossingQuestActive && (
         <button
           className="arrest-button-quest-car-map"
           onClick={() => {

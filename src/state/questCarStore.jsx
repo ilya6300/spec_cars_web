@@ -45,7 +45,7 @@ class QuestCarStore {
   }
 
   updateWheelRotation(deltaTime) {
-    this.wheelRotation += this.currentSpeed * deltaTime * 5;
+    this.wheelRotation += this.currentSpeed * deltaTime * 2.5;
     this.wheelRotation %= 360;
   }
 

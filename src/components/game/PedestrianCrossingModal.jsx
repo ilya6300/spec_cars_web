@@ -72,7 +72,7 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
 
       // Вращение колёс на отдельном сторе (не конфликтует с основным игровым циклом)
       runInAction(() => {
-        modalCarStore.current.wheelRotation += 400 * dt * 1.5;
+        modalCarStore.current.wheelRotation += 400 * dt * 0.75;
         modalCarStore.current.wheelRotation %= 360;
       });
 

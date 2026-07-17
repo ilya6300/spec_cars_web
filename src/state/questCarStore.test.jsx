@@ -67,7 +67,7 @@ test('QuestCarStore: updateWheelRotation', () => {
 
   store.updateWheelRotation(1);
 
-  expect(store.wheelRotation).toBe(250);
+  expect(store.wheelRotation).toBe(125);
 });
 
 test('QuestCarStore: deactivate method', () => {
@@ -93,10 +93,10 @@ test('QuestCarStore: wheel rotation cycles at 360 degrees', () => {
   expect(store.wheelRotation).toBe(0);
 
   store.updateWheelRotation(1);
-  expect(store.wheelRotation).toBe(140);
+  expect(store.wheelRotation).toBe(250);
 
   store.updateWheelRotation(1);
-  expect(store.wheelRotation).toBe(280);
+  expect(store.wheelRotation).toBe(140);
 });
 
 test('QuestCarStore: direction logic for enemy=false (civilian, relative speed)', () => {

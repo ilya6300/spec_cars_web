@@ -73,7 +73,7 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
 
         // Вращение колёс пропорционально скорости
         runInAction(() => {
-          policeCarStore.current.wheelRotation += speed * deltaTime * 1.5;
+          policeCarStore.current.wheelRotation += speed * deltaTime * 0.75;
           policeCarStore.current.wheelRotation %= 360;
         });
 

@@ -41,6 +41,7 @@
   z-index: 1004;
   left: 0;
   transition: none;
+   bottom: 22% !important;
 }
 
 .quest-pedestrian {

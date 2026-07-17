@@ -1,10 +1,14 @@
-# TECH_SPEC.md: Правки по Квесту с другими автомобилями (Quest Cars)
+# TECH_SPEC.md: Исправление бага — Кнопка "Арестовать" не появляется после долгого отсутствия
 
-## 📌 Описание изменений
+## 📌 Описание бага
 
-По `CONCEPT.md` необходимо разделить логику квестовых машин по типам `enemy`:
-- **`enemy = true`** (нарушитель): кнопка "Арестовать" появляется при сближении, квест отключается ТОЛЬКО при аресте. Машина может уйти за экран и вернуться.
-- **`enemy = false`** (не нарушитель): квест сбрасывается, если автомобиль пропал из видимости на 5 секунд.
+**CONCEPT.md:**
+> Когда `enemy=true` машина уезжает за границу экрана на долго, и потом когда мы его догоняем, кнопка "Арестовать" перестаёт появляться, возможно где то или неправельны таимер или машина не уничтожается по истечению квеста где кончается 8 секунд
+
+**Поведение:**
+- `enemy=true` машина деактивируется **либо после ареста, либо если её не видно 8 секунд**
+- После деактивации `active = false`
+- `checkQuestCarDistance()` проверяет `if (questCar.enemy && questCar.active)` → пропускает неактивные машины → кнопка не появляется
 
 ---
 
@@ -12,84 +16,95 @@
 
 | Файл | Тип изменений | Описание |
 |------|--------------|----------|
-| `src/state/questCarStore.jsx` | Изменение | Разделить таймеры видимости (8 сек / 5 сек), добавить флаг `dismissed` |
-| `src/state/mapStore.jsx` | Изменение | Исправить `updateQuestCars()` для раздельной обработки типов, обновить `removeQuestCarByIndex()` |
-| `src/components/game/Game.jsx` | Проверка | Убедиться, что кнопка "Арестовать" привязана только к `enemy=true` |
+| `src/state/mapStore.jsx` | Изменение | Убрать проверку `questCar.active` в `checkQuestCarDistance()` |
+| `src/state/mapStore.jsx` | Изменение | Сброс `questCarActive` в `updateQuestCars()`, когда нет активных машин |
 
 ---
 
 ## 🔧 Детальный план реализации
 
-### Шаг 1: `QuestCarStore.updateVisibility()` — разделить таймеры
+### Шаг 1: `MapStore.checkQuestCarDistance()` — убрать проверку `active`
 
-**Текущий код (строки 54–74):**
+**Текущий код (строки 397–421):**
 ```javascript
-updateVisibility(deltaTime, viewportWidth, distance) {
-  const screenX = this.positionX - distance;
-  const isOffScreen = this.enemy 
-    ? screenX >= viewportWidth + 200 
-    : screenX <= -200;
+checkQuestCarDistance(questCarStores, viewportWidth, distance) {
+  const policeScreenX = 30;
+  const policeWidth = 250;
+  const policeRightEdge = policeScreenX + policeWidth * 0.5;
+  const maxDistance = policeRightEdge + 200;
 
-  if (!isOffScreen) {
-    this.lastVisibleTime = null;
-  } else if (this.lastVisibleTime === null) {
-    this.lastVisibleTime = performance.now() / 1000;
-  }
+  let closestQuestCar = null;
 
-  if (isOffScreen && this.lastVisibleTime !== null) {
-    const timeOffScreen = (performance.now() / 1000) - this.lastVisibleTime;
-    if (timeOffScreen > 5) {
-      this.active = false;
+  for (const questCar of questCarStores) {
+    if (questCar.enemy && questCar.active) {  // ← ПРОБЛЕМА: active
+      try {
+        const questCarScreenX = questCar.positionX - distance;
+        if (questCarScreenX > policeRightEdge && questCarScreenX <= maxDistance) {
+          if (!closestQuestCar || questCarScreenX < closestQuestCar.positionX - distance) {
+            closestQuestCar = questCar;
+          }
+        }
+      } catch (error) {
+        console.error("Error checking quest car distance:", error);
+      }
     }
   }
 
-  return this.active;
+  this.questCarForArrest = closestQuestCar;
 }
 ```
 
-**Изменения:**
-1. Добавить новое observable поле `dismissed = false` в конструктор (после строки 33 `this.lastVisibleTime = null;`).
-2. Заменить жёсткий таймаут `5` на условный:
-   - `enemy === true` → `8` секунд
-   - `enemy === false` → `5` секунд
-3. При деактивации устанавливать `this.dismissed = true`.
+**Проблема:**
+- `enemy=true` машина уехала за экран → `updateVisibility()` → `active = false`
+- `checkQuestCarDistance()` пропускает машину из-за `&& questCar.active`
+- Кнопка "Арестовать" не появляется
+
+**Решение:** Убрать `&& questCar.active` — проверка только по `questCar.enemy`.
+
+**Почему безопасно:**
+- Когда машина на экране, `updateQuestCars()` → `updateVisibility()` → `active = true`
+- `checkQuestCarDistance()` вызывается ПОСЛЕ `updateQuestCars()` → машина уже активна
+- Когда машина не на экране, её координаты не попадут в радиус `[policeRightEdge, maxDistance]`
 
 **Новый код:**
 ```javascript
-// В конструкторе (после строки 33):
-this.dismissed = false;
+checkQuestCarDistance(questCarStores, viewportWidth, distance) {
+  const policeScreenX = 30;
+  const policeWidth = 250;
+  const policeRightEdge = policeScreenX + policeWidth * 0.5;
+  const maxDistance = policeRightEdge + 200;
 
-// Обновлённый метод updateVisibility:
-updateVisibility(deltaTime, viewportWidth, distance) {
-  const screenX = this.positionX - distance;
-  const isOffScreen = this.enemy 
-    ? screenX >= viewportWidth + 200 
-    : screenX <= -200;
+  let closestQuestCar = null;
 
-  if (!isOffScreen) {
-    this.lastVisibleTime = null;
-  } else if (this.lastVisibleTime === null) {
-    this.lastVisibleTime = performance.now() / 1000;
-  }
-
-  if (isOffScreen && this.lastVisibleTime !== null) {
-    const timeOffScreen = (performance.now() / 1000) - this.lastVisibleTime;
-    const timeout = this.enemy ? 8 : 5;
-    if (timeOffScreen > timeout) {
-      this.active = false;
-      this.dismissed = true;
+  for (const questCar of questCarStores) {
+    if (questCar.enemy) {  // Убрана проверка active
+      try {
+        const questCarScreenX = questCar.positionX - distance;
+        if (questCarScreenX > policeRightEdge && questCarScreenX <= maxDistance) {
+          if (!closestQuestCar || questCarScreenX < closestQuestCar.positionX - distance) {
+            closestQuestCar = questCar;
+          }
+        }
+      } catch (error) {
+        console.error("Error checking quest car distance:", error);
+      }
     }
   }
 
-  return this.active;
+  this.questCarForArrest = closestQuestCar;
 }
 ```
 
 ---
 
-### Шаг 2: `MapStore.updateQuestCars()` — раздельная обработка типов
+### Шаг 2: `MapStore.updateQuestCars()` — сброс `questCarActive`
 
-**Текущий код (строки 351–371):**
+**Проблема:**
+- `enemy=true` машина деактивировалась (скрылась 8 сек) → `active = false`
+- `questCarActive` остаётся `true` → новый спавн заблокирован
+- Новая `enemy=true` машина не может заспавниться
+
+**Текущий код (строки 351–379):**
 ```javascript
 updateQuestCars(deltaTime) {
   if (this.questCars.length === 0) return;
@@ -103,22 +118,22 @@ updateQuestCars(deltaTime) {
         questCar.updatePosition(deltaTime, policeSpeed);
         questCar.updateWheelRotation(deltaTime);
         questCar.updateVisibility(deltaTime, viewportWidth, this.offsetX);
+      } else if (questCar.enemy) {
+        questCar.updatePosition(deltaTime, policeSpeed);
+        questCar.updateWheelRotation(deltaTime);
+        questCar.updateVisibility(deltaTime, viewportWidth, this.offsetX);
       }
     }
 
     this.questCars = this.questCars.filter((questCar) => {
-      if (!questCar.active) return false;
+      if (!questCar.active && !questCar.enemy) return false;
       return true;
     });
   });
 }
 ```
 
-**Проблема:** Текущий код удаляет из `questCars` все машины с `active = false`, включая `enemy=true`. По CONCEPT.md, `enemy=true` машины должны оставаться в массиве (могут вернуться на экран).
-
-**Изменения:**
-1. При обновлении позиции — вызывать `updatePosition` и `updateWheelRotation` даже для неактивных `enemy=true` машин (чтобы отслеживать возвращение).
-2. Фильтрация: удалять только `enemy=false` с `active=false`, `enemy=true` с `active=false` — НЕ удалять.
+**Изменение:** Добавить сброс `questCarActive`, когда нет активных машин.
 
 **Новый код:**
 ```javascript
@@ -135,100 +150,26 @@ updateQuestCars(deltaTime) {
         questCar.updateWheelRotation(deltaTime);
         questCar.updateVisibility(deltaTime, viewportWidth, this.offsetX);
       } else if (questCar.enemy) {
-        // Для enemy=true обновляем позиции даже неактивной машины
-        // чтобы отследить возвращение на экран
         questCar.updatePosition(deltaTime, policeSpeed);
         questCar.updateWheelRotation(deltaTime);
         questCar.updateVisibility(deltaTime, viewportWidth, this.offsetX);
       }
     }
 
-    // Удаляем только enemy=false с active=false (уехал и не вернётся)
-    // enemy=true остаётся в массиве (может вернуться)
     this.questCars = this.questCars.filter((questCar) => {
       if (!questCar.active && !questCar.enemy) return false;
       return true;
     });
-  });
-}
-```
 
----
-
-### Шаг 3: `MapStore.removeQuestCarByIndex()` — установить dismissed
-
-**Текущий код (строки 373–383):**
-```javascript
-removeQuestCarByIndex(index) {
-  runInAction(() => {
-    if (index >= 0 && index < this.questCars.length) {
-      this.questCars.splice(index, 1);
-      if (this.questCars.length === 0) {
-        this.questCarActive = false;
-        this.questCarSpawnTimer = 3 + Math.random() * 5;
-      }
+    // Сброс questCarActive, если нет активных машин
+    const hasActiveCars = this.questCars.some((qc) => qc.active);
+    if (!hasActiveCars && this.questCarActive) {
+      this.questCarActive = false;
+      this.questCarSpawnTimer = 3 + Math.random() * 5;
     }
   });
 }
 ```
-
-**Изменения:**
-1. Перед удалением установить `dismissed = true` для удаляемой машины.
-2. Остальная логика без изменений.
-
-**Новый код:**
-```javascript
-removeQuestCarByIndex(index) {
-  runInAction(() => {
-    if (index >= 0 && index < this.questCars.length) {
-      const removedCar = this.questCars[index];
-      if (removedCar) {
-        removedCar.dismissed = true;
-      }
-      this.questCars.splice(index, 1);
-      if (this.questCars.length === 0) {
-        this.questCarActive = false;
-        this.questCarSpawnTimer = 3 + Math.random() * 5;
-      }
-    }
-  });
-}
-```
-
----
-
-### Шаг 4: `Game.jsx` — проверка кнопки "Арестовать"
-
-**Текущий код (строки 142–163):**
-```jsx
-{activeMapStore.questCarForArrest && (
-  <button className="arrest-button-quest-car-map" onClick={...}>
-    Арестовать
-  </button>
-)}
-```
-
-**Анализ:** Кнопка уже привязана к `questCarForArrest`, который устанавливается в `checkQuestCarDistance()`. Этот метод уже фильтрует по `questCar.enemy` (строка 394 в `mapStore.jsx`):
-```javascript
-if (questCar.enemy && questCar.active) {
-```
-✅ Всё корректно — только `enemy=true` и только `active=true`.
-
-**Вывод:** Фазы #2 и #3 из TODO.md уже реализованы корректно. Кнопка "Арестовать" динамически появляется/исчезает в зависимости от дистанции.
-
----
-
-### Шаг 5: `Game.jsx` — синхронизация questCarStores
-
-**Текущий код (строки 72–75):**
-```javascript
-const newQuestCarStores = activeMapStore.questCars;
-if (newQuestCarStores.length !== questCarStores.length) {
-  setQuestCarStores(newQuestCarStores);
-}
-```
-
-**Вывод:** При удалении `enemy=false` машины из `questCars` длина массива изменится, и React обновит рендер. ✅ Работает корректно. Изменений не требуется.
 
 ---
 
@@ -236,24 +177,23 @@ if (newQuestCarStores.length !== questCarStores.length) {
 
 | # | Файл | Изменение | Приоритет |
 |---|------|-----------|-----------|
-| 1 | `src/state/questCarStore.jsx` | Добавить `dismissed = false`, разделить таймеры 8/5 сек | Критический |
-| 2 | `src/state/mapStore.jsx` | Обновить `updateQuestCars()` — не удалять `enemy=true` при `active=false` | Критический |
-| 3 | `src/state/mapStore.jsx` | Обновить `removeQuestCarByIndex()` — установить `dismissed = true` | Высокий |
-| 4 | `src/components/game/Game.jsx` | Без изменений (кнопка уже корректна) | — |
-| 5 | `src/components/game/QuestCar.jsx` | Без изменений | — |
+| 1 | `src/state/mapStore.jsx` | Убрать `&& questCar.active` в `checkQuestCarDistance()` | Критический |
+| 2 | `src/state/mapStore.jsx` | Сброс `questCarActive` в `updateQuestCars()` | Высокий |
 
 ---
 
 ## 🧪 Тестирование
 
-### Unit-тесты (Vitest)
-- `questCarStore.test.jsx` — тест `updateVisibility()` с таймерами 8 и 5 сек.
-
-### E2E-тесты (Playwright)
-- Проверка: `enemy=true` машина подъезжает → кнопка "Арестовать" появляется → машина отъезжает → кнопка исчезает.
-- Проверка: `enemy=false` машина уехала за экран → квест сбросился через 5 сек.
+### Ручная проверка
+1. Запустить игру
+2. Включить зажигание, 2-3 передача, газ
+3. Дождаться спавна `enemy=true` машины (красный гоночный автомобиль)
+4. Уехать вправо, чтобы машина ушла за экран
+5. Подождать 8+ секунд (машина деактивируется)
+6. Поехать назад — машина появится на экране справа
+7. Приблизиться к машине — кнопка "Арестовать" должна появиться
 
 ---
 
 ## 📦 Зависимости
-Новые npm-пакеты **не требуются**. Все изменения в рамках существующего стека (React + MobX).
+Новые npm-пакеты **не требуются**.

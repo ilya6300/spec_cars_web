@@ -375,6 +375,13 @@ class MapStore {
       if (!questCar.active && !questCar.enemy) return false;
       return true;
     });
+
+    // Сброс questCarActive, если нет активных машин
+    const hasActiveCars = this.questCars.some((qc) => qc.active);
+    if (!hasActiveCars && this.questCarActive) {
+      this.questCarActive = false;
+      this.questCarSpawnTimer = 3 + Math.random() * 5;
+    }
     });
   }
 
@@ -396,16 +403,18 @@ class MapStore {
 
   checkQuestCarDistance(questCarStores, viewportWidth, distance) {
     const policeScreenX = 30;
-    const policeWidth = 250;
+    const policeWidth = 100;
     const policeRightEdge = policeScreenX + policeWidth * 0.5;
-    const maxDistance = policeRightEdge + 200;
+    const maxDistance = policeRightEdge + 400;
 
     let closestQuestCar = null;
 
     for (const questCar of questCarStores) {
-      if (questCar.enemy && questCar.active) {
+      if (questCar.enemy) {
         try {
-          const questCarScreenX = questCar.positionX - distance;
+          const questCarScreenX = questCar.positionX - distance + 200;
+   
+          // const questCarScreenX = questCar.positionX - distance;
           if (questCarScreenX > policeRightEdge && questCarScreenX <= maxDistance) {
             if (!closestQuestCar || questCarScreenX < closestQuestCar.positionX - distance) {
               closestQuestCar = questCar;

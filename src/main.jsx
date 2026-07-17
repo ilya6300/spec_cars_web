@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App.jsx";
+import App from "./App";
 import "./style/app.css";
 import "./style/police_quest.css";
 import "./style/gearbox.css";

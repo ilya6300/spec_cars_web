@@ -50,6 +50,9 @@ class CarStore {
   sirenaBuffer = null;
   sirenaSource = null;
 
+  // Ссылка на MapStore (устанавливается в Game.jsx)
+  mapStore = null;
+
   constructor(carData) {
     Object.assign(this, carData);
     makeAutoObservable(this);
@@ -322,17 +325,23 @@ class CarStore {
       const effectiveMaxSpeed =
         this.gear === "N" ? 0 : (this.maxSpeed / this.gearRatio) * speedMultiplier;
       const realSpeed = effectiveMaxSpeed;
-
       if (this.isGasPressed && this.fuel > 0 && this.isIgnitionOn) {
         this.currentSpeed = Math.min(
           effectiveMaxSpeed,
           this.currentSpeed + this.acceleration * deltaTime,
         );
       } else {
-        this.currentSpeed = Math.max(
-          0,
-          this.currentSpeed - this.friction * deltaTime,
-        );
+        if (!this.mapStore?.questCarForArrest) {
+          this.currentSpeed = Math.max(
+            0,
+            this.currentSpeed - this.friction * deltaTime,
+          );
+        } else {
+          this.currentSpeed = Math.max(
+            0,
+            this.currentSpeed - this.friction / 4 * deltaTime,
+          );
+        }
       }
       // 3. НОВОЕ: Расчет угла вращения колес
       // Коэффициент 5 подобран для реалистичной скорости визуального вращения

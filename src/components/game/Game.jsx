@@ -22,6 +22,9 @@ export const Game = observer(() => {
     return store;
   });
 
+  // Связываем сторы: CarStore получает ссылку на MapStore
+  activeCarStore.mapStore = activeMapStore;
+
   const [questCarStores, setQuestCarStores] = useState([]);
   const [distance, setDistance] = useState(0);
   const lastTimeRef = useRef(performance.now());

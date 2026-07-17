@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import MapStore from './mapStore.jsx';
+import MapStore from './mapStore';
 
 test('MapStore: startPedestrianCrossingQuest', () => {
   const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });

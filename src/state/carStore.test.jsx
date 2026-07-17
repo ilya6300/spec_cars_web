@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import CarStore from './carStore.jsx';
-import Cars from './cars.jsx';
+import CarStore from './carStore';
+import Cars from './cars';
 
 test('CarStore: pedestrianQuestTriggered flag', () => {
   const store = new CarStore(Cars.cars[0]);

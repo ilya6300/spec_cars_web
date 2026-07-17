@@ -6,7 +6,7 @@ export const QuestCar = observer(({ questCarStore, mapStore, distance }) => {
 
   return (
     <div
-      className={`quest-car ${questCarStore.enemy ? "quest-car-enemy" : "quest-car-civilian"}`}
+      className={`quest-car-other ${questCarStore.enemy ? "quest-car-enemy" : "quest-car-civilian"}`}
       style={{
         left: `${screenX}px`,
       }}

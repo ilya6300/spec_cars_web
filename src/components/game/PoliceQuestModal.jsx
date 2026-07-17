@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { CarModel } from "../car/CarModel";
 import CarStore from "../../state/carStore";
@@ -14,6 +14,7 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
   }
   const animationRef = useRef(null);
   const lastTimeRef = useRef(performance.now());
+  const [carArrived, setCarArrived] = useState(false);
 
   const handleArrest = useCallback(() => {
     const target = mapStore.questTargetObject;
@@ -51,13 +52,12 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
       return;
     }
 
+    setCarArrived(false);
+
     const modalWidth = window.innerWidth;
     const carWidth = 120;
     const targetWidth = 150;
-    const gap = 100; // зазор между машиной и целью
-    // Цель прижата к правому краю (justify-content: flex-end)
-    // Позиция цели: left = modalWidth - targetWidth
-    // Машина останавливается слева от цели: позиция цели - ширина машины - зазор
+    const gap = 100;
     const endPosition = modalWidth - targetWidth - carWidth - gap;
 
     const animate = (currentTime) => {
@@ -68,10 +68,18 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
       const delta = speed * deltaTime;
 
       if (mapStore.questCarPosition < endPosition) {
-        mapStore.updateQuestCarPosition(
-          Math.min(mapStore.questCarPosition + delta, endPosition),
-        );
+        const newPos = Math.min(mapStore.questCarPosition + delta, endPosition);
+        mapStore.updateQuestCarPosition(newPos);
+
+        // Вращение колёс пропорционально скорости
+        runInAction(() => {
+          policeCarStore.current.wheelRotation += speed * deltaTime * 1.5;
+          policeCarStore.current.wheelRotation %= 360;
+        });
+
         animationRef.current = requestAnimationFrame(animate);
+      } else {
+        setCarArrived(true);
       }
     };
 
@@ -83,7 +91,7 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [mapStore.isPoliceQuestActive, mapStore.questCarPosition]);
+  }, [mapStore.isPoliceQuestActive, mapStore.questTargetObject]);
 
   if (!mapStore.isPoliceQuestActive || !mapStore.questTargetObject) {
     return null;
@@ -124,7 +132,7 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
         <img src={targetImage} alt="Target" className="target-image" />
       </div>
 
-      {mapStore.questCarForArrest && (
+      {carArrived && (
         <button className="arrest-button" onClick={handleArrest}>
           Арестовать
         </button>

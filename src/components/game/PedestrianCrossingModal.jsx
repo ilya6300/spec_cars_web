@@ -1,11 +1,17 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { CarModel } from "../car/CarModel";
+import CarStore from "../../state/carStore";
+import Cars from "../../state/cars";
 import { runInAction } from "mobx";
 import { dataObjectsSub } from "../../state/subobject";
 import crossingImage from "../../assets/quest_location/police_pedestrian crossing.png";
 
 export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
+  const modalCarStore = useRef(null);
+  if (!modalCarStore.current) {
+    modalCarStore.current = new CarStore(Cars.cars[0]);
+  }
   const handleArrest = useCallback(() => {
     if (carRafRef.current) {
       cancelAnimationFrame(carRafRef.current);
@@ -48,26 +54,34 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
     }
 
     const targetX = window.innerWidth / 4.5;
+    const startPos = mapStore.pedestrianCarPosition;
     let startTime = performance.now();
-    let startPos = -150;
 
     runInAction(() => {
       mapStore.pedestrianState = "stopped";
       mapStore.pedestrianCarPosition = startPos;
     });
 
-    
+    let prevTime = performance.now();
+
     const animateCar = (currentTime) => {
+      const dt = (currentTime - prevTime) / 1000;
+      prevTime = currentTime;
       const elapsed = (currentTime - startTime) / 1000;
       const pos = startPos + 400 * elapsed;
-      
-            
+
+      // Вращение колёс на отдельном сторе (не конфликтует с основным игровым циклом)
+      runInAction(() => {
+        modalCarStore.current.wheelRotation += 400 * dt * 1.5;
+        modalCarStore.current.wheelRotation %= 360;
+      });
+
       if (pos < targetX) {
         mapStore.updatePedestrianCarPosition(pos);
         carRafRef.current = requestAnimationFrame(animateCar);
       } else {
         mapStore.updatePedestrianCarPosition(targetX);
-                mapStore.pedestrianIsCarArrived = true;
+        mapStore.pedestrianIsCarArrived = true;
       }
     };
 
@@ -144,7 +158,7 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
           bottom: "45%",
         }}
       >
-        <CarModel carStore={carStore} />
+        <CarModel carStore={modalCarStore.current} />
       </div>
       <div
         className="quest-pedestrian"
@@ -158,14 +172,9 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
         <img src={pedestrianImage} alt="Pedestrian" className="pedestrian-image" />
       </div>
       {mapStore.pedestrianIsCarArrived && (
-        <>
           <button className="fine-button" onClick={handleFine}>
             Выписать штраф
           </button>
-          <button className="arrest-button" onClick={handleArrest}>
-            Арестовать
-          </button>
-        </>
       )}
     </div>
   );

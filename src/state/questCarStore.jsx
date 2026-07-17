@@ -14,7 +14,6 @@ class QuestCarStore {
   positionX;
   active;
   wheelRotation;
-  lastVisibleTime;
 
   constructor(carData) {
     this.id = carData.id;
@@ -30,8 +29,6 @@ class QuestCarStore {
     this.positionX = 0;
     this.active = true;
     this.wheelRotation = 0;
-    this.lastVisibleTime = null;
-    this.dismissed = false;
 
     makeAutoObservable(this);
   }
@@ -44,36 +41,7 @@ class QuestCarStore {
 
   updatePosition(deltaTime, policeSpeed) {
     const relativeSpeed = this.currentSpeed - policeSpeed;
-
-    if (this.enemy) {
-      this.positionX += relativeSpeed * deltaTime;
-    } else {
-      this.positionX -= relativeSpeed * deltaTime;
-    }
-  }
-
-  updateVisibility(deltaTime, viewportWidth, distance) {
-    const screenX = this.positionX - distance;
-    const isOffScreen = this.enemy 
-      ? screenX >= viewportWidth + 200 
-      : screenX <= -200;
-
-    if (!isOffScreen) {
-      this.lastVisibleTime = null;
-    } else if (this.lastVisibleTime === null) {
-      this.lastVisibleTime = performance.now() / 1000;
-    }
-
-    if (isOffScreen && this.lastVisibleTime !== null) {
-      const timeOffScreen = (performance.now() / 1000) - this.lastVisibleTime;
-      const timeout = this.enemy ? 8 : 5;
-      if (timeOffScreen > timeout) {
-        this.active = false;
-        this.dismissed = true;
-      }
-    }
-
-    return this.active;
+    this.positionX += relativeSpeed * deltaTime;
   }
 
   updateWheelRotation(deltaTime) {

@@ -1,4 +1,4 @@
-.quest-car {
+.quest-car-other {
   position: absolute;
   width: 250px;
   height: auto;
@@ -6,7 +6,7 @@
   z-index: 50;
   transition: none;
 }
-
+/* 
 .quest-car-enemy {
   position: absolute;
   width: 250px;
@@ -23,7 +23,7 @@
   top: 58%;
   z-index: 50;
   transition: none;
-}
+} */
 
 .speed-display {
   position: fixed;

@@ -72,10 +72,9 @@ class MapStore {
   pedestrianState = "waiting"; // "waiting" | "walking" | "stopped"
   pedestrianIsCarArrived = false;
 
-  // Quest Cars state
+// Quest Cars state
   questCars = [];
-  questCarSpawnTimer = 3;
-  questCarActive = false;
+  questCarSpawnTimer = 5;
   questCarForArrest = null;
 
   constructor(mapData) {
@@ -90,17 +89,11 @@ class MapStore {
     });
   }
 
-  // Спавн новых объектов справа за экраном
+// Спавн новых объектов справа за экраном
   spawnObjects(viewportWidth, deltaTime) {
-    if (!this.isPedestrianCrossingQuestActive) {
-      this.questCarSpawnTimer -= deltaTime;
-      if (this.questCarSpawnTimer <= 0) {
-        const beforeLength = this.questCars.length;
-        this.spawnQuestCar();
-        if (this.questCars.length > beforeLength) {
-          this.questCarSpawnTimer = 3 + Math.random() * 5;
-        }
-      }
+    this.questCarSpawnTimer -= deltaTime;
+    if (this.questCarSpawnTimer <= 0) {
+      this.spawnQuestCar();
     }
 
     objectConfigs.forEach((config) => {
@@ -253,7 +246,6 @@ class MapStore {
       clearInterval(this.refuelInterval);
       this.refuelInterval = null;
     }
-    this.questCars.forEach((car) => car.deactivate());
     this.questCars = [];
     this.questCarForArrest = null;
   }
@@ -311,19 +303,7 @@ class MapStore {
     });
   }
 
-  spawnQuestCar() {
-    if (this.isPedestrianCrossingQuestActive) {
-      return;
-    }
-
-    if (this.questCars.length > 0 || this.questCarActive) {
-      return;
-    }
-
-    if (!this.carStore.gear || (this.carStore.gear !== "2" && this.carStore.gear !== "3")) {
-      return;
-    }
-
+spawnQuestCar() {
     const otherCars = Cars.otherCars;
     const randomCarData = otherCars[Math.floor(Math.random() * otherCars.length)];
 
@@ -343,15 +323,13 @@ class MapStore {
 
     runInAction(() => {
       this.questCars.push(questCar);
-      this.questCarActive = true;
-      this.questCarSpawnTimer = 3 + Math.random() * 5;
+      this.questCarSpawnTimer = 5 + Math.random() * 10;
     });
   }
 
-  updateQuestCars(deltaTime) {
+updateQuestCars(deltaTime) {
     if (this.questCars.length === 0) return;
 
-    const viewportWidth = window.innerWidth;
     const policeSpeed = this.carStore.currentSpeed;
 
     runInAction(() => {
@@ -359,43 +337,17 @@ class MapStore {
       if (questCar.active) {
         questCar.updatePosition(deltaTime, policeSpeed);
         questCar.updateWheelRotation(deltaTime);
-        questCar.updateVisibility(deltaTime, viewportWidth, this.offsetX);
-      } else if (questCar.enemy) {
-        // Для enemy=true обновляем позиции даже неактивной машины
-        // чтобы отследить возвращение на экран
-        questCar.updatePosition(deltaTime, policeSpeed);
-        questCar.updateWheelRotation(deltaTime);
-        questCar.updateVisibility(deltaTime, viewportWidth, this.offsetX);
       }
-    }
-
-    // Удаляем только enemy=false с active=false (уехал и не вернётся)
-    // enemy=true остаётся в массиве (может вернуться)
-    this.questCars = this.questCars.filter((questCar) => {
-      if (!questCar.active && !questCar.enemy) return false;
-      return true;
-    });
-
-    // Сброс questCarActive, если нет активных машин
-    const hasActiveCars = this.questCars.some((qc) => qc.active);
-    if (!hasActiveCars && this.questCarActive) {
-      this.questCarActive = false;
-      this.questCarSpawnTimer = 3 + Math.random() * 5;
     }
     });
   }
 
-  removeQuestCarByIndex(index) {
+removeQuestCarByIndex(index) {
     runInAction(() => {
       if (index >= 0 && index < this.questCars.length) {
-        const removedCar = this.questCars[index];
-        if (removedCar) {
-          removedCar.dismissed = true;
-        }
         this.questCars.splice(index, 1);
         if (this.questCars.length === 0) {
-          this.questCarActive = false;
-          this.questCarSpawnTimer = 3 + Math.random() * 5;
+          this.questCarSpawnTimer = 5 + Math.random() * 10;
         }
       }
     });

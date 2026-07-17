@@ -1,6 +1,5 @@
 import { expect, test } from 'vitest';
 import QuestCarStore from './questCarStore';
-import Cars from './cars';
 
 test('QuestCarStore: initialization with enemy=false', () => {
   const carData = { id: 2, type: 'car', name: 'Красный автомобиль', urlBody: '', urlShell: '', maxSpeed: 58, minSpeed: 40, enemy: false };
@@ -17,7 +16,7 @@ test('QuestCarStore: initialization with enemy=false', () => {
 });
 
 test('QuestCarStore: initialization with enemy=true', () => {
-  const carData = Cars.otherCars[0];
+  const carData = { id: 0, type: 'car', name: 'Красный гоночный автомобиль', urlBody: '', urlShell: '', maxSpeed: 130, minSpeed: 105, enemy: true, speedMultiplier: 6.43 };
   const store = new QuestCarStore(carData);
 
   expect(store.id).toBe(0);
@@ -47,11 +46,12 @@ test('QuestCarStore: updatePosition for enemy=false (civilian, relative speed)',
 
   store.updatePosition(1, 60);
 
-  expect(store.positionX).toBe(80);
+  // relativeSpeed = 80 - 60 = 20, positionX = 100 + 20 = 120
+  expect(store.positionX).toBe(120);
 });
 
 test('QuestCarStore: updatePosition for enemy=true (enemy, relative speed)', () => {
-  const carData = Cars.otherCars[0];
+  const carData = { id: 0, type: 'car', name: 'Красный гоночный автомобиль', urlBody: '', urlShell: '', maxSpeed: 130, minSpeed: 105, enemy: true, speedMultiplier: 6.43 };
   const store = new QuestCarStore(carData);
   store.spawn(100, 80);
 
@@ -104,13 +104,14 @@ test('QuestCarStore: direction logic for enemy=false (civilian, relative speed)'
   const store = new QuestCarStore(carData);
   store.spawn(100, 80);
 
+  // relativeSpeed = 80 - 60 = 20, positionX = 100 + 20 = 120
   store.updatePosition(1, 60);
 
-  expect(store.positionX).toBe(80);
+  expect(store.positionX).toBe(120);
 });
 
 test('QuestCarStore: direction logic for enemy=true (enemy, relative speed)', () => {
-  const carData = Cars.otherCars[0];
+  const carData = { id: 0, type: 'car', name: 'Красный гоночный автомобиль', urlBody: '', urlShell: '', maxSpeed: 130, minSpeed: 105, enemy: true, speedMultiplier: 6.43 };
   const store = new QuestCarStore(carData);
   store.spawn(100, 80);
 
@@ -124,13 +125,14 @@ test('QuestCarStore: direction logic with deltaTime fractions (relative)', () =>
   const store = new QuestCarStore(carData);
   store.spawn(100, 100);
 
+  // relativeSpeed = 100 - 60 = 40, deltaTime = 0.5, delta = 20, positionX = 100 + 20 = 120
   store.updatePosition(0.5, 60);
 
-  expect(store.positionX).toBe(80);
+  expect(store.positionX).toBe(120);
 });
 
 test('QuestCarStore: direction logic for enemy=true with deltaTime (relative)', () => {
-  const carData = Cars.otherCars[0];
+  const carData = { id: 0, type: 'car', name: 'Красный гоночный автомобиль', urlBody: '', urlShell: '', maxSpeed: 130, minSpeed: 105, enemy: true, speedMultiplier: 6.43 };
   const store = new QuestCarStore(carData);
   store.spawn(100, 100);
 
@@ -150,135 +152,58 @@ test('QuestCarStore: currentSpeed is randomized in constructor', () => {
   expect(store2.currentSpeed).toBeLessThanOrEqual(100);
 });
 
-test('QuestCarStore: lastVisibleTime initialized to null', () => {
+test('QuestCarStore: constructor does not contain removal-related fields', () => {
   const carData = { id: 2, type: 'car', name: 'Красный автомобиль', urlBody: '', urlShell: '', maxSpeed: 58, minSpeed: 40, enemy: false };
   const store = new QuestCarStore(carData);
 
-  expect(store.lastVisibleTime).toBeNull();
+  expect(store.lastVisibleTime).toBeUndefined();
+  expect(store.dismissed).toBeUndefined();
+  expect(typeof store.updateVisibility).toBe('undefined');
 });
 
-test('QuestCarStore: updateVisibility resets lastVisibleTime for enemy=false when visible', () => {
+test('QuestCarStore: multiple cars can exist simultaneously', () => {
+  const carData = { id: 2, type: 'car', name: 'Красный автомобиль', urlBody: '', urlShell: '', maxSpeed: 58, minSpeed: 40, enemy: false };
+  const car1 = new QuestCarStore(carData);
+  const car2 = new QuestCarStore(carData);
+  const car3 = new QuestCarStore(carData);
+
+  car1.spawn(100, 50);
+  car2.spawn(200, 60);
+  car3.spawn(300, 70);
+
+  expect(car1.active).toBe(true);
+  expect(car2.active).toBe(true);
+  expect(car3.active).toBe(true);
+  expect(car1.positionX).toBe(100);
+  expect(car2.positionX).toBe(200);
+  expect(car3.positionX).toBe(300);
+});
+
+test('QuestCarStore: cars are not removed after going off screen', () => {
   const carData = { id: 2, type: 'car', name: 'Красный автомобиль', urlBody: '', urlShell: '', maxSpeed: 58, minSpeed: 40, enemy: false };
   const store = new QuestCarStore(carData);
-  // positionX=1100, distance=1000 → screenX=100 (на экране, > -200)
-  store.spawn(1100, 80);
+  store.spawn(-10000, 80);
 
-  store.updateVisibility(1, 60, 1000);
+  // Машина далеко за экраном, но active остаётся true
+  expect(store.active).toBe(true);
 
-  expect(store.lastVisibleTime).toBeNull();
+  // Обновление позиции не меняет active
+  store.updatePosition(1, 60);
+  expect(store.active).toBe(true);
 });
 
-test('QuestCarStore: updateVisibility resets lastVisibleTime for enemy=true when visible', () => {
-  const carData = Cars.otherCars[0];
-  const store = new QuestCarStore(carData);
-  // positionX=1100, distance=1000 → screenX=100 (на экране, < viewportWidth+200)
-  store.spawn(1100, 80);
-
-  store.updateVisibility(1, 60, 1000);
-
-  expect(store.lastVisibleTime).toBeNull();
-});
-
-test('QuestCarStore: updateVisibility does not set lastVisibleTime when still on screen', () => {
+test('QuestCarStore: updatePosition works identically for all cars', () => {
   const carData = { id: 2, type: 'car', name: 'Красный автомобиль', urlBody: '', urlShell: '', maxSpeed: 58, minSpeed: 40, enemy: false };
-  const store = new QuestCarStore(carData);
-  // positionX=1100, distance=1000 → screenX=100 (на экране)
-  store.spawn(1100, 80);
+  const car1 = new QuestCarStore(carData);
+  const car2 = new QuestCarStore(carData);
 
-  store.updateVisibility(1, 60, 1000);
+  car1.spawn(100, 80);
+  car2.spawn(200, 80);
 
-  expect(store.lastVisibleTime).toBeNull();
-});
+  car1.updatePosition(1, 60);
+  car2.updatePosition(1, 60);
 
-test('QuestCarStore: dismissed initialized to false', () => {
-  const carData = { id: 2, type: 'car', name: 'Красный автомобиль', urlBody: '', urlShell: '', maxSpeed: 58, minSpeed: 40, enemy: false };
-  const store = new QuestCarStore(carData);
-  expect(store.dismissed).toBe(false);
-});
-
-test('QuestCarStore: updateVisibility enemy=false deactivated after 5 seconds off screen', () => {
-  const carData = { id: 2, type: 'car', name: 'Красный автомобиль', urlBody: '', urlShell: '', maxSpeed: 58, minSpeed: 40, enemy: false };
-  const store = new QuestCarStore(carData);
-  store.spawn(100, 80);
-
-  // Мокаем performance.now для контроля времени
-  let mockTime = 100;
-  const originalNow = performance.now;
-  performance.now = () => mockTime;
-
-  // Первый вызов — устанавливает lastVisibleTime
-  store.updateVisibility(0.001, 1024, 1000);
-  expect(store.active).toBe(true);
-  expect(store.dismissed).toBe(false);
-
-  // Прокручиваем время на 5.1 секунды
-  mockTime += 5100;
-
-  // Второй вызов — timeOffScreen = 5.1 > 5 → деактивируется
-  store.updateVisibility(0.001, 1024, 1000);
-  expect(store.active).toBe(false);
-  expect(store.dismissed).toBe(true);
-
-  performance.now = originalNow;
-});
-
-test('QuestCarStore: updateVisibility enemy=true deactivated after 8 seconds off screen', () => {
-  const carData = Cars.otherCars[0];
-  const store = new QuestCarStore(carData);
-  store.spawn(12000, 80);
-
-  let mockTime = 100;
-  const originalNow = performance.now;
-  performance.now = () => mockTime;
-
-  // Первый вызов — устанавливает lastVisibleTime
-  store.updateVisibility(0.001, 1024, 1000);
-  expect(store.active).toBe(true);
-  expect(store.dismissed).toBe(false);
-
-  // Прокручиваем время на 8.1 секунды
-  mockTime += 8100;
-
-  // Второй вызов — timeOffScreen = 8.1 > 8 → деактивируется
-  store.updateVisibility(0.001, 1024, 1000);
-  expect(store.active).toBe(false);
-  expect(store.dismissed).toBe(true);
-
-  performance.now = originalNow;
-});
-
-test('QuestCarStore: updateVisibility enemy=false returns to screen resets timer', () => {
-  const carData = { id: 2, type: 'car', name: 'Красный автомобиль', urlBody: '', urlShell: '', maxSpeed: 58, minSpeed: 40, enemy: false };
-  const store = new QuestCarStore(carData);
-  // positionX=100, distance=1000 → screenX=-900 (за экраном)
-  store.spawn(100, 80);
-
-  // Машина уходит за экран (4.9 сек < 5)
-  store.updateVisibility(4.9, 60, 1000);
-  expect(store.active).toBe(true);
-  expect(store.dismissed).toBe(false);
-
-  // Возвращается на экран: positionX=100, distance=50 → screenX=50 (на экране)
-  store.updateVisibility(0.5, 60, 50);
-  expect(store.lastVisibleTime).toBeNull();
-  expect(store.active).toBe(true);
-  expect(store.dismissed).toBe(false);
-});
-
-test('QuestCarStore: updateVisibility enemy=true returns to screen resets timer', () => {
-  const carData = Cars.otherCars[0];
-  const store = new QuestCarStore(carData);
-  // positionX=12000, distance=1000 → screenX=11000 (за правым краем)
-  store.spawn(12000, 80);
-
-  // Машина уходит за экран (7.5 сек < 8)
-  store.updateVisibility(7.5, 1024, 1000);
-  expect(store.active).toBe(true);
-  expect(store.dismissed).toBe(false);
-
-  // Возвращается на экран: positionX=12000, distance=11000 → screenX=1000 < 1224 (на экране)
-  store.updateVisibility(0.5, 1024, 11000);
-  expect(store.lastVisibleTime).toBeNull();
-  expect(store.active).toBe(true);
-  expect(store.dismissed).toBe(false);
+  // relativeSpeed = 80 - 60 = 20
+  expect(car1.positionX).toBe(120);
+  expect(car2.positionX).toBe(220);
 });

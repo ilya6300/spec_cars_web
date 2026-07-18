@@ -46,7 +46,7 @@
   bottom: 15px;
   right: 5%;
   display: flex;
-  gap: 24px;
+  gap: 8px;
   align-items: center; /* Центрируем по вертикали для лучшего хвата */
   padding: 15px 25px;
   background: rgba(20, 25, 35, 0.65); /* Стеклянный темный фон */

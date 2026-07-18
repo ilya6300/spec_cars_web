@@ -4,7 +4,7 @@
   bottom: 0;
   right: 10%;
   display: flex;
-  gap: 20px;
+  gap: 8px;
   align-items: flex-end;
   padding-bottom: 10px;
 }

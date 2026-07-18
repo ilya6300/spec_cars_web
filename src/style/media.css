@@ -1,6 +1,9 @@
 @media (max-height: 600px) {
   .car_container {
-    top: 61%;
+    top: 70%;
+  }
+  .quest-car-other {
+    top: 72% !important;
   }
 }
 /* ==========================================================================

@@ -90,6 +90,10 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
 
   useEffect(() => {
     if (!mapStore.isPedestrianCrossingQuestActive) return;
+
+    // Сброс позиции пешехода при каждом открытии модалки
+    setPedestrianY(-50);
+
     const targetObj = mapStore.pedestrianCrossingTargetObject;
     if (targetObj) {
       const found = dataObjectsSub.find(

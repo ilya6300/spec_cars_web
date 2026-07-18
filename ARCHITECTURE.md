@@ -325,8 +325,9 @@ positionX += relativeSpeed * deltaTime
 ### 🔄 Отношения `PoliceQuestModal.jsx` ↔ `QuestCarStore`
 
 - `MapStore.questCarForArrest` хранит ссылку на квестовую машину, к которой подъехал полицейский.
-- `Game.jsx` проверяет дистанцию между `questCar.positionX` и `mapStore.questCarPosition` в игровом цикле.
-- Если дистанция `< 50px`, устанавливается `mapStore.questCarForArrest = questCar`.
+- `Game.jsx` вызывает `mapStore.checkQuestCarDistance(questCars, viewportWidth)` каждый кадр игрового цикла.
+- `checkQuestCarDistance` устанавливает `questCarForArrest` для ближайшей `enemy=true` машины, чья экранная координата `positionX` попадает в диапазон `[policeScreenX, policeScreenX + 250]` (т.е. `[30, 280]` — «сравнялась» с полицейским по X + 250px согласно `CONCEPT.md`).
+- Кнопка "Арестовать" (`.arrest-button-quest-car-map`) рендерится в `Game.jsx`, когда `questCarForArrest` установлен И нет активных модальных квестов (`!isPedestrianCrossingQuestActive && !isPoliceQuestActive`), чтобы не перекрывать модалки.
 - Кнопка "Арестовать" вызывает `mapStore.removeQuestCarByIndex()`, увеличивает `carStore.countHelp +1`, и сбрасывает `questCarForArrest`.
 
 ---

@@ -144,7 +144,9 @@ const [activeCarStore] = useState(() => new CarStore(Cars.cars[0]));
         );
       })()}
 
-      {activeMapStore.questCarForArrest && activeMapStore.isPedestrianCrossingQuestActive && (
+      {activeMapStore.questCarForArrest &&
+        !activeMapStore.isPedestrianCrossingQuestActive &&
+        !activeMapStore.isPoliceQuestActive && (
         <button
           className="arrest-button-quest-car-map"
           onClick={() => {

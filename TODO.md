@@ -1,15 +1,14 @@
 Project Backlog
 
-# Bugfix: Логика спавна и относительной скорости квестовых машин (Quest Cars)
+# Bugfix: Кнопка «Арестовать» для квестовых машин (enemy=true) не появляется
 
-Источник: `CONCEPT.md` — неправильно работает расчёт скорости других машин и их спавн.
+Источник: `CONCEPT.md` — кнопка должна появляться, когда `enemy=true` машина сравняется с полицейским по X + 250px. Сейчас кнопка не появляется.
 
 ## 📋 Список задач
 
-- [x] 1. [Критический] Устранить двойной учёт policeSpeed в рендере квестовых машин. `QuestCar.jsx` использует `screenX = positionX - distance`, но `positionX` — уже экранная координата (обновляется через `relativeSpeed = currentSpeed - policeSpeed`). DoD: `screenX = questCarStore.positionX`, проп `distance` удалён из компонента. Зависимости: нет.
-- [x] 2. [Критический] Исправить фильтр видимости квестовых машин в `Game.jsx`. Фильтр рендера и `SpeedDisplay` использует `car.positionX - distance` (2 места) — должен использовать `car.positionX`. DoD: машины видны, когда `positionX` в диапазоне `[-150, viewportWidth]`; проп `distance` не передаётся в `QuestCar`. Зависимости: #1.
-- [x] 3. [Критический] Исправить `mapStore.checkQuestCarDistance()`: убрать параметр `distance` и вычитание `distance` из расчёта `questCarScreenX`. DoD: `questCarScreenX = questCar.positionX`; кнопка ареста появляется при сближении `enemy=true` с полицейским по экранным координатам; вызов в `Game.jsx` обновлён. Зависимости: #2.
-- [x] 4. [Высокий] Актуализировать `ARCHITECTURE.md`: исправить секцию относительного движения Quest Cars — формула `positionX += relativeSpeed * deltaTime` для ОБЕИХ категорий (enemy=false и enemy=true), `positionX` — экранная координата, вычитание `distance` в UI запрещено. DoD: убрано упоминание `-=` для enemy=false; таблица примеров пересчитана. Зависимости: #3.
-- [x] 5. [Высокий] Актуализировать `instructions.md`: исправить таблицу и сценарии относительного движения (сценарии 1, 2, 8) на `+=` для обеих категорий. DoD: таблица направлений и сценарии Playwright соответствуют физике (enemy=false медленнее → движется влево, полицейский догоняет). Зависимости: #4.
-- [x] 6. [Средний] Проверить unit-тесты (`questCarStore.test.jsx`, `mapStore.test.jsx`) на соответствие исправлению. DoD: тесты проходят без изменений логики сторов; при необходимости уточнить комментарии тестов (не assertions). Зависимости: #3.
-- [x] 7. [Критический] QA: запустить `npm run test` (vitest) и сборку Vite. DoD: все существующие тесты зелёные, билд без ошибок. Зависимости: #6.
+- [x] 1. [Критический] Исправить условие рендера кнопки «Арестовать» в `@components/game/Game.jsx`: убрать ошибочное `&& activeMapStore.isPedestrianCrossingQuestActive` (кнопка привязана к квесту пешеходного перехода, с которым никак не связана) и заменить на `&& !activeMapStore.isPedestrianCrossingQuestActive && !activeMapStore.isPoliceQuestActive` (не показывать кнопку поверх модалок). DoD: кнопка рендерится, когда `questCarForArrest` установлен и нет активных модальных квестов. Зависимости: нет.
+- [x] 2. [Критический] Исправить порог сближения в `@state/mapStore.jsx` → `checkQuestCarDistance`: заменить `maxDistance = policeRightEdge + 400` на `maxDistance = policeScreenX + 250` (соответствие `CONCEPT.md`: +250px от X-координаты полицейского); нижняя граница — `policeScreenX` (момент «сравнялись»). DoD: `questCarForArrest` устанавливается для `enemy=true` машины при попадании `positionX` в диапазон `[30, 280]`. Зависимости: #1.
+- [x] 3. [Высокий] Проверить стили кнопки `.arrest-button-quest-car-map` в `@style/quest_car.css`: убедиться, что `position: fixed`, `z-index: 1003`, видимые `bottom/left/padding` — корректны и не скрывают кнопку. DoD: стили не содержат `display:none`/`visibility:hidden`/`opacity:0`; кнопка видна поверх игровых слоёв. Зависимости: #2.
+- [x] 4. [Высокий] Актуализировать `@instructions.md`: исправить секцию «Кнопка Арестовать» — условие появления (диапазон `[policeScreenX, policeScreenX + 250]`, без привязки к квесту пешеходного перехода) и список действий QA. DoD: инструкция соответствует исправленной логике. Зависимости: #2.
+- [x] 5. [Средний] Проверить unit-тесты (`mapStore.test.jsx`, `questCarStore.test.jsx`) на соответствие исправлению. DoD: тесты проходят; при необходимости добавить unit-тест для `checkQuestCarDistance` (без изменения логики стора). Зависимости: #2.
+- [x] 6. [Критический] QA: запустить `npm run test` (vitest) и `npm run build` (Vite). DoD: все существующие тесты зелёные, билд без ошибок. Зависимости: #5.

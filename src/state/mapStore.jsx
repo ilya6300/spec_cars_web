@@ -355,9 +355,9 @@ removeQuestCarByIndex(index) {
 
   checkQuestCarDistance(questCarStores, viewportWidth) {
     const policeScreenX = 30;
-    const policeWidth = 100;
-    const policeRightEdge = policeScreenX + policeWidth * 0.5;
-    const maxDistance = policeRightEdge + 400;
+    const arrestThreshold = 250; // CONCEPT.md: +250px от X-координаты полицейского
+    const minArrestX = policeScreenX; // enemy «сравнялся» с полицейским
+    const maxArrestX = policeScreenX + arrestThreshold;
 
     let closestQuestCar = null;
 
@@ -366,7 +366,7 @@ removeQuestCarByIndex(index) {
         try {
           const questCarScreenX = questCar.positionX;
 
-          if (questCarScreenX > policeRightEdge && questCarScreenX <= maxDistance) {
+          if (questCarScreenX >= minArrestX && questCarScreenX <= maxArrestX) {
             if (!closestQuestCar || questCarScreenX < closestQuestCar.positionX) {
               closestQuestCar = questCar;
             }

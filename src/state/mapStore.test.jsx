@@ -108,3 +108,35 @@ test('MapStore: updateQuestCars does not filter or remove cars', () => {
   expect(mockCar1.positionX).toBe(120); // 100 + (80-60)*1 = 120
   expect(mockCar2.positionX).toBe(190); // 200 + (50-60)*1 = 190
 });
+
+test('MapStore: checkQuestCarDistance sets questCarForArrest for enemy in [30, 280] range', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+
+  const enemyInRange = { enemy: true, positionX: 150 };
+  const enemyOutOfRange = { enemy: true, positionX: 400 };
+  const civilian = { enemy: false, positionX: 100 };
+
+  store.checkQuestCarDistance([enemyInRange, enemyOutOfRange, civilian], 1024);
+
+  expect(store.questCarForArrest).not.toBeNull();
+  expect(store.questCarForArrest.positionX).toBe(150);
+});
+
+test('MapStore: checkQuestCarDistance clears questCarForArrest when no enemy in range', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.questCarForArrest = { enemy: true, positionX: 150 };
+
+  const enemyOutOfRange = { enemy: true, positionX: 300 };
+  store.checkQuestCarDistance([enemyOutOfRange], 1024);
+
+  expect(store.questCarForArrest).toBeNull();
+});
+
+test('MapStore: checkQuestCarDistance ignores non-enemy cars', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+
+  const civilian = { enemy: false, positionX: 100 };
+  store.checkQuestCarDistance([civilian], 1024);
+
+  expect(store.questCarForArrest).toBeNull();
+});

@@ -1,83 +1,116 @@
-# TECH_SPEC.md — Bugfix: спавн и относительная скорость Quest Cars
+# TECH_SPEC.md — Bugfix: кнопка «Арестовать» для Quest Cars (enemy=true) не появляется
 
 ## 📌 Контекст проблемы
 
-`CONCEPT.md` фиксирует два бага квестовых машин:
-1. `enemy=false` не появляются справа при движении игрока.
-2. `SpeedDisplay` показывает 108 км/ч, полицейский едет 105 км/ч и догоняет `enemy=true` (хотя нарушитель быстрее).
+`CONCEPT.md`: блок кнопки «Арестовать» в `Game.jsx` должен появляться, когда `enemy=true` машина сравняется с полицейским по X + 250px. Сейчас кнопка **не появляется никогда** (в обычном игровом режиме).
 
 ## 🔍 Корневая причина
 
-`QuestCarStore.positionX` — **экранная координата**:
-- Спавн: `positionX = viewportWidth + 200` (enemy=false) / `-200` (enemy=true) — смещения относительно экрана.
-- Обновление: `positionX += relativeSpeed * deltaTime`, где `relativeSpeed = currentSpeed - policeSpeed` — относительная скорость уже учитывает `policeSpeed`.
+Две независимые проблемы в условии появления кнопки.
 
-Однако UI-слой **повторно вычитает `distance`** (смещение камеры, накапливающее `policeSpeed * deltaTime` каждый кадр):
-- `QuestCar.jsx`: `screenX = positionX - distance`
-- `Game.jsx` (фильтр рендера и SpeedDisplay, 2 места): `car.positionX - distance`
-- `mapStore.checkQuestCarDistance()`: `questCarScreenX = questCar.positionX - distance + 200`
+### Проблема 1 — ошибочное условие рендера (главная причина)
 
-Итоговая скорость экранного смещения: `d(screenX)/dt = currentSpeed - 2 * policeSpeed` — двойной учёт.
+`@components/game/Game.jsx` (строка ~147):
+```jsx
+{activeMapStore.questCarForArrest && activeMapStore.isPedestrianCrossingQuestActive && (
+  <button className="arrest-button-quest-car-map" ...>
+```
+Условие требует `isPedestrianCrossingQuestActive === true` — флаг квеста **пешеходного перехода**, который никак не связан с квестовыми машинами. В обычном режиме (без активного квеста пешехода) этот флаг `false`, поэтому кнопка не рендерится, даже если `questCarForArrest` установлен.
 
-Следствия:
-- **Баг 1:** спавн `enemy=false` в мировой точке `viewportWidth + 200` рендерится по `positionX - distance`. При `distance > viewportWidth + 350` (~2.5 сек езды) спавн уходит за левый край → машина никогда не видна.
-- **Баг 2:** `d(screenX)/dt` сильно отрицательно → более быстрый `enemy=true` движется назад (влево) и «догоняется» более медленной полицией.
+> Вероятный изначальный замысел: скрыть кнопку ареста поверх модалки пешеходного перехода — но пропущен оператор `!`. Корректное условие: `questCarForArrest && !isPedestrianCrossingQuestActive`.
 
-## 🧠 Модель координат (утверждённая)
+### Проблема 2 — некорректный порог сближения в `checkQuestCarDistance`
 
-- `positionX` — **экранная координата** квестовой машины (не мировая).
-- Камера (фон дороги) движется отдельно через `distance`/`offsetX` и НЕ применяется к квестовым машинам.
-- Формула обновления (одинаковая для обеих категорий, уже реализована в `questCarStore.updatePosition`):
-  ```javascript
-  const relativeSpeed = this.currentSpeed - policeSpeed;
-  this.positionX += relativeSpeed * deltaTime;
-  ```
-- **Физическая проверка:**
-  - `enemy=false` (спавн справа, медленнее полиции): `relativeSpeed < 0` → `positionX` уменьшается → движется влево → полицейский догоняет. ✅
-  - `enemy=false` быстрее полиции: `relativeSpeed > 0` → движется вправо (уходит вперёд). ✅
-  - `enemy=true` (спавн слева, быстрее полиции): `relativeSpeed > 0` → движется вправо → обгоняет. ✅
-  - `enemy=true` медленнее полиции: `relativeSpeed < 0` → движется влево (отстаёт) → полиция НЕ догоняет. ✅ (исправляет баг 2)
-
-> ⚠️ Документация (`ARCHITECTURE.md`, `instructions.md`) ранее указывала `-=` для `enemy=false` — это физически некорректно (машина уходит вправо за экран вместо догоняния). Исправляется в рамках задачи.
+`@state/mapStore.jsx` → `checkQuestCarDistance`:
+```javascript
+const policeScreenX = 30;
+const policeWidth = 100;
+const policeRightEdge = policeScreenX + policeWidth * 0.5; // = 80
+const maxDistance = policeRightEdge + 400;                  // = 480
+```
+`CONCEPT.md` требует порог **+250px** от X-координаты полицейского (`policeScreenX + 250 = 280`). Текущий порог `480` (на 200px больше) и привязан к `policeRightEdge`, а не к `policeScreenX`.
 
 ## 📐 План реализации (минимальные изменения)
 
-### Изменение 1 — `src/components/game/QuestCar.jsx`
-- Убрать проп `distance`.
-- `const screenX = questCarStore.positionX;` (вместо `positionX - distance`).
+### Изменение 1 — `@components/game/Game.jsx` (условие рендера кнопки)
 
-### Изменение 2 — `src/components/game/Game.jsx`
-- В фильтре рендера `questCars` (строки ~121-122): `car.positionX > -150 && car.positionX < viewportWidthRef.current`.
-- В фильтре `visibleCars` для `SpeedDisplay` (строки ~136-137): то же самое.
-- Убрать `distance={distance}` из `<QuestCar />`.
-- В вызове `activeMapStore.checkQuestCarDistance(...)` убрать третий аргумент `activeMapStore.offsetX` (параметр `distance` более не нужен).
+Строка ~147. Заменить:
+```jsx
+{activeMapStore.questCarForArrest && activeMapStore.isPedestrianCrossingQuestActive && (
+```
+на:
+```jsx
+{activeMapStore.questCarForArrest &&
+  !activeMapStore.isPedestrianCrossingQuestActive &&
+  !activeMapStore.isPoliceQuestActive && (
+```
+Обоснование: кнопка рендерится, когда `questCarForArrest` установлен (пространственное условие из `checkQuestCarDistance`) И нет активных модальных квестов (чтобы не перекрывать модалки с `z-index: 1000`; у кнопки `z-index: 1003`).
 
-### Изменение 3 — `src/state/mapStore.jsx` → `checkQuestCarDistance`
-- Сигнатура: `checkQuestCarDistance(questCarStores, viewportWidth)` (убрать параметр `distance`).
-- `const questCarScreenX = questCar.positionX;` (вместо `positionX - distance + 200`).
-- Сравнение ближайшей: `questCarScreenX < closestQuestCar.positionX` (вместо `closestQuestCar.positionX - distance`).
-- Удалить закомментированную строку `// const questCarScreenX = questCar.positionX - distance;`.
+### Изменение 2 — `@state/mapStore.jsx` → `checkQuestCarDistance`
 
-### Изменение 4 — `ARCHITECTURE.md`
-- Секция «Quest Cars: Относительное движение»: заменить `-=` для enemy=false на `+=` для обеих категорий; указать, что `positionX` — экранная координата; явно запретить вычитание `distance` в UI.
-- Таблица контракта `QuestCarStore.updatePosition`: обновить описание.
-- Примеры: пересчитать направления (enemy=false медленнее → влево).
+```javascript
+checkQuestCarDistance(questCarStores, viewportWidth) {
+  const policeScreenX = 30;
+  const arrestThreshold = 250; // CONCEPT.md: +250px от X-координаты полицейского
+  const minArrestX = policeScreenX;            // = 30 — enemy «сравнялся» с полицейским
+  const maxArrestX = policeScreenX + arrestThreshold; // = 280
 
-### Изменение 5 — `instructions.md`
-- Таблица «Примеры расчётов» и сценарии 1, 2, 8: привести к `+=` для обеих категорий.
+  let closestQuestCar = null;
+
+  for (const questCar of questCarStores) {
+    if (questCar.enemy) {
+      try {
+        const questCarScreenX = questCar.positionX;
+        if (questCarScreenX >= minArrestX && questCarScreenX <= maxArrestX) {
+          if (!closestQuestCar || questCarScreenX < closestQuestCar.positionX) {
+            closestQuestCar = questCar;
+          }
+        }
+      } catch (error) {
+        console.error("Error checking quest car distance:", error);
+      }
+    }
+  }
+
+  this.questCarForArrest = closestQuestCar;
+}
+```
+- Диапазон ареста: `positionX ∈ [30, 280]`.
+- `enemy=true` спавнится в `positionX = -200`, движется вправо при `currentSpeed > policeSpeed`, проходит через диапазон `[30, 280]` → `questCarForArrest` устанавливается → кнопка появляется.
+- При выходе из диапазона (`positionX > 280`) `questCarForArrest` сбрасывается в `null` → кнопка исчезает.
+
+### Изменение 3 — `@style/quest_car.css` (проверка, без изменений)
+
+Стили `.arrest-button-quest-car-map` корректны:
+- `position: fixed` (привязка к viewport);
+- `z-index: 1003` (выше модалок `1000`);
+- `bottom: 20px; left: 50px; padding: 20px 60px;` — видимая позиция;
+- нет `display:none` / `visibility:hidden` / `opacity:0`.
+
+Изменений не требуется. Проверка фиксируется в QA.
+
+### Изменение 4 — `@instructions.md`
+
+Секция «🛑 Кнопка Арестовать (для нарушителя enemy = true)»:
+- Условие появления: `questCar.positionX ∈ [policeScreenX, policeScreenX + 250]` (т.е. `[30, 280]`), без привязки к квесту пешеходного перехода.
+- Кнопка НЕ показывается поверх активных модальных квестов (пешеходный/полицейский).
+- Обновить список действий QA.
 
 ### Без изменений
-- `questCarStore.jsx` — логика корректна, unit-тесты подтверждают `+=` для обеих категорий.
-- `SpeedDisplay.jsx` — показывает абсолютную `currentSpeed / 6.43`, корректно.
-- Логика ареста (`questCarForArrest`, кнопка) — вне рамок баг-репорта.
+- `questCarStore.jsx` — логика движения корректна (`positionX += relativeSpeed * deltaTime`).
+- `QuestCar.jsx` — `screenX = questCarStore.positionX` (исправлено в предыдущей задаче).
+- Игровой цикл `requestAnimationFrame` в `Game.jsx` не затрагивается.
+- Обработчик `onClick` кнопки — без изменений (уже корректен: `countHelp +1`, `removeQuestCarByIndex`, сброс `questCarForArrest`).
 
 ## 🚫 Ограничения
 - Новые npm-пакеты: НЕ требуются.
-- Сторы (`CarStore`, `MapStore`, `QuestCarStore`) — без изменения логики/методов (только сигнатура `checkQuestCarDistance` теряет неиспользуемый параметр `distance`).
-- Игровой цикл `requestAnimationFrame` в `Game.jsx` не затрагивается.
+- Сторы: изменяется только тело метода `checkQuestCarDistance` (сигнатура и остальная логика MapStore без изменений).
+- Игровой цикл `requestAnimationFrame` не затрагивается.
+- Запрещён бойскаутский рефакторинг обработчика `onClick` и других частей `Game.jsx`.
 
 ## ✅ Критерии приёмки (DoD)
-1. `enemy=false` спавнится у правого края и движется влево к полицейскому при меньшей скорости (виден на экране).
-2. `enemy=true` спавнится у левого края и обгоняет полицейского при большей скорости; при меньшей — отстаёт (полиция не догоняет).
-3. `npm run test` — все существующие unit-тесты зелёные.
-4. `npm run build` — без ошибок.
+1. При сближении `enemy=true` машины с полицейским (`positionX ∈ [30, 280]`) кнопка «Арестовать» появляется.
+2. Кнопка НЕ появляется поверх модалок квеста пешеходного перехода и полицейского квеста.
+3. При выходе машины из диапазона кнопка исчезает.
+4. `npm run test` — все существующие unit-тесты зелёные.
+5. `npm run build` — без ошибок.

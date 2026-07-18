@@ -1,8 +1,8 @@
 import { observer } from "mobx-react-lite";
 import { CarModel } from "../car/CarModel";
 
-export const QuestCar = observer(({ questCarStore, mapStore, distance }) => {
-  const screenX = questCarStore.positionX - distance;
+export const QuestCar = observer(({ questCarStore, mapStore }) => {
+  const screenX = questCarStore.positionX;
 
   return (
     <div

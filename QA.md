@@ -39,8 +39,8 @@
 
 **Проверяемые сценарии (в `quest-cars.spec.js`):**
 - [ ] Квестовые машины (`questCar`) появляются только если `!isPedestrianCrossingQuestActive && !questCarActive`.
-- [ ] `enemy=false`: машина спавнится справа (`positionX > viewportWidth`), движется слева направо.
-- [ ] `enemy=true`: машина спавнится слева (`positionX < 0`), движется справа налево.
+- [ ] `enemy=false`: машина спавнится справа (`positionX > viewportWidth`), движется справа налево (полицейский догоняет при меньшей скорости машины).
+- [ ] `enemy=true`: машина спавнится слева (`positionX < 0`), движется слева направо (обгоняет при большей скорости машины).
 - [ ] При сближении `questCar` с полицейской машиной (дистанция `< 50px`) → появляется кнопка "Арестовать".
 - [ ] При аресте `questCar` → `countHelp +1`, `questCar` удаляется из `questCars`, `questCarActive = false`.
 - [ ] `SpeedDisplay` показывает скорость (`questCar.currentSpeed`).

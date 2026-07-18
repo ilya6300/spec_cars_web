@@ -353,7 +353,7 @@ removeQuestCarByIndex(index) {
     });
   }
 
-  checkQuestCarDistance(questCarStores, viewportWidth, distance) {
+  checkQuestCarDistance(questCarStores, viewportWidth) {
     const policeScreenX = 30;
     const policeWidth = 100;
     const policeRightEdge = policeScreenX + policeWidth * 0.5;
@@ -364,11 +364,10 @@ removeQuestCarByIndex(index) {
     for (const questCar of questCarStores) {
       if (questCar.enemy) {
         try {
-          const questCarScreenX = questCar.positionX - distance + 200;
-   
-          // const questCarScreenX = questCar.positionX - distance;
+          const questCarScreenX = questCar.positionX;
+
           if (questCarScreenX > policeRightEdge && questCarScreenX <= maxDistance) {
-            if (!closestQuestCar || questCarScreenX < closestQuestCar.positionX - distance) {
+            if (!closestQuestCar || questCarScreenX < closestQuestCar.positionX) {
               closestQuestCar = questCar;
             }
           }

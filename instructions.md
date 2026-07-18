@@ -166,19 +166,19 @@
 
 - **`enemy=false` (не нарушитель):**
   - Спавн справа (`positionX = viewportWidth + 200`)
-  - Движение **влево** (отрицательное направление)
-  - `positionX -= relativeSpeed * deltaTime`
-  - Если `questCar.currentSpeed > policeSpeed`: машина уходит влево (от полицейского)
-  - Если `questCar.currentSpeed < policeSpeed`: машина движется вправо (полицейский её догоняет)
+  - Единая формула: `positionX += relativeSpeed * deltaTime`
+  - Если `questCar.currentSpeed < policeSpeed`: `relativeSpeed < 0` → машина движется **влево** (полицейский догоняет)
+  - Если `questCar.currentSpeed > policeSpeed`: `relativeSpeed > 0` → машина движется **вправо** (уходит вперёд)
   - Если `questCar.currentSpeed === policeSpeed`: машина стоит на месте
 
 - **`enemy=true` (нарушитель):**
   - Спавн слева (`positionX = -200`)
-  - Движение **вправо** (положительное направление)
-  - `positionX += relativeSpeed * deltaTime`
-  - Если `questCar.currentSpeed > policeSpeed`: машина уходит вправо (от полицейского)
-  - Если `questCar.currentSpeed < policeSpeed`: машина движется влево (полицейский её догоняет)
+  - Единая формула: `positionX += relativeSpeed * deltaTime`
+  - Если `questCar.currentSpeed > policeSpeed`: `relativeSpeed > 0` → машина движется **вправо** (обгоняет полицейского)
+  - Если `questCar.currentSpeed < policeSpeed`: `relativeSpeed < 0` → машина движется **влево** (отстаёт, полицейский НЕ догоняет)
   - Если `questCar.currentSpeed === policeSpeed`: машина стоит на месте
+
+> ⚠️ `positionX` — **экранная координата**. В UI (`QuestCar.jsx`, фильтр `Game.jsx`, `checkQuestCarDistance`) вычитание `distance` **запрещено** — оно приводит к двойному учёту `policeSpeed`.
 
 #### 🚗 Параметры машины:
 - Выбирается случайно из `Cars.otherCars`
@@ -238,8 +238,8 @@
 - [ ] Спавн происходит при любой передаче (нет ограничения)
 - [ ] `enemy=false`: машина спавнится справа, движется относительно полицейского
 - [ ] `enemy=true`: машина спавнится слева, движется относительно полицейского
-- [ ] При `questCar.currentSpeed > policeSpeed` и `enemy=false`: машина уходит влево
-- [ ] При `questCar.currentSpeed < policeSpeed` и `enemy=false`: машина движется вправо (полицейский догоняет)
+- [ ] При `questCar.currentSpeed > policeSpeed` и `enemy=false`: машина уходит вправо (вперёд)
+- [ ] При `questCar.currentSpeed < policeSpeed` и `enemy=false`: машина движется влево (полицейский догоняет)
 - [ ] При `questCar.currentSpeed === policeSpeed`: машина стоит на месте
 - [ ] SpeedDisplay показывает скорость первой машины
 - [ ] При `currentSpeed > 60`: красный цвет + анимация
@@ -365,9 +365,9 @@ relativeSpeed = questCar.currentSpeed - policeSpeed
 
 | policeSpeed | questCar.currentSpeed | enemy | relativeSpeed | Движение (направление) |
 |-------------|-----------------------|-------|---------------|------------------------|
-| 80          | 60                    | false | -20           | Вправо (+20*dx)        |
+| 80          | 60                    | false | -20           | Влево (-20*dx)         |
 | 80          | 60                    | true  | -20           | Влево (-20*dx)         |
-| 0           | 60                    | false | 60            | Влево (-60*dx)         |
+| 0           | 60                    | false | 60            | Вправо (+60*dx)        |
 | 80          | 80                    | false | 0             | Стоит                  |
 | 100         | 120                   | true  | 20            | Вправо (+20*dx)        |
 
@@ -375,13 +375,13 @@ relativeSpeed = questCar.currentSpeed - policeSpeed
 
 #### Сценарий 1: Полицейский 80, машина 60, enemy=false
 - Условие: `policeSpeed = 80`, `questCar.currentSpeed = 60`
-- Ожидание: `relativeSpeed = -20`, машина движется вправо (полицейский догоняет)
-- Проверка: `questCar.positionX` увеличивается со временем
+- Ожидание: `relativeSpeed = -20`, машина движется влево (полицейский догоняет)
+- Проверка: `questCar.positionX` уменьшается со временем
 
 #### Сценарий 2: Полицейский остановился, машина 60, enemy=false
 - Условие: `policeSpeed = 0`, `questCar.currentSpeed = 60`
-- Ожидание: `relativeSpeed = 60`, машина движется влево со своей скоростью
-- Проверка: `questCar.positionX` уменьшается со временем
+- Ожидание: `relativeSpeed = 60`, машина уходит вправо со своей скоростью (полицейский стоит)
+- Проверка: `questCar.positionX` увеличивается со временем
 
 #### Сценарий 3: Одновременный спавн двух машин
 - Условие: одна машина уже на карте (`questCars.length > 0`)
@@ -408,10 +408,10 @@ relativeSpeed = questCar.currentSpeed - policeSpeed
 - Ожидание: `relativeSpeed = 0`, машина стоит на месте
 - Проверка: `questCar.positionX` не меняется
 
-#### Сценарий 8: Движение полицейского в обратном направлении (полицейский 60, машина 80)
+#### Сценарий 8: Полицейский медленнее машины (полицейский 60, машина 80)
 - Условие: `policeSpeed = 60`, `questCar.currentSpeed = 80`, `enemy=false`
-- Ожидание: `relativeSpeed = 20`, машина уходит влево (от полицейского)
-- Проверка: `questCar.positionX` уменьшается со временем
+- Ожидание: `relativeSpeed = 20`, машина уходит вправо (вперёд от полицейского)
+- Проверка: `questCar.positionX` увеличивается со временем
 
 ---
 

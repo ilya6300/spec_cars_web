@@ -27,6 +27,7 @@
 
 .speed-display {
   position: fixed;
+  z-index: 51;
   top: 20px;
   right: 20px;
   font-size: 32px;

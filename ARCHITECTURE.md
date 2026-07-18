@@ -195,7 +195,7 @@ questCar.updateWheelRotation(deltaTime);
 | `wheelRotation`    | `number` (observable)    | Угол вращения колёс (зависит от `currentSpeed`).                                                                                        |
 | `constructor(carData)` | `action`               | Инициализирует машину из `Cars.otherCars`.                                                                                              |
 | `spawn(positionX, speed)` | `action`            | Устанавливает начальную позицию и скорость.                                                                                             |
-| `updatePosition(deltaTime, policeSpeed)` | `action`      | Обновляет `positionX` на основе **относительной скорости** `relativeSpeed = currentSpeed - policeSpeed`.                              |
+| `updatePosition(deltaTime, policeSpeed)` | `action`      | Обновляет экранную координату `positionX += (currentSpeed - policeSpeed) * deltaTime`. Единая формула для `enemy=false` и `enemy=true`.                              |
 | `updateWheelRotation(deltaTime)` | `action`    | Обновляет `wheelRotation` на основе `currentSpeed` (коэффициент 5).                                                                     |
 | `deactivate()`     | `action`                 | Сбрасывает `active = false`.                                                                                                             |
 
@@ -205,36 +205,39 @@ questCar.updateWheelRotation(deltaTime);
 
 **Концепция:** Движение всех квестовых машин рассчитывается **относительно скорости полицейского автомобиля**. Это создаёт ощущение относительного движения в реальном времени.
 
+**Модель координат:** `QuestCarStore.positionX` — это **экранная координата** (смещение относительно текущего кадра), а НЕ мировая. Спавн задаётся экранными смещениями (`viewportWidth + 200` / `-200`). Камера (смещение фона дороги через `distance`/`offsetX`) к квестовым машинам **не применяется** — повторное вычитание `distance` в UI запрещено (приводит к двойному учёту `policeSpeed`).
+
 **Формула относительной скорости:**
 ```javascript
 relativeSpeed = questCar.currentSpeed - policeSpeed
 ```
 
-**Правила движения:**
+**Правила движения (единая формула для обеих категорий):**
+```javascript
+positionX += relativeSpeed * deltaTime
+```
 - **Для `enemy=false` (не нарушитель):**
   - Спавн справа (`positionX = viewportWidth + 200`)
-  - Движение **влево** (отрицательное направление)
-  - Относительное смещение: `positionX -= relativeSpeed * deltaTime`
-  - Если `questCar.currentSpeed > policeSpeed` → машина движется влево (от полицейского)
-  - Если `questCar.currentSpeed < policeSpeed` → машина движется вправо (полицейский догоняет)
+  - Если `questCar.currentSpeed < policeSpeed` → `relativeSpeed < 0` → `positionX` уменьшается → машина движется **влево** (полицейский догоняет)
+  - Если `questCar.currentSpeed > policeSpeed` → `relativeSpeed > 0` → машина движется **вправо** (уходит вперёд от полицейского)
   - Если `questCar.currentSpeed === policeSpeed` → машина стоит на месте
 
 - **Для `enemy=true` (нарушитель):**
   - Спавн слева (`positionX = -200`)
-  - Движение **вправо** (положительное направление)
-  - Относительное смещение: `positionX += relativeSpeed * deltaTime`
-  - Если `questCar.currentSpeed > policeSpeed` → машина движется вправо (от полицейского)
-  - Если `questCar.currentSpeed < policeSpeed` → машина движется влево (полицейский догоняет)
+  - Если `questCar.currentSpeed > policeSpeed` → `relativeSpeed > 0` → машина движется **вправо** (обгоняет полицейского)
+  - Если `questCar.currentSpeed < policeSpeed` → `relativeSpeed < 0` → машина движется **влево** (отстаёт, полицейский НЕ догоняет)
   - Если `questCar.currentSpeed === policeSpeed` → машина стоит на месте
+
+> ⚠️ Ранее в документации для `enemy=false` указывалась формула `positionX -= relativeSpeed * deltaTime` — это физически некорректно: при `currentSpeed < policeSpeed` машина уходила бы вправо за экран вместо того, чтобы её догонял полицейский. Единая формула `+=` проверена unit-тестами `questCarStore.test.jsx`.
 
 **Примеры:**
 1. `policeSpeed = 80`, `questCar.currentSpeed = 60`, `enemy=false`
    - `relativeSpeed = 60 - 80 = -20`
-   - `positionX += 20 * deltaTime` (машина уходит вправо, полицейский её догоняет)
+   - `positionX += -20 * deltaTime` (машина движется влево, полицейский догоняет)
 
 2. `policeSpeed = 0`, `questCar.currentSpeed = 60`, `enemy=false`
    - `relativeSpeed = 60 - 0 = 60`
-   - `positionX -= 60 * deltaTime` (машина едет влево со своей скоростью)
+   - `positionX += 60 * deltaTime` (машина уходит вправо со своей скоростью — полицейский стоит)
 
 3. `policeSpeed = 80`, `questCar.currentSpeed = 80`, `enemy=false`
    - `relativeSpeed = 80 - 80 = 0`
@@ -242,7 +245,16 @@ relativeSpeed = questCar.currentSpeed - policeSpeed
 
 4. `policeSpeed = 80`, `questCar.currentSpeed = 100`, `enemy=true`
    - `relativeSpeed = 100 - 80 = 20`
-   - `positionX += 20 * deltaTime` (нарушитель уходит вправо от полицейского)
+   - `positionX += 20 * deltaTime` (нарушитель движется вправо, обгоняет полицейского)
+
+5. `policeSpeed = 105`, `questCar.currentSpeed = 108`, `enemy=true`
+   - `relativeSpeed = 108 - 105 = 3`
+   - `positionX += 3 * deltaTime` (нарушитель медленно уходит вправо — полицейский НЕ догоняет)
+
+**Контракт UI-слоя (ВАЖНО):**
+- `QuestCar.jsx`: `screenX = questCarStore.positionX` (БЕЗ вычитания `distance`).
+- `Game.jsx` (фильтр видимости и `SpeedDisplay`): сравнение по `car.positionX` напрямую (БЕЗ `- distance`).
+- `mapStore.checkQuestCarDistance(questCarStores, viewportWidth)`: `questCarScreenX = questCar.positionX` (БЕЗ параметра `distance`).
 
 **Обновление спавна:**
 - Скорость машины `currentSpeed` выбирается случайно в диапазоне `[minSpeed, maxSpeed]` при создании

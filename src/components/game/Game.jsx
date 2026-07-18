@@ -13,6 +13,7 @@ import { PedestrianCrossingModal } from "./PedestrianCrossingModal";
 
 import { QuestCar } from "./QuestCar";
 import { SpeedDisplay } from "./SpeedDisplay";
+import FullscreenButton from "./FullscreenButton";
 
 export const Game = observer(() => {
 const [activeCarStore] = useState(() => new CarStore(Cars.cars[0]));
@@ -56,10 +57,9 @@ const [activeCarStore] = useState(() => new CarStore(Cars.cars[0]));
       activeMapStore.despawnObjects(viewportWidthRef.current);
       activeMapStore.triggerAppearEvents(activeCarStore);
       activeMapStore.updateQuestCars(deltaTime);
-activeMapStore.checkQuestCarDistance(
+      activeMapStore.checkQuestCarDistance(
         activeMapStore.questCars,
         viewportWidthRef.current,
-        activeMapStore.offsetX,
       );
 
       animationFrameId = requestAnimationFrame(gameLoop);
@@ -95,6 +95,7 @@ activeMapStore.checkQuestCarDistance(
 
   return (
     <div className="game-viewport">
+      <FullscreenButton />
       <Maps
         map={activeMapStore}
         distance={distance}
@@ -113,13 +114,35 @@ activeMapStore.checkQuestCarDistance(
         carStore={activeCarStore}
       />
 
-{activeMapStore.questCars.map((questCar) => (
-        <QuestCar key={questCar.id} questCarStore={questCar} mapStore={activeMapStore} distance={distance} />
-      ))}
+      {activeMapStore.questCars
+        .filter(
+          (car) =>
+            car.positionX > -150 &&
+            car.positionX < viewportWidthRef.current,
+        )
+        .map((questCar) => (
+          <QuestCar
+            key={questCar.id}
+            questCarStore={questCar}
+            mapStore={activeMapStore}
+          />
+        ))}
 
-      {activeMapStore.questCars.length > 0 && (
-        <SpeedDisplay currentSpeed={activeMapStore.questCars[0].currentSpeed} />
-      )}
+      {(() => {
+        const visibleCars = activeMapStore.questCars.filter(
+          (car) =>
+            car.positionX > -150 &&
+            car.positionX < viewportWidthRef.current,
+        );
+        if (visibleCars.length === 0) return null;
+        return (
+          <SpeedDisplay
+            currentSpeed={Math.max(
+              ...visibleCars.map((car) => car.currentSpeed),
+            )}
+          />
+        );
+      })()}
 
       {activeMapStore.questCarForArrest && activeMapStore.isPedestrianCrossingQuestActive && (
         <button

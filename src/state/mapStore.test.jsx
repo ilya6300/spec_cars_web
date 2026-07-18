@@ -32,10 +32,10 @@ test('MapStore: finishPedestrianCrossingQuest', () => {
   expect(store.pedestrianState).toBe('waiting');
 });
 
-test('MapStore: questCarSpawnTimer initialized to 5', () => {
+test('MapStore: questCarSpawnTimer initialized to 10', () => {
   const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
   
-  expect(store.questCarSpawnTimer).toBe(5);
+  expect(store.questCarSpawnTimer).toBe(10);
 });
 
 test('MapStore: removeQuestCarByIndex removes car and resets timer when array empty', () => {
@@ -47,8 +47,8 @@ test('MapStore: removeQuestCarByIndex removes car and resets timer when array em
   
   store.removeQuestCarByIndex(0);
   expect(store.questCars.length).toBe(0);
-  expect(store.questCarSpawnTimer).toBeGreaterThanOrEqual(5);
-  expect(store.questCarSpawnTimer).toBeLessThanOrEqual(15);
+  expect(store.questCarSpawnTimer).toBeGreaterThanOrEqual(10);
+  expect(store.questCarSpawnTimer).toBeLessThanOrEqual(30);
 });
 
 test('MapStore: questCarActive field does not exist', () => {
@@ -68,8 +68,8 @@ test('MapStore: spawnQuestCar creates car without blocking checks', () => {
   store.spawnQuestCar();
   
   expect(store.questCars.length).toBe(1);
-  expect(store.questCarSpawnTimer).toBeGreaterThanOrEqual(5);
-  expect(store.questCarSpawnTimer).toBeLessThanOrEqual(15);
+  expect(store.questCarSpawnTimer).toBeGreaterThanOrEqual(10);
+  expect(store.questCarSpawnTimer).toBeLessThanOrEqual(30);
   
   // Второй спавн — тоже создаёт машину
   store.spawnQuestCar();

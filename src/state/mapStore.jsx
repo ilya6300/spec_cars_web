@@ -74,7 +74,7 @@ class MapStore {
 
 // Quest Cars state
   questCars = [];
-  questCarSpawnTimer = 5;
+  questCarSpawnTimer = 10;
   questCarForArrest = null;
 
   constructor(mapData) {
@@ -323,7 +323,7 @@ spawnQuestCar() {
 
     runInAction(() => {
       this.questCars.push(questCar);
-      this.questCarSpawnTimer = 5 + Math.random() * 10;
+      this.questCarSpawnTimer = 10 + Math.random() * 20;
     });
   }
 
@@ -347,7 +347,7 @@ removeQuestCarByIndex(index) {
       if (index >= 0 && index < this.questCars.length) {
         this.questCars.splice(index, 1);
         if (this.questCars.length === 0) {
-          this.questCarSpawnTimer = 5 + Math.random() * 10;
+      this.questCarSpawnTimer = 10 + Math.random() * 20;
         }
       }
     });

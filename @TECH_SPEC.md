@@ -1,104 +1,74 @@
-# TECH_SPEC: Fix Bensin (Fuel Canister) Component
+# TECH_SPEC.md: Изменение таймера спавна квестовых машин
 
-## 📌 Описание изменений
+## 📋 Ссылки
+- **CONCEPT.md**: Изменить спавн машин — первая через 10 сек, последующие через 10–30 сек.
+- **@TODO.md**: #1, #2
 
-Компонент `Bensin.jsx` отображает канистру топлива, но содержит три дефекта:
-1. Используется несуществующее поле `carStore.max` вместо `carStore.maxFuel` — процент заполнения всегда `NaN`.
-2. CSS-свойство `background: #737373bd` у класса `.canister` полностью перезаписывает inline `background: linear-gradient(...)`, из-за чего топливо не видно — канистра выглядит серой.
-3. Цвет топлива `#34d399` (зелёный) не соответствует ТЗ — нужен `#c3bf12bd` (жёлто-зелёный).
+## 🎯 Цель
+Изменить таймер спавна квестовых машин с текущего диапазона [5, 15] секунд на [10, 30] секунд, включая начальную задержку.
 
-## 📍 Изменяемые файлы
+## 📝 Список изменений
 
-| Файл | Тип | Описание |
-|------|-----|----------|
-| `src/components/car/Bensin.jsx` | Компонент | Исправить поле, заменить цвет |
-| `src/style/interface.css` | Стили | Убрать `background` из `.canister` |
+### Файл: `src/state/mapStore.jsx`
 
-## ❌ Не изменяемые файлы
+#### Изменение 1: Начальный таймер (строка 77)
 
-- `state/carStore.jsx` — сторы не меняются
-- `components/car/Car.jsx` — не меняется
-
-## 🔧 Детали реализации
-
-### Задача 1: Исправить имя поля
-
-**Файл:** `src/components/car/Bensin.jsx`
-
-**Текущий код (строки 10-12):**
-```jsx
-<div 
-  className={`canister ${((carStore.fuel / carStore.max) * 100) < 5 ? "blink-red" : ""}`}
-  style={{
-    background: `linear-gradient(to top, #34d399 ${Math.min(Math.max((carStore.fuel / carStore.max) * 100, 0), 100)}%, #1f2937 ${Math.min(Math.max((carStore.fuel / carStore.max) * 100, 0), 100)}%)`
-  }}
->
+**Текущий код:**
+```javascript
+questCarSpawnTimer = 5;
 ```
 
 **Новый код:**
-```jsx
-<div 
-  className={`canister ${((carStore.fuel / carStore.maxFuel) * 100) < 5 ? "blink-red" : ""}`}
-  style={{
-    background: `linear-gradient(to top, #c3bf12bd ${Math.min(Math.max((carStore.fuel / carStore.maxFuel) * 100, 0), 100)}%, #1f2937 ${Math.min(Math.max((carStore.fuel / carStore.maxFuel) * 100, 0), 100)}%)`
-  }}
->
+```javascript
+questCarSpawnTimer = 10;
 ```
 
-Изменения:
-- `carStore.max` → `carStore.maxFuel` (3 вхождения)
-- `#34d399` → `#c3bf12bd` (1 вхождение)
+**Обоснование:** Первая машина должна появляться через 10 секунд после старта игры.
 
-### Задача 2: Убрать background из CSS
+---
 
-**Файл:** `src/style/interface.css`
+#### Изменение 2: Рандомный таймер в `spawnQuestCar()` (строка 326)
 
-**Текущий код (строки 16-28):**
-```css
-.canister {
-    position: relative;
-    width: 45px;
-    height: 60px;
-    border: 2px solid #737373bd;
-    background: #737373bd;
-    border-radius: 12px 12px 6px 6px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: background 0.3s ease, border-color 0.3s ease;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
+**Текущий код:**
+```javascript
+this.questCarSpawnTimer = 5 + Math.random() * 10;
 ```
 
 **Новый код:**
-```css
-.canister {
-    position: relative;
-    width: 45px;
-    height: 60px;
-    border: 2px solid #737373bd;
-    border-radius: 12px 12px 6px 6px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: background 0.3s ease, border-color 0.3s ease;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
+```javascript
+this.questCarSpawnTimer = 10 + Math.random() * 20;
 ```
 
-Изменения:
-- Удалена строка `background: #737373bd;` — она перезаписывает inline-градиент.
-- `transition` оставляем — анимация `blink-red` меняет `border-color` и `box-shadow`, а не `background`.
+**Обоснование:** Диапазон [5, 15] → [10, 30]. Формула: `min + Math.random() * (max - min)`, где min=10, max=30, разность=20.
 
-### Задача 3: Цвет топлива
+---
 
-Выполняется в рамках Задачи 1 (замена `#34d399` на `#c3bf12bd` в linear-gradient).
+#### Изменение 3: Рандомный таймер в `removeQuestCarByIndex()` (строка 350)
 
-## ✅ Критерии готовности
+**Текущий код:**
+```javascript
+this.questCarSpawnTimer = 5 + Math.random() * 10;
+```
 
-1. Процент заполнения канистры рассчитывается корректно (`fuel / maxFuel`)
-2. Канистра не серая — виден градиент топлива (жёлто-зелёный) поверх тёмного фона
-3. При уровне топлива < 5% — срабатывает анимация `blink-red` (мигание красной рамки)
-4. Визуальный контур канистры (border, border-radius) сохранён
-5. Нет ошибок в консоли
-6. `npx vite build` проходит успешно
+**Новый код:**
+```javascript
+this.questCarSpawnTimer = 10 + Math.random() * 20;
+```
+
+**Обоснование:** После ареста/удаления машины следующий спавн также должен быть в диапазоне [10, 30] секунд.
+
+---
+
+## 🔍 Зависимые файлы (читать перед изменением)
+- `src/state/mapStore.jsx` — единственный файл для изменения
+- `src/components/game/Game.jsx` — читать для понимания контекста (не изменять)
+
+## 🚫 Новые зависимости
+Нет. Изменения затрагивают только числовые константы, новые пакеты не требуются.
+
+## ✅ Критерии приёмки
+1. При запуске игры первая квестовая машина появляется через ~10 секунд (±0.5 сек).
+2. После появления каждой следующей машины интервал спавна составляет от 10 до 30 секунд.
+3. После ареста машины (кнопка "Арестовать") интервал до следующей машины также 10–30 секунд.
+4. Файл `mapStore.jsx` содержит ровно 3 изменения (строки 77, 326, 350).
+5. Нет временных логов, закомментированного кода, лишних импортов.

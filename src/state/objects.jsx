@@ -46,8 +46,8 @@ const getPolicequest = () => {
     zIndex: 2,
     width: 110,
     height: 100,
-    minDistance: 4000,
-    maxDistance: 10000,
+    minDistance: 8000,
+    maxDistance: 40000,
     onClick: (obj, mapStore, carStore) => {
       mapStore.startQuest(obj);
       carStore.toggleSirena();
@@ -67,8 +67,8 @@ const getPolicequest = () => {
     zIndex: 2,
     width: 110,
     height: 100,
-    minDistance: 4000,
-    maxDistance: 10000,
+    minDistance: 8000,
+    maxDistance: 40000,
     onClick: (obj, mapStore, carStore) => {
       mapStore.startQuest(obj);
       carStore.toggleSirena();
@@ -88,8 +88,8 @@ const getPolicequest = () => {
     zIndex: 2,
     width: 110,
     height: 100,
-    minDistance: 4000,
-    maxDistance: 10000,
+    minDistance: 8000,
+    maxDistance: 40000,
     onClick: (obj, mapStore, carStore) => {
       mapStore.startQuest(obj);
       carStore.toggleSirena();
@@ -119,7 +119,7 @@ const createDataObjects = () => {
       width: 300,
       height: 300,
       minDistance: 400,
-      maxDistance: 3000,
+      maxDistance: 11000,
       onClick: (obj, mapStore, carStore) => {
         /* ничего */
       },
@@ -138,8 +138,8 @@ const createDataObjects = () => {
       zIndex: 2,
       width: 180,
       height: 100,
-      minDistance: 5000,
-      maxDistance: 20000,
+      minDistance: 10000,
+      maxDistance: 30000,
       onClick: (obj, mapStore, carStore) => {
         mapStore.refuelCar(10);
       },
@@ -158,8 +158,8 @@ const createDataObjects = () => {
       zIndex: 2,
       width: 80,
       height: 160,
-      minDistance: 1500,
-      maxDistance: 2500,
+      minDistance: 3500,
+      maxDistance: 8000,
       onClick: (obj, mapStore, carStore) => {
         /* ничего */
       },

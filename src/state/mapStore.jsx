@@ -19,8 +19,8 @@ class MapStore {
   // Расстояния до следующего спавна для каждого типа
   nextSpawnDistances = {
     building: 0,
-    gas_station: 20000,
-    traffic_light: 1000,
+    gas_station: 30000,
+    traffic_light: 8000,
     tree1: 350,
     tree2: 450,
     tree3: 750,
@@ -40,9 +40,9 @@ class MapStore {
     human14: 1950,
     human15: 400,
     human16: 200,
-    human_aggr1: 7700,
-    human_aggr2: 10000,
-    human_aggr3: 1500,
+    human_aggr1: 17700,
+    human_aggr2: 25000,
+    human_aggr3: 10500,
   };
 
   // Состояние светофора

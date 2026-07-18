@@ -149,6 +149,7 @@ const [activeCarStore] = useState(() => new CarStore(Cars.cars[0]));
         !activeMapStore.isPoliceQuestActive && (
         <button
           className="arrest-button-quest-car-map"
+          data-type="arrest-button"
           onClick={() => {
             if (activeMapStore.questCarForArrest) {
               const index = activeMapStore.questCars.indexOf(activeMapStore.questCarForArrest);

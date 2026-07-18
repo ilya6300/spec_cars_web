@@ -22,7 +22,7 @@ class CarStore {
 
   fuel = 65000;
   maxFuel = 65000;
-  fuelConsumption = 500;
+  fuelConsumption = 0.5;
 
   isGasPressed = false;
 
@@ -172,11 +172,13 @@ class CarStore {
 
   pressGas() {
     if (this.fuel > 0) {
+      this.fuelConsumption = 1.5
       this.isGasPressed = true;
     }
   }
 
   releaseGas() {
+    this.fuelConsumption = 0.5
     this.isGasPressed = false;
   }
 
@@ -303,11 +305,10 @@ class CarStore {
     runInAction(() => {
       // 1. Логика расхода топлива
       if (
-        this.isGasPressed &&
-        this.fuel > 0 &&
-        this.trafficLightColor !== "red"
+        this.isIgnitionOn &&
+        this.fuel > 0       
       ) {
-        this.fuel -= 0.5;
+        this.fuel -= this.fuelConsumption;
 
         if (this.fuel <= 0) {
           this.fuel = 0;

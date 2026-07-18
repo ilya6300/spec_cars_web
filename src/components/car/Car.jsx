@@ -3,6 +3,7 @@ import React from "react";
 import { observer } from "mobx-react-lite";
 import { CarModel } from "./CarModel";
 import Cars from "../../state/cars";
+import { Bensin } from "./Bensin";
 
 // 2. Оборачиваем компонент в observer и принимаем store через props
 export const Car = observer(({ carStore }) => {
@@ -20,28 +21,14 @@ export const Car = observer(({ carStore }) => {
 
   return (
     <div className="car-ui" data-type="car">
-      <h3>{name}</h3>
+      <div className="header_interface">
+        {/* <h3>{name}</h3> */}
+      <Bensin carStore={carStore}/>
+      <div>
       <p>Скорость: {Math.round(currentSpeed * Cars.speedMultiplierUI)} км/ч</p>
-      <p>Топливо: {Math.round(fuel).toLocaleString("de-DE")} л.</p>
       <p>Пройдено: {(distanceMeters / 1000).toFixed(3)} км</p>
-      <p>Счётчик помощи: {countHelp}</p>
-      {/* Отрендерим кузов автомобиля */}
-      {/* <div className="car_container">
-        <div className={carStore.sirena ? "sirena-car-on" : null}></div>
-        <img src={urlBody} alt="Кузов" className="car-body" />
-        <img
-          src={urlShell}
-          alt="Колесо"
-          className="left-shell"
-          style={{ transform: `rotate(${wheelRotation}deg)` }}
-        />
-        <img
-          src={urlShell}
-          alt="Колесо"
-          className="right-shell"
-          style={{ transform: `rotate(${wheelRotation}deg)` }}
-        />
-      </div> */}
+      <p>Счётчик помощи: {countHelp}</p></div>
+      </div>
       <CarModel carStore={carStore} typeBody={0} />
     </div>
   );

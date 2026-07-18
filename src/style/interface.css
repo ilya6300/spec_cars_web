@@ -1,0 +1,88 @@
+/* Контейнер для центрирования и адаптивности */
+/* .bensin-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  width: 100%;
+} */
+.header_interface {
+    display: flex;
+    flex-direction: row;
+    margin: 2vh 10px;
+    gap: 10px;
+}
+/* Контур и форма канистры */
+.canister {
+    position: relative;
+    width: 45px;
+    height: 60px;
+    border: 2px solid #737373bd;
+    border-radius: 12px 12px 6px 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background 0.3s ease, border-color 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Горлышко канистры сверху */
+.canister::before {
+content: "";
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+    background-color: inherit;
+    border: 3px solid #737373bd;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    background: #737373bd;
+}
+
+/* Текст по центру */
+.fuel-text {
+  color: #ffffff;
+  font-family: sans-serif;
+  font-size: 20px;
+  font-weight: bold;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Анимация мигания красным */
+.blink-red {
+  animation: blink 1s infinite alternate;
+}
+
+@keyframes blink {
+  0% {
+    border-color: #ef4444;
+    box-shadow: 0 0 5px #ef4444;
+  }
+  100% {
+    border-color: #374151;
+    box-shadow: 0 0 0px transparent;
+  }
+}
+
+/* Адаптивность под мобильные устройства (уменьшаем размер) */
+@media (max-width: 480px) {
+  /* .canister {
+    width: 80px;
+    height: 130px;
+    border-width: 3px;
+  }
+  .canister::before {
+    width: 20px;
+    height: 8px;
+    top: -11px;
+    border-width: 3px;
+  }
+  .fuel-text {
+    font-size: 16px;
+  } */
+}

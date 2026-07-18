@@ -1,26 +1,6 @@
-В @Game.jsx есть блок
-      {activeMapStore.questCarForArrest && activeMapStore.isPedestrianCrossingQuestActive && (
-        <button
-          className="arrest-button-quest-car-map"
-          onClick={() => {
-            if (activeMapStore.questCarForArrest) {
-              const index = activeMapStore.questCars.indexOf(activeMapStore.questCarForArrest);
-              if (index !== -1) {
-                runInAction(() => {
-                  activeCarStore.countHelp += 1;
-                  activeMapStore.questCarForArrest = null;
-                });
-                activeMapStore.removeQuestCarByIndex(index);
-                if (activeCarStore.sirena) {
-                  activeCarStore.toggleSirena();
-                }
-              }
-            }
-          }}
-        >
-          Арестовать
-        </button>
-      )}
-      Он должен появлятся тогда, когда enemy = true машина сравняется по x координатам + 250 px, сечас эта кнопка не появлятся. 
-      1) проверь условие
-      2) проверь стили
+НЕ ПИШИ ТЕСТЫ КОТОРЫЕ НЕ СВЯЗАНЫ С ТВОЕИ ЗАДАЧЕИ
+1) Изучи новыи компонент @Bensin.jsx
+2) изучи новые стили @interface.css
+3) background канистры должен быть заполнен относительно процентнтного соотношения между maxFuel и fuel,
+4) канистра сама не должна быть прозрачнои, возьми цвет из background .canister из фаила @interface.css,
+5) цвет бензина измени на #c3bf12bd

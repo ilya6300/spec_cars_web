@@ -1,61 +1,104 @@
-# TECH_SPEC: SpeedDisplay — показ максимальной скорости видимых квестовых машин
+# TECH_SPEC: Fix Bensin (Fuel Canister) Component
 
 ## 📌 Описание изменений
 
-Заменить текущую логику выбора скорости для `SpeedDisplay`:
-1. Показывать SpeedDisplay **только** когда на экране есть хотя бы одна **видимая** квестовая машина.
-2. Если машин несколько — показывать скорость **самой быстрой** из видимых.
+Компонент `Bensin.jsx` отображает канистру топлива, но содержит три дефекта:
+1. Используется несуществующее поле `carStore.max` вместо `carStore.maxFuel` — процент заполнения всегда `NaN`.
+2. CSS-свойство `background: #737373bd` у класса `.canister` полностью перезаписывает inline `background: linear-gradient(...)`, из-за чего топливо не видно — канистра выглядит серой.
+3. Цвет топлива `#34d399` (зелёный) не соответствует ТЗ — нужен `#c3bf12bd` (жёлто-зелёный).
 
 ## 📍 Изменяемые файлы
 
 | Файл | Тип | Описание |
 |------|-----|----------|
-| `src/components/game/Game.jsx` | Компонент | Изменить условие рендера и логику выбора скорости |
+| `src/components/car/Bensin.jsx` | Компонент | Исправить поле, заменить цвет |
+| `src/style/interface.css` | Стили | Убрать `background` из `.canister` |
 
 ## ❌ Не изменяемые файлы
 
-- `src/components/game/SpeedDisplay.jsx` — компонент не меняется
-- `src/components/game/QuestCar.jsx` — не меняется
-- `state/` — сторы не меняются
+- `state/carStore.jsx` — сторы не меняются
+- `components/car/Car.jsx` — не меняется
 
 ## 🔧 Детали реализации
 
-### Видимость машины на экране
+### Задача 1: Исправить имя поля
 
-В `QuestCar.jsx` экранная координата: `screenX = positionX - distance`.
-Машина видима когда: `screenX > -150` и `screenX < viewportWidth`.
+**Файл:** `src/components/car/Bensin.jsx`
 
-### Текущий код (Game.jsx, строки 122-128):
+**Текущий код (строки 10-12):**
 ```jsx
-{activeMapStore.questCars.length > 0 && (
-  <SpeedDisplay
-    currentSpeed={Math.max(
-      ...activeMapStore.questCars.map((car) => car.currentSpeed),
-    )}
-  />
-)}
+<div 
+  className={`canister ${((carStore.fuel / carStore.max) * 100) < 5 ? "blink-red" : ""}`}
+  style={{
+    background: `linear-gradient(to top, #34d399 ${Math.min(Math.max((carStore.fuel / carStore.max) * 100, 0), 100)}%, #1f2937 ${Math.min(Math.max((carStore.fuel / carStore.max) * 100, 0), 100)}%)`
+  }}
+>
 ```
 
-### Новый код:
+**Новый код:**
 ```jsx
-{(() => {
-  const viewportWidth = window.innerWidth;
-  const visibleCars = activeMapStore.questCars.filter(
-    (car) => car.positionX - distance > -150 && car.positionX - distance < viewportWidth
-  );
-  if (visibleCars.length === 0) return null;
-  return (
-    <SpeedDisplay
-      currentSpeed={Math.max(...visibleCars.map((car) => car.currentSpeed))}
-    />
-  );
-})()}
+<div 
+  className={`canister ${((carStore.fuel / carStore.maxFuel) * 100) < 5 ? "blink-red" : ""}`}
+  style={{
+    background: `linear-gradient(to top, #c3bf12bd ${Math.min(Math.max((carStore.fuel / carStore.maxFuel) * 100, 0), 100)}%, #1f2937 ${Math.min(Math.max((carStore.fuel / carStore.maxFuel) * 100, 0), 100)}%)`
+  }}
+>
 ```
+
+Изменения:
+- `carStore.max` → `carStore.maxFuel` (3 вхождения)
+- `#34d399` → `#c3bf12bd` (1 вхождение)
+
+### Задача 2: Убрать background из CSS
+
+**Файл:** `src/style/interface.css`
+
+**Текущий код (строки 16-28):**
+```css
+.canister {
+    position: relative;
+    width: 45px;
+    height: 60px;
+    border: 2px solid #737373bd;
+    background: #737373bd;
+    border-radius: 12px 12px 6px 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background 0.3s ease, border-color 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+```
+
+**Новый код:**
+```css
+.canister {
+    position: relative;
+    width: 45px;
+    height: 60px;
+    border: 2px solid #737373bd;
+    border-radius: 12px 12px 6px 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background 0.3s ease, border-color 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+```
+
+Изменения:
+- Удалена строка `background: #737373bd;` — она перезаписывает inline-градиент.
+- `transition` оставляем — анимация `blink-red` меняет `border-color` и `box-shadow`, а не `background`.
+
+### Задача 3: Цвет топлива
+
+Выполняется в рамках Задачи 1 (замена `#34d399` на `#c3bf12bd` в linear-gradient).
 
 ## ✅ Критерии готовности
 
-1. SpeedDisplay скрыт когда нет видимых квестовых машин
-2. SpeedDisplay показывает скорость самой быстрой видимой машины
-3. При 1 видимой машине — показывает её скорость
-4. Нет ошибок в консоли
-5. `npx vite build` проходит успешно
+1. Процент заполнения канистры рассчитывается корректно (`fuel / maxFuel`)
+2. Канистра не серая — виден градиент топлива (жёлто-зелёный) поверх тёмного фона
+3. При уровне топлива < 5% — срабатывает анимация `blink-red` (мигание красной рамки)
+4. Визуальный контур канистры (border, border-radius) сохранён
+5. Нет ошибок в консоли
+6. `npx vite build` проходит успешно

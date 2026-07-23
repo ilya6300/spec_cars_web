@@ -71,25 +71,28 @@ src/
 | Стор               | Тип                          | Зона ответственности                                                                                                                                                       |
 | ------------------ | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CarStore`         | Класс (`makeAutoObservable`) | Физика автомобиля: разгон/торможение, расход топлива, текущая/макс. скорость, зажигание (`isIgnitionOn`), вращение колёс (`wheelRotation`), счётчик арестов (`countHelp`). |
-| `MapStore`         | Класс (`makeAutoObservable`) | Состояние карты: позиция прокрутки, коллизии, смена уровней, состояние квеста полиции, квест с другими автомобилями.                                                      |
+| `MapStore`         | Класс (`makeAutoObservable`) | Состояние карты: позиция прокрутки, коллизии, смена уровней, состояние квеста полиции, квест с другими автомобилями.                                                       |
 | `QuestCarStore`    | Класс (`makeAutoObservable`) | Управление квестовыми автомобилями: спавн, движение, вращение колёс, активность.                                                                                           |
 | `MapsStore`        | Plain Object                 | Статическая коллекция карт (id, name, url). Не является MobX-стором.                                                                                                       |
 | `Cars` / `objects` | Plain Objects                | Статические справочники данных.                                                                                                                                            |
 
 ### 🔹 Расширение контракта `Cars` (Speed Multiplier)
 
-| Поле / Метод       | Тип      | Описание                                                                                       |
-| ------------------ | -------- | ---------------------------------------------------------------------------------------------- |
-| `speedMultiplier`  | `number` | Множитель скорости для преобразования кодовых значений в реальные km/h. Применяется к Cars.cars[0]. |
+| Поле / Метод      | Тип      | Описание                                                                                            |
+| ----------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `speedMultiplier` | `number` | Множитель скорости для преобразования кодовых значений в реальные km/h. Применяется к Cars.cars[0]. |
 
 **Формула расчёта эффективной максимальной скорости**:
 
 ```javascript
-const multiplier = this.speedMultiplier !== undefined ? this.speedMultiplier : 1;
-const effectiveMaxSpeed = this.gear === "N" ? 0 : (this.maxSpeed / this.gearRatio) * multiplier;
+const multiplier =
+  this.speedMultiplier !== undefined ? this.speedMultiplier : 1;
+const effectiveMaxSpeed =
+  this.gear === "N" ? 0 : (this.maxSpeed / this.gearRatio) * multiplier;
 ```
 
 **Пример значений для полицейского автомобиля**:
+
 - maxSpeed: 900 (кодовое значение)
 - speedMultiplier: 0.156
 - 4th gear: 900 × 0.156 / 1 = 140 km/h
@@ -110,14 +113,14 @@ const effectiveMaxSpeed = this.gear === "N" ? 0 : (this.maxSpeed / this.gearRati
 
 ### 🔹 Расширение контракта `MapStore` (Pedestrian Crossing Quest)
 
-| Поле / Метод                         | Тип                    | Описание                                                                                                 |
-| ------------------------------------ | ---------------------- | -------------------------------------------------------------------------------------------------------- |
-| `isPedestrianCrossingQuestActive`    | `boolean` (observable) | Флаг активности модального окна квеста пешеходного перехода. По умолчанию: `false`.                      |
-| `pedestrianCrossingTargetObject`     | `Object` / `null`      | Ссылка на выбранный объект human (`{ uid, typeId }` из `dataObjectsSub`).                                |
-| `pedestrianCarPosition`              | `number`               | Текущая координата X машины в модалке. Инициализация: `-150`.                                            |
-| `pedestrianState`                    | `string` (observable)  | Состояние пешехода: `"waiting"` | `"walking"` | `"stopped"`.                                               |
-| `startPedestrianCrossingQuest(obj)`  | `action`               | Устанавливает `isPedestrianCrossingQuestActive = true`, сохраняет `obj`, сбрасывает позицию и состояние. |
-| `finishPedestrianCrossingQuest()`    | `action`               | Сбрасывает флаг квеста, очищает целевой объект, возвращает машину за экран.                              |
+| Поле / Метод                        | Тип                    | Описание                                                                                                 |
+| ----------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------- | ----------- | ------------ |
+| `isPedestrianCrossingQuestActive`   | `boolean` (observable) | Флаг активности модального окна квеста пешеходного перехода. По умолчанию: `false`.                      |
+| `pedestrianCrossingTargetObject`    | `Object` / `null`      | Ссылка на выбранный объект human (`{ uid, typeId }` из `dataObjectsSub`).                                |
+| `pedestrianCarPosition`             | `number`               | Текущая координата X машины в модалке. Инициализация: `-150`.                                            |
+| `pedestrianState`                   | `string` (observable)  | Состояние пешехода: `"waiting"`                                                                          | `"walking"` | `"stopped"`. |
+| `startPedestrianCrossingQuest(obj)` | `action`               | Устанавливает `isPedestrianCrossingQuestActive = true`, сохраняет `obj`, сбрасывает позицию и состояние. |
+| `finishPedestrianCrossingQuest()`   | `action`               | Сбрасывает флаг квеста, очищает целевой объект, возвращает машину за экран.                              |
 
 ### 🔹 Расширение контракта `CarStore` (МКПП)
 
@@ -131,46 +134,56 @@ const effectiveMaxSpeed = this.gear === "N" ? 0 : (this.maxSpeed / this.gearRati
 
 ### 🔹 Расширение контракта `CarStore` (Pedestrian Crossing)
 
-| Поле / Метод               | Тип                   | Описание                                                                         |
-| -------------------------- | --------------------- | -------------------------------------------------------------------------------- |
-| `pedestrianQuestTriggered` | `boolean`             | Флаг: квест пешеходного перехода уже запущен на текущем светофоре.               |
+| Поле / Метод               | Тип       | Описание                                                           |
+| -------------------------- | --------- | ------------------------------------------------------------------ |
+| `pedestrianQuestTriggered` | `boolean` | Флаг: квест пешеходного перехода уже запущен на текущем светофоре. |
 
 ### 🔹 Новый стор: `QuestCarStore` (Квестовые автомобили)
 
-| Поле / Метод       | Тип                      | Описание                                                                                                                                 |
-| ------------------ | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`               | `number` (observable)    | Уникальный ID машины.                                                                                                                    |
-| `type`             | `string` (observable)    | Тип машины (из `Cars.otherCars`).                                                                                                        |
-| `name`             | `string` (observable)    | Название машины.                                                                                                                         |
-| `urlBody`          | `string` (observable)    | URL спрайта кузова.                                                                                                                      |
-| `urlShell`         | `string` (observable)    | URL спрайта колёс.                                                                                                                       |
-| `maxSpeed`         | `number` (observable)    | Максимальная скорость (из `Cars.otherCars`).                                                                                            |
-| `minSpeed`         | `number` (observable)    | Минимальная скорость (из `Cars.otherCars`).                                                                                             |
-| `enemy`            | `boolean` (observable)   | Флаг враждебности: `enemy=false` (спавн справа, движение слева направо), `enemy=true` (спавн слева, движение справа налево).            |
-| `currentSpeed`     | `number` (observable)    | Текущая скорость (случайная в диапазоне `[minSpeed, maxSpeed]`).                                                                        |
-| `positionX`        | `number` (observable)    | Текущая координата X на экране.                                                                                                          |
-| `active`           | `boolean` (observable)   | Флаг активности машины.                                                                                                                  |
-| `wheelRotation`    | `number` (observable)    | Угол вращения колёс (зависит от `currentSpeed`).                                                                                        |
-| `constructor(carData)` | `action`               | Инициализирует машину из `Cars.otherCars`.                                                                                              |
-| `spawn(positionX, speed)` | `action`            | Устанавливает начальную позицию и скорость.                                                                                             |
-| `updatePosition(deltaTime)` | `action`          | Обновляет `positionX` на основе `currentSpeed`.                                                                                         |
-| `updateWheelRotation(deltaTime)` | `action`    | Обновляет `wheelRotation` на основе `currentSpeed` (коэффициент 5).                                                                     |
-| `deactivate()`     | `action`                 | Сбрасывает `active = false`.                                                                                                             |
+| Поле / Метод                     | Тип                    | Описание                                                                                                                     |
+| -------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `id`                             | `number` (observable)  | Уникальный ID машины.                                                                                                        |
+| `type`                           | `string` (observable)  | Тип машины (из `Cars.otherCars`).                                                                                            |
+| `name`                           | `string` (observable)  | Название машины.                                                                                                             |
+| `urlBody`                        | `string` (observable)  | URL спрайта кузова.                                                                                                          |
+| `urlShell`                       | `string` (observable)  | URL спрайта колёс.                                                                                                           |
+| `maxSpeed`                       | `number` (observable)  | Максимальная скорость (из `Cars.otherCars`).                                                                                 |
+| `minSpeed`                       | `number` (observable)  | Минимальная скорость (из `Cars.otherCars`).                                                                                  |
+| `enemy`                          | `boolean` (observable) | Флаг враждебности: `enemy=false` (спавн справа, движение слева направо), `enemy=true` (спавн слева, движение справа налево). |
+| `currentSpeed`                   | `number` (observable)  | Текущая скорость (случайная в диапазоне `[minSpeed, maxSpeed]`).                                                             |
+| `positionX`                      | `number` (observable)  | Текущая координата X на экране.                                                                                              |
+| `active`                         | `boolean` (observable) | Флаг активности машины.                                                                                                      |
+| `wheelRotation`                  | `number` (observable)  | Угол вращения колёс (зависит от `currentSpeed`).                                                                             |
+| `constructor(carData)`           | `action`               | Инициализирует машину из `Cars.otherCars`.                                                                                   |
+| `spawn(positionX, speed)`        | `action`               | Устанавливает начальную позицию и скорость.                                                                                  |
+| `updatePosition(deltaTime)`      | `action`               | Обновляет `positionX` на основе `currentSpeed`.                                                                              |
+| `updateWheelRotation(deltaTime)` | `action`               | Обновляет `wheelRotation` на основе `currentSpeed` (коэффициент 5).                                                          |
+| `deactivate()`                   | `action`               | Сбрасывает `active = false`.                                                                                                 |
 
 ### 🔹 Расширение контракта `MapStore` (Quest Cars: Относительное движение)
 
-| Поле / Метод               | Тип                      | Описание                                                                                                                                 |
-| -------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `questCars`                | `QuestCarStore[]`        | Массив активных квестовых машин.                                                                                                         |
-| `questCarSpawnTimer`       | `number`                 | Таймер следующего спавна (3-8 секунд).                                                                                                  |
-| `questCarActive`           | `boolean`                | Флаг активности квеста с другим автомобилем.                                                                                            |
-| `questCarForArrest`        | `QuestCarStore | null`   | Квестовая машина, к которой подъехал полицейский (для показа кнопки "Арестовать").                                                     |
-| `spawnQuestCar()`          | `action`                 | Спавнит квестовую машину (только если `!isPedestrianCrossingQuestActive && !questCarActive`).                                           |
-| `updateQuestCars(deltaTime)` | `action`               | Обновляет позиции всех questCars с учётом **относительной скорости**. Передаёт `policeSpeed` в `questCar.updatePosition(deltaTime, policeSpeed)`. |
-| `removeQuestCarByIndex(index)` | `action`             | Удаляет questCar из массива `questCars` по индексу.                                                                                     |
-| `dispose()`                | `action`                 | Очистка таймеров и состояния при размонтировании.                                                                                       |
+| Поле / Метод                   | Тип               | Описание                                                                                                                                          |
+| ------------------------------ | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `questCars`                    | `QuestCarStore[]` | Массив активных квестовых машин.                                                                                                                  |
+| `questCarSpawnTimer`           | `number`          | Таймер следующего спавна (3-8 секунд).                                                                                                            |
+| `questCarActive`               | `boolean`         | Флаг активности квеста с другим автомобилем.                                                                                                      |
+| `questCarForArrest`            | `QuestCarStore    | null`                                                                                                                                             | Квестовая машина, к которой подъехал полицейский (для показа кнопки "Арестовать"). |
+| `spawnQuestCar()`              | `action`          | Спавнит квестовую машину (только если `!isPedestrianCrossingQuestActive && !questCarActive`).                                                     |
+| `updateQuestCars(deltaTime)`   | `action`          | Обновляет позиции всех questCars с учётом **относительной скорости**. Передаёт `policeSpeed` в `questCar.updatePosition(deltaTime, policeSpeed)`. |
+| `removeQuestCarByIndex(index)` | `action`          | Удаляет questCar из массива `questCars` по индексу.                                                                                               |
+| `dispose()`                    | `action`          | Очистка таймеров и состояния при размонтировании.                                                                                                 |
+
+### 🔹 Расширение контракта `MapStore` (Quest Arrest: Блокировка)
+
+| Поле / Метод          | Тип                    | Описание                                                                                 |
+| --------------------- | ---------------------- | ---------------------------------------------------------------------------------------- |
+| `isQuestArrestActive` | `boolean` (observable) | Флаг активности модалки блокировки. Значение по умолчанию: `false`.                      |
+| `arrestAnimFinished`  | `boolean` (observable) | Флаг завершения анимации (показать кнопку «Арестовать»). Значение по умолчанию: `false`. |
+| `startQuestArrest()`  | `action`               | Устанавливает `isQuestArrestActive = true`, `arrestAnimFinished = false`.                |
+| `finishQuestArrest()` | `action`               | Устанавливает `isQuestArrestActive = false`, `arrestAnimFinished = false`.               |
 
 **API-контракт между `MapStore` и `QuestCarStore`:**
+
 ```javascript
 // MapStore.updateQuestCars(deltaTime):
 questCar.updatePosition(deltaTime, this.carStore.currentSpeed);
@@ -179,25 +192,25 @@ questCar.updateWheelRotation(deltaTime);
 
 ### 🔹 Новый стор: `QuestCarStore` (Квестовые автомобили)
 
-| Поле / Метод       | Тип                      | Описание                                                                                                                                 |
-| ------------------ | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`               | `number` (observable)    | Уникальный ID машины.                                                                                                                    |
-| `type`             | `string` (observable)    | Тип машины (из `Cars.otherCars`).                                                                                                        |
-| `name`             | `string` (observable)    | Название машины.                                                                                                                         |
-| `urlBody`          | `string` (observable)    | URL спрайта кузова.                                                                                                                      |
-| `urlShell`         | `string` (observable)    | URL спрайта колёс.                                                                                                                       |
-| `maxSpeed`         | `number` (observable)    | Максимальная скорость (из `Cars.otherCars`).                                                                                            |
-| `minSpeed`         | `number` (observable)    | Минимальная скорость (из `Cars.otherCars`).                                                                                             |
-| `enemy`            | `boolean` (observable)   | Флаг враждебности: `enemy=false` (спавн справа, движение слева направо), `enemy=true` (спавн слева, движение справа налево).            |
-| `currentSpeed`     | `number` (observable)    | Текущая скорость (случайная в диапазоне `[minSpeed, maxSpeed]`).                                                                        |
-| `positionX`        | `number` (observable)    | Текущая координата X на экране.                                                                                                          |
-| `active`           | `boolean` (observable)   | Флаг активности машины.                                                                                                                  |
-| `wheelRotation`    | `number` (observable)    | Угол вращения колёс (зависит от `currentSpeed`).                                                                                        |
-| `constructor(carData)` | `action`               | Инициализирует машину из `Cars.otherCars`.                                                                                              |
-| `spawn(positionX, speed)` | `action`            | Устанавливает начальную позицию и скорость.                                                                                             |
-| `updatePosition(deltaTime, policeSpeed)` | `action`      | Обновляет экранную координату `positionX += (currentSpeed - policeSpeed) * deltaTime`. Единая формула для `enemy=false` и `enemy=true`.                              |
-| `updateWheelRotation(deltaTime)` | `action`    | Обновляет `wheelRotation` на основе `currentSpeed` (коэффициент 5).                                                                     |
-| `deactivate()`     | `action`                 | Сбрасывает `active = false`.                                                                                                             |
+| Поле / Метод                             | Тип                    | Описание                                                                                                                                |
+| ---------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                                     | `number` (observable)  | Уникальный ID машины.                                                                                                                   |
+| `type`                                   | `string` (observable)  | Тип машины (из `Cars.otherCars`).                                                                                                       |
+| `name`                                   | `string` (observable)  | Название машины.                                                                                                                        |
+| `urlBody`                                | `string` (observable)  | URL спрайта кузова.                                                                                                                     |
+| `urlShell`                               | `string` (observable)  | URL спрайта колёс.                                                                                                                      |
+| `maxSpeed`                               | `number` (observable)  | Максимальная скорость (из `Cars.otherCars`).                                                                                            |
+| `minSpeed`                               | `number` (observable)  | Минимальная скорость (из `Cars.otherCars`).                                                                                             |
+| `enemy`                                  | `boolean` (observable) | Флаг враждебности: `enemy=false` (спавн справа, движение слева направо), `enemy=true` (спавн слева, движение справа налево).            |
+| `currentSpeed`                           | `number` (observable)  | Текущая скорость (случайная в диапазоне `[minSpeed, maxSpeed]`).                                                                        |
+| `positionX`                              | `number` (observable)  | Текущая координата X на экране.                                                                                                         |
+| `active`                                 | `boolean` (observable) | Флаг активности машины.                                                                                                                 |
+| `wheelRotation`                          | `number` (observable)  | Угол вращения колёс (зависит от `currentSpeed`).                                                                                        |
+| `constructor(carData)`                   | `action`               | Инициализирует машину из `Cars.otherCars`.                                                                                              |
+| `spawn(positionX, speed)`                | `action`               | Устанавливает начальную позицию и скорость.                                                                                             |
+| `updatePosition(deltaTime, policeSpeed)` | `action`               | Обновляет экранную координату `positionX += (currentSpeed - policeSpeed) * deltaTime`. Единая формула для `enemy=false` и `enemy=true`. |
+| `updateWheelRotation(deltaTime)`         | `action`               | Обновляет `wheelRotation` на основе `currentSpeed` (коэффициент 5).                                                                     |
+| `deactivate()`                           | `action`               | Сбрасывает `active = false`.                                                                                                            |
 
 ---
 
@@ -208,14 +221,17 @@ questCar.updateWheelRotation(deltaTime);
 **Модель координат:** `QuestCarStore.positionX` — это **экранная координата** (смещение относительно текущего кадра), а НЕ мировая. Спавн задаётся экранными смещениями (`viewportWidth + 200` / `-200`). Камера (смещение фона дороги через `distance`/`offsetX`) к квестовым машинам **не применяется** — повторное вычитание `distance` в UI запрещено (приводит к двойному учёту `policeSpeed`).
 
 **Формула относительной скорости:**
+
 ```javascript
-relativeSpeed = questCar.currentSpeed - policeSpeed
+relativeSpeed = questCar.currentSpeed - policeSpeed;
 ```
 
 **Правила движения (единая формула для обеих категорий):**
+
 ```javascript
-positionX += relativeSpeed * deltaTime
+positionX += relativeSpeed * deltaTime;
 ```
+
 - **Для `enemy=false` (не нарушитель):**
   - Спавн справа (`positionX = viewportWidth + 200`)
   - Если `questCar.currentSpeed < policeSpeed` → `relativeSpeed < 0` → `positionX` уменьшается → машина движется **влево** (полицейский догоняет)
@@ -231,6 +247,7 @@ positionX += relativeSpeed * deltaTime
 > ⚠️ Ранее в документации для `enemy=false` указывалась формула `positionX -= relativeSpeed * deltaTime` — это физически некорректно: при `currentSpeed < policeSpeed` машина уходила бы вправо за экран вместо того, чтобы её догонял полицейский. Единая формула `+=` проверена unit-тестами `questCarStore.test.jsx`.
 
 **Примеры:**
+
 1. `policeSpeed = 80`, `questCar.currentSpeed = 60`, `enemy=false`
    - `relativeSpeed = 60 - 80 = -20`
    - `positionX += -20 * deltaTime` (машина движется влево, полицейский догоняет)
@@ -252,15 +269,18 @@ positionX += relativeSpeed * deltaTime
    - `positionX += 3 * deltaTime` (нарушитель медленно уходит вправо — полицейский НЕ догоняет)
 
 **Контракт UI-слоя (ВАЖНО):**
+
 - `QuestCar.jsx`: `screenX = questCarStore.positionX` (БЕЗ вычитания `distance`).
 - `Game.jsx` (фильтр видимости и `SpeedDisplay`): сравнение по `car.positionX` напрямую (БЕЗ `- distance`).
 - `mapStore.checkQuestCarDistance(questCarStores, viewportWidth)`: `questCarScreenX = questCar.positionX` (БЕЗ параметра `distance`).
 
 **Обновление спавна:**
+
 - Скорость машины `currentSpeed` выбирается случайно в диапазоне `[minSpeed, maxSpeed]` при создании
 - При спавне **не требуется** учитывать `policeSpeed` — относительность обеспечивается в `updatePosition()`
 
 **Обновление wheelRotation:**
+
 - Вращение колёс рассчитывается **абсолютно** (по `currentSpeed`), так как это визуальный эффект реальной скорости машины
 - Не зависит от `policeSpeed`
 
@@ -281,20 +301,20 @@ positionX += relativeSpeed * deltaTime
 
 ### 🔹 Правила UI-компонентов для Quest Cars
 
-| Компонент        | Зона ответственности                                                                                                                                 |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `QuestCar.jsx`   | Отображение квестового автомобиля: `positionX`, `z-index=50` (ниже полицейского), направление движения (enemy=false справа, enemy=true слева), `CarModel`. |
-| `SpeedDisplay.jsx` | Отображение текущей скорости (`currentSpeed`) в правом верхнем углу: белый цвет при `≤60`, красный + анимация (`scale 1.2`) при `>60`.              |
+| Компонент          | Зона ответственности                                                                                                                                       |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `QuestCar.jsx`     | Отображение квестового автомобиля: `positionX`, `z-index=50` (ниже полицейского), направление движения (enemy=false справа, enemy=true слева), `CarModel`. |
+| `SpeedDisplay.jsx` | Отображение текущей скорости (`currentSpeed`) в правом верхнем углу: белый цвет при `≤60`, красный + анимация (`scale 1.2`) при `>60`.                     |
 
 ### Правила z-index для слоёв игры
 
-| Слой                               | z-index | Описание                                                                 |
-| ---------------------------------- | ------- | ------------------------------------------------------------------------ |
-| Фон                               | 1       | Карта, дорога, объекты окружения.                                        |
-| Квестовый автомобиль              | 50      | Машина из `Cars.otherCars` (ниже полицейского).                         |
-| Полицейский автомобиль             | 100     | Машина игрока (выше квестового).                                        |
-| UI-элементы (SpeedDisplay)        | 200     | Элементы интерфейса в правом верхнем углу.                              |
-| Модальные окна (PoliceQuestModal) | 1000    | Модальные окна с повышенным z-index для перекрытия всего.               |
+| Слой                              | z-index | Описание                                                  |
+| --------------------------------- | ------- | --------------------------------------------------------- |
+| Фон                               | 1       | Карта, дорога, объекты окружения.                         |
+| Квестовый автомобиль              | 50      | Машина из `Cars.otherCars` (ниже полицейского).           |
+| Полицейский автомобиль            | 100     | Машина игрока (выше квестового).                          |
+| UI-элементы (SpeedDisplay)        | 200     | Элементы интерфейса в правом верхнем углу.                |
+| Модальные окна (PoliceQuestModal) | 1000    | Модальные окна с повышенным z-index для перекрытия всего. |
 
 ### MobX-контракт проекта
 

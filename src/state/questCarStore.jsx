@@ -14,6 +14,7 @@ class QuestCarStore {
   positionX;
   active;
   wheelRotation;
+  sirena;
 
   constructor(carData) {
     this.id = carData.id;
@@ -25,10 +26,13 @@ class QuestCarStore {
     this.minSpeed = carData.minSpeed;
     this.enemy = carData.enemy || false;
     this.speedMultiplier = carData.speedMultiplier || 1;
-    this.currentSpeed = (this.minSpeed + Math.random() * (this.maxSpeed - this.minSpeed)) * this.speedMultiplier;
+    this.currentSpeed =
+      (this.minSpeed + Math.random() * (this.maxSpeed - this.minSpeed)) *
+      this.speedMultiplier;
     this.positionX = 0;
     this.active = true;
     this.wheelRotation = 0;
+    this.sirena = false;
 
     makeAutoObservable(this);
   }

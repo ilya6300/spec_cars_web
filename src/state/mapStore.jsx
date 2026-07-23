@@ -72,10 +72,14 @@ class MapStore {
   pedestrianState = "waiting"; // "waiting" | "walking" | "stopped"
   pedestrianIsCarArrived = false;
 
-// Quest Cars state
+  // Quest Cars state
   questCars = [];
   questCarSpawnTimer = 10;
   questCarForArrest = null;
+
+  // Quest Arrest modal state
+  isQuestArrestActive = false;
+  arrestAnimFinished = false;
 
   constructor(mapData) {
     Object.assign(this, mapData);
@@ -89,7 +93,7 @@ class MapStore {
     });
   }
 
-// Спавн новых объектов справа за экраном
+  // Спавн новых объектов справа за экраном
   spawnObjects(viewportWidth, deltaTime) {
     this.questCarSpawnTimer -= deltaTime;
     if (this.questCarSpawnTimer <= 0) {
@@ -303,9 +307,10 @@ class MapStore {
     });
   }
 
-spawnQuestCar() {
+  spawnQuestCar() {
     const otherCars = Cars.otherCars;
-    const randomCarData = otherCars[Math.floor(Math.random() * otherCars.length)];
+    const randomCarData =
+      otherCars[Math.floor(Math.random() * otherCars.length)];
 
     const questCar = new QuestCarStore(randomCarData);
 
@@ -327,27 +332,27 @@ spawnQuestCar() {
     });
   }
 
-updateQuestCars(deltaTime) {
+  updateQuestCars(deltaTime) {
     if (this.questCars.length === 0) return;
 
     const policeSpeed = this.carStore.currentSpeed;
 
     runInAction(() => {
-    for (const questCar of this.questCars) {
-      if (questCar.active) {
-        questCar.updatePosition(deltaTime, policeSpeed);
-        questCar.updateWheelRotation(deltaTime);
+      for (const questCar of this.questCars) {
+        if (questCar.active) {
+          questCar.updatePosition(deltaTime, policeSpeed);
+          questCar.updateWheelRotation(deltaTime);
+        }
       }
-    }
     });
   }
 
-removeQuestCarByIndex(index) {
+  removeQuestCarByIndex(index) {
     runInAction(() => {
       if (index >= 0 && index < this.questCars.length) {
         this.questCars.splice(index, 1);
         if (this.questCars.length === 0) {
-      this.questCarSpawnTimer = 10 + Math.random() * 20;
+          this.questCarSpawnTimer = 10 + Math.random() * 20;
         }
       }
     });
@@ -367,7 +372,10 @@ removeQuestCarByIndex(index) {
           const questCarScreenX = questCar.positionX;
 
           if (questCarScreenX >= minArrestX && questCarScreenX <= maxArrestX) {
-            if (!closestQuestCar || questCarScreenX < closestQuestCar.positionX) {
+            if (
+              !closestQuestCar ||
+              questCarScreenX < closestQuestCar.positionX
+            ) {
               closestQuestCar = questCar;
             }
           }
@@ -378,6 +386,21 @@ removeQuestCarByIndex(index) {
     }
 
     this.questCarForArrest = closestQuestCar;
+  }
+
+  startQuestArrest() {
+    runInAction(() => {
+      this.isQuestArrestActive = true;
+      this.arrestAnimFinished = false;
+    });
+  }
+
+  finishQuestArrest() {
+    runInAction(() => {
+      this.isQuestArrestActive = false;
+      this.arrestAnimFinished = false;
+      this.questCarForArrest = null;
+    });
   }
 
   // Pedestrian Crossing Quest methods

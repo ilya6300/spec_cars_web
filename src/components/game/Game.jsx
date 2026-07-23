@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { Car } from "../car/Car";
 import CarStore from "../../state/carStore";
@@ -10,13 +9,15 @@ import { Maps } from "../map/Maps";
 import { Controllers } from "../controllers/Controllers";
 import { PoliceQuestModal } from "./PoliceQuestModal";
 import { PedestrianCrossingModal } from "./PedestrianCrossingModal";
-
+import { QuestArrestModal } from "./QuestArrestModal";
 import { QuestCar } from "./QuestCar";
+
+import "../../style/quest_arrest.css";
 import { SpeedDisplay } from "./SpeedDisplay";
 import FullscreenButton from "./FullscreenButton";
 
 export const Game = observer(() => {
-const [activeCarStore] = useState(() => new CarStore(Cars.cars[0]));
+  const [activeCarStore] = useState(() => new CarStore(Cars.cars[0]));
   const [activeMapStore] = useState(() => {
     const store = new MapStore(MapsStore.maps[0]);
     store.carStore = activeCarStore;
@@ -114,11 +115,15 @@ const [activeCarStore] = useState(() => new CarStore(Cars.cars[0]));
         carStore={activeCarStore}
       />
 
+      {/* Quest Arrest Modal - для квеста блокировки */}
+      {activeMapStore.isQuestArrestActive && (
+        <QuestArrestModal mapStore={activeMapStore} carStore={activeCarStore} />
+      )}
+
       {activeMapStore.questCars
         .filter(
           (car) =>
-            car.positionX > -150 &&
-            car.positionX < viewportWidthRef.current,
+            car.positionX > -150 && car.positionX < viewportWidthRef.current,
         )
         .map((questCar) => (
           <QuestCar
@@ -131,8 +136,7 @@ const [activeCarStore] = useState(() => new CarStore(Cars.cars[0]));
       {(() => {
         const visibleCars = activeMapStore.questCars.filter(
           (car) =>
-            car.positionX > -150 &&
-            car.positionX < viewportWidthRef.current,
+            car.positionX > -150 && car.positionX < viewportWidthRef.current,
         );
         if (visibleCars.length === 0) return null;
         return (
@@ -146,29 +150,27 @@ const [activeCarStore] = useState(() => new CarStore(Cars.cars[0]));
 
       {activeMapStore.questCarForArrest &&
         !activeMapStore.isPedestrianCrossingQuestActive &&
-        !activeMapStore.isPoliceQuestActive && (
-        <button
-          className="arrest-button-quest-car-map"
-          data-type="arrest-button"
-          onClick={() => {
-            if (activeMapStore.questCarForArrest) {
-              const index = activeMapStore.questCars.indexOf(activeMapStore.questCarForArrest);
-              if (index !== -1) {
-                runInAction(() => {
-                  activeCarStore.countHelp += 1;
-                  activeMapStore.questCarForArrest = null;
-                });
-                activeMapStore.removeQuestCarByIndex(index);
-                if (activeCarStore.sirena) {
+        !activeMapStore.isPoliceQuestActive &&
+        !activeMapStore.isQuestArrestActive && (
+          <button
+            className="arrest-button-quest-car-map"
+            data-type="arrest-button"
+            onClick={() => {
+              if (activeMapStore.questCarForArrest) {
+                const index = activeMapStore.questCars.indexOf(
+                  activeMapStore.questCarForArrest,
+                );
+                if (index !== -1) {
                   activeCarStore.toggleSirena();
+                  activeMapStore.startQuestArrest();
+                  activeMapStore.removeQuestCarByIndex(index);
                 }
               }
-            }
-          }}
-        >
-          Арестовать
-        </button>
-      )}
+            }}
+          >
+            Блокировать
+          </button>
+        )}
     </div>
   );
 });

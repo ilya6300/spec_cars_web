@@ -1,74 +1,299 @@
-# TECH_SPEC.md: Изменение таймера спавна квестовых машин
+# TECH_SPEC.md: Квест «Блокировка» (QuestArrestModal)
 
 ## 📋 Ссылки
-- **CONCEPT.md**: Изменить спавн машин — первая через 10 сек, последующие через 10–30 сек.
-- **@TODO.md**: #1, #2
+
+- **CONCEPT.md**: Квест «Блокировка» — модальное окно с CSS-анимацией обгона полицейской машиной.
+- **@TODO.md**: #1–#8
 
 ## 🎯 Цель
-Изменить таймер спавна квестовых машин с текущего диапазона [5, 15] секунд на [10, 30] секунд, включая начальную задержку.
+
+Реализовать новый этап квеста поимки машины-нарушителя: после нажатия кнопки «Блокировать» появляется модалка с CSS-анимацией обгона, по завершении которой игрок нажимает «Арестовать» для завершения квеста.
+
+---
 
 ## 📝 Список изменений
 
 ### Файл: `src/state/mapStore.jsx`
 
-#### Изменение 1: Начальный таймер (строка 77)
+#### Изменение 1: Observable-поля (строка ~79, после `questCarForArrest`)
 
-**Текущий код:**
+**Добавить:**
+
 ```javascript
-questCarSpawnTimer = 5;
+// Quest Arrest modal state
+isQuestArrestActive = false;
+arrestAnimFinished = false;
 ```
 
-**Новый код:**
-```javascript
-questCarSpawnTimer = 10;
-```
-
-**Обоснование:** Первая машина должна появляться через 10 секунд после старта игры.
+**Обоснование:** Флаг для условного рендеринга модалки в Game.jsx и флаг для показа финальной кнопки в модалке.
 
 ---
 
-#### Изменение 2: Рандомный таймер в `spawnQuestCar()` (строка 326)
+#### Изменение 2: Методы `startQuestArrest()` и `finishQuestArrest()` (после `checkQuestCarDistance`, ~строка 381)
 
-**Текущий код:**
+**Добавить:**
+
 ```javascript
-this.questCarSpawnTimer = 5 + Math.random() * 10;
+startQuestArrest() {
+  runInAction(() => {
+    this.isQuestArrestActive = true;
+    this.arrestAnimFinished = false;
+  });
+}
+
+finishQuestArrest() {
+  runInAction(() => {
+    this.isQuestArrestActive = false;
+    this.arrestAnimFinished = false;
+  });
+}
 ```
 
-**Новый код:**
-```javascript
-this.questCarSpawnTimer = 10 + Math.random() * 20;
-```
-
-**Обоснование:** Диапазон [5, 15] → [10, 30]. Формула: `min + Math.random() * (max - min)`, где min=10, max=30, разность=20.
+**Обоснование:** Управление жизненным циклом модалки блокировки.
 
 ---
 
-#### Изменение 3: Рандомный таймер в `removeQuestCarByIndex()` (строка 350)
+### Файл: `src/components/game/Game.jsx`
 
-**Текущий код:**
-```javascript
-this.questCarSpawnTimer = 5 + Math.random() * 10;
+#### Изменение 3: Импорт компонента и стилей (в начало файла)
+
+**Добавить:**
+
+```jsx
+import { QuestArrestModal } from "./QuestArrestModal";
+import "../../style/quest_arrest.css";
 ```
 
-**Новый код:**
-```javascript
-this.questCarSpawnTimer = 10 + Math.random() * 20;
+#### Изменение 4: Переименование кнопки и изменение логики
+
+**Было:**
+
+```jsx
+<button className="arrest-button-quest-car-map">Арестовать</button>
 ```
 
-**Обоснование:** После ареста/удаления машины следующий спавн также должен быть в диапазоне [10, 30] секунд.
+**Стало:**
+
+```jsx
+<button
+  className="arrest-button-quest-car-map"
+  onClick={() => {
+    if (mapStore.questCarForArrest) {
+      const index = mapStore.questCars.indexOf(mapStore.questCarForArrest);
+      carStore.toggleSirena();
+      mapStore.startQuestArrest();
+      mapStore.removeQuestCarByIndex(index);
+      mapStore.questCarForArrest = null;
+    }
+  }}
+>
+  Блокировать
+</button>
+```
+
+**Обоснование:** При нажатии включаем сирену, запускаем модалку, удаляем машину из массива, сбрасываем ссылку.
+
+#### Изменение 5: Conditional рендеринг модалки
+
+**Добавить в JSX (после рендера кнопок управления, перед закрывающим тегом):**
+
+```jsx
+{
+  mapStore.isQuestArrestActive && (
+    <QuestArrestModal mapStore={mapStore} carStore={carStore} />
+  );
+}
+```
+
+---
+
+### Файл: `src/components/game/QuestArrestModal.jsx` (НОВЫЙ)
+
+#### Структура компонента
+
+```jsx
+import { observer } from "mobx-react-lite";
+import { useEffect, useState } from "react";
+import { CarModel } from "../car/CarModel";
+import arrestBgImage from "../../assets/quest_location/police_arrest_modal.png";
+import QuestCarStore from "../../state/questCarStore";
+
+export const QuestArrestModal = observer(({ mapStore, carStore }) => {
+  const [policeCarStore] = useState(() => {
+    const store = new carStore.constructor(carStore._carData || carStore);
+    return store;
+  });
+
+  const targetCarData = mapStore.questCarForArrest;
+  const [targetCarStore] = useState(() => {
+    if (targetCarData) {
+      return new QuestCarStore(targetCarData);
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      mapStore.arrestAnimFinished = true;
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleArrest = () => {
+    carStore.countHelp += 1;
+    carStore.toggleSirena();
+    mapStore.finishQuestArrest();
+  };
+
+  return (
+    <div className="quest-arrest-modal">
+      <div
+        className="quest-arrest-background"
+        style={{ backgroundImage: `url(${arrestBgImage})` }}
+      />
+
+      <div className="quest-arrest-target-car">
+        {targetCarStore && <CarModel carStore={targetCarStore} typeBody={1} />}
+      </div>
+
+      <div className="quest-arrest-police-car">
+        <CarModel carStore={policeCarStore} typeBody={0} />
+      </div>
+
+      {mapStore.arrestAnimFinished && (
+        <button className="arrest-button-final" onClick={handleArrest}>
+          Арестовать
+        </button>
+      )}
+    </div>
+  );
+});
+```
+
+**Обоснование:** Observer-обёртка, локальные stores для анимации, CSS-анимация через setTimeout для показа кнопки, клик вызывает finishQuestArrest.
+
+---
+
+### Файл: `src/style/quest_arrest.css` (НОВЫЙ)
+
+```css
+.quest-arrest-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px;
+  height: 400px;
+  z-index: 1100;
+  background: #333;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.quest-arrest-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+
+.quest-arrest-target-car,
+.quest-arrest-police-car {
+  position: absolute;
+  z-index: 1;
+  width: 200px;
+  height: 100px;
+}
+
+.quest-arrest-target-car {
+  animation: targetCarDrive 3s ease-out forwards;
+  top: 60%;
+}
+
+.quest-arrest-police-car {
+  animation: policeCarDrive 2.5s ease-out forwards;
+  top: 45%;
+}
+
+@keyframes targetCarDrive {
+  0% {
+    left: -250px;
+  }
+  100% {
+    left: 60%;
+  }
+}
+
+@keyframes policeCarDrive {
+  0% {
+    left: -250px;
+  }
+  100% {
+    left: 85%;
+  }
+}
+
+.arrest-button-final {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 32px;
+  font-size: 18px;
+  font-weight: bold;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  z-index: 2;
+  transition: background 0.2s;
+}
+
+.arrest-button-final:hover {
+  background: #c0392b;
+}
+```
+
+**Обоснование:** Контейнер фиксированный по центру, z-index=1100 (выше UI=200 и модальных=1000), CSS-анимации keyframes для двух машин, финальная кнопка внизу по центру.
+
+---
+
+### Файл: `src/components/game/PedestrianCrossingModal.jsx` (НЕ ИЗМЕНЯТЬ)
+
+**⚠️ Запрещено изменять.**
+
+### Файл: `src/components/game/PoliceQuestModal.jsx` (НЕ ИЗМЕНЯТЬ)
+
+**⚠️ Запрещено изменять.**
 
 ---
 
 ## 🔍 Зависимые файлы (читать перед изменением)
-- `src/state/mapStore.jsx` — единственный файл для изменения
-- `src/components/game/Game.jsx` — читать для понимания контекста (не изменять)
+
+- `src/state/mapStore.jsx` — добавление полей и методов
+- `src/components/game/Game.jsx` — интеграция модалки
+- `src/components/game/PoliceQuestModal.jsx` — читать для понимания паттерна модалок (не изменять)
+- `src/components/game/CarModel.jsx` — понять пропсы для рендера машин
+- `src/state/questCarStore.jsx` — для создания целевой машины в модалке
 
 ## 🚫 Новые зависимости
-Нет. Изменения затрагивают только числовые константы, новые пакеты не требуются.
+
+Нет. Новые npm-пакеты не требуются.
 
 ## ✅ Критерии приёмки
-1. При запуске игры первая квестовая машина появляется через ~10 секунд (±0.5 сек).
-2. После появления каждой следующей машины интервал спавна составляет от 10 до 30 секунд.
-3. После ареста машины (кнопка "Арестовать") интервал до следующей машины также 10–30 секунд.
-4. Файл `mapStore.jsx` содержит ровно 3 изменения (строки 77, 326, 350).
-5. Нет временных логов, закомментированного кода, лишних импортов.
+
+1. Кнопка в Game.jsx имеет текст «Блокировать».
+2. При нажатии на «Блокировать» включается сирена, появляется модалка, машина удаляется из questCars.
+3. В модалке две машины анимируются CSS-keyframes (полиция обгоняет целевую).
+4. Через 3 секунды появляется кнопка «Арестовать».
+5. При нажатии «Арестовать» countHelp увеличивается, сирена выключается, модалка закрывается.
+6. isQuestArrestActive управляет показом модалки.
+7. arrestAnimFinished управляет показом финальной кнопки.
+8. Не затронуты PoliceQuestModal.jsx и PedestrianCrossingModal.jsx.
+9. Нет console.log в продакшн-коде.
+10. Нет утечки памяти — clearTimeout корректно очищается в useEffect cleanup.

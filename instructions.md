@@ -302,6 +302,42 @@
 
 ---
 
+### Квест 4: Блокировка (QuestArrestModal)
+
+#### 📥 Запуск:
+
+- Кнопка «Блокировать» появляется, когда `questCarForArrest != null` и нет активных модальных квестов (`!isPedestrianCrossingQuestActive && !isPoliceQuestActive`)
+- Нажатие на кнопку:
+  - `carStore.toggleSirena()` — сирена включается
+  - `mapStore.startQuestArrest()` — `isQuestArrestActive = true`, `arrestAnimFinished = false`
+  - Машина удаляется из `questCars` через `removeQuestCarByIndex(index)`
+  - `questCarForArrest = null`
+  - Появляется модалка `QuestArrestModal`
+
+#### 🎭 Анимация:
+
+- В модалке отображаются два автомобиля на фоне `police_arrest_modal.png`
+- **Полицейская машина** (верхняя полоса, `top: 45%`): CSS-анимация `policeCarDrive` — движется слева (`left: -250px`) и останавливается правее целевой (`left: 85%`), длительность `2.5s ease-out forwards`
+- **Целевая машина** (нижняя полоса, `top: 60%`): CSS-анимация `targetCarDrive` — движется слева (`left: -250px`) и останавливается на `left: 60%`, длительность `3s ease-out forwards`
+- Анимация исключительно через CSS (keyframes), без JS
+- Полиция обгоняет целевую машину, так как анимация короче по времени
+
+#### ✅ Финал:
+
+- Через 3 секунды (после завершения анимации) появляется кнопка «Арестовать» (`arrestAnimFinished = true`)
+- Нажатие «Арестовать» → `countHelp += 1`, `carStore.toggleSirena()` (выключается), `mapStore.finishQuestArrest()` (модалка закрывается)
+
+#### 📋 Список действий для QA:
+
+- [ ] Кнопка «Блокировать» появляется при `questCarForArrest != null`
+- [ ] При нажатии «Блокировать» сирена включается, появляется модалка, машина удаляется из questCars
+- [ ] В модалке две машины: полиция обгоняет целевую (CSS-анимация)
+- [ ] Через 3 секунды появляется кнопка «Арестовать»
+- [ ] При нажатии «Арестовать» countHelp увеличивается, сирена выключается, модалка закрывается
+- [ ] Не затронуты PoliceQuestModal.jsx и PedestrianCrossingModal.jsx
+
+---
+
 ## 🧹 Дополнительные взаимодействия
 
 ### Заправка (Gas Station):

@@ -1,0 +1,98 @@
+.quest-arrest-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  z-index: 1200;
+  background: #333;
+  overflow: hidden;
+}
+
+.quest-arrest-background {
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  background-position: center center;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 500px;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.quest-arrest-target-car,
+.quest-arrest-police-car {
+  position: absolute;
+  width: 200px;
+  height: 100px;
+}
+
+.quest-arrest-target-car {
+  z-index: 1201;
+  animation: targetCarDrive 3s linear forwards;
+  top: 48%;
+}
+
+.quest-arrest-police-car {
+  z-index: 1202;
+  animation: policeCarDrive 2.5s linear forwards;
+  top: 52%;
+}
+
+@keyframes targetCarDrive {
+  0% {
+    left: -250px;
+  }
+  50% {
+    left: 40%;
+     }
+  80% {
+    transform: rotate(-2deg);
+  }
+  /* transform: rotate(-15deg); */
+  100% {
+    top: 35%;
+    left: 57%;
+  }
+}
+
+@keyframes policeCarDrive {
+  0% {
+    left: -300px;
+  }
+  70% {
+    top: 42%;
+    left: 55%;
+    transform: rotate(0deg);
+  }
+  90% {
+    transform: rotate(-2deg);
+  }
+  /* transform: rotate(-15deg); */
+  100% {
+    top: 35%;
+    left: 70%;
+  }
+}
+
+.arrest-button-final {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 32px;
+  font-size: 18px;
+  font-weight: bold;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  z-index: 1203;
+  transition: background 0.2s;
+}
+
+.arrest-button-final:hover {
+  background: #c0392b;
+}

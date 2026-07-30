@@ -41,6 +41,7 @@ class CarStore {
   isTrafficLightOnScreen = false;
   trafficLightColor = null; // 'red' | 'green' | null
   pedestrianQuestTriggered = false;
+  trafficLightRedChecked = false; // Флаг: проверяли ли шанс квеста в текущем цикле красного света
 
   // Передача (МКПП)
   gear = "N"; // 'N' | '1' | '2' | '3' | '4'
@@ -172,13 +173,13 @@ class CarStore {
 
   pressGas() {
     if (this.fuel > 0) {
-      this.fuelConsumption = 1.5
+      this.fuelConsumption = 1.5;
       this.isGasPressed = true;
     }
   }
 
   releaseGas() {
-    this.fuelConsumption = 0.5
+    this.fuelConsumption = 0.5;
     this.isGasPressed = false;
   }
 
@@ -239,6 +240,7 @@ class CarStore {
         this.isTrafficLightOnScreen = false;
         this.trafficLightColor = null;
         this.pedestrianQuestTriggered = false;
+        this.trafficLightRedChecked = false;
       });
       return;
     }
@@ -253,18 +255,25 @@ class CarStore {
         this.isTrafficLightOnScreen = false;
         this.trafficLightColor = null;
         this.pedestrianQuestTriggered = false;
+        this.trafficLightRedChecked = false;
       }
     });
 
-    // Запуск квеста пешеходного перехода при остановке на красном светофоре (50% шанс)
+    // Запуск квеста пешеходного перехода при остановке на красном светофоре (30% шанс)
+    // Срабатывает только при выключенной сирене и отсутствии других активных квестов
+    // Проверка происходит ТОЛЬКО ОДИН РАЗ за каждый цикл красного света
     if (
       this.isTrafficLightOnScreen &&
       this.trafficLightColor === "red" &&
       !this.pedestrianQuestTriggered &&
       !mapStore.isPedestrianCrossingQuestActive &&
-      !mapStore.isPoliceQuestActive && !this.sirena
+      !mapStore.isPoliceQuestActive &&
+      !this.sirena &&
+      !this.trafficLightRedChecked
     ) {
-      if (Math.random() < 0.5) {
+      this.trafficLightRedChecked = true; // Помечаем, что проверили — больше не проверять в этом цикле
+
+      if (Math.random() < 0.3) {
         const humanTypes = [
           "human1",
           "human2",
@@ -304,10 +313,7 @@ class CarStore {
   updatePhysics(deltaTime) {
     runInAction(() => {
       // 1. Логика расхода топлива
-      if (
-        this.isIgnitionOn &&
-        this.fuel > 0       
-      ) {
+      if (this.isIgnitionOn && this.fuel > 0) {
         this.fuel -= this.fuelConsumption;
 
         if (this.fuel <= 0) {
@@ -322,9 +328,12 @@ class CarStore {
       }
 
       // 2. Логика разгона и торможения с учётом передачи
-      const speedMultiplier = this.speedMultiplier !== undefined ? this.speedMultiplier : 1;
+      const speedMultiplier =
+        this.speedMultiplier !== undefined ? this.speedMultiplier : 1;
       const effectiveMaxSpeed =
-        this.gear === "N" ? 0 : (this.maxSpeed / this.gearRatio) * speedMultiplier;
+        this.gear === "N"
+          ? 0
+          : (this.maxSpeed / this.gearRatio) * speedMultiplier;
       const realSpeed = effectiveMaxSpeed;
       if (this.isGasPressed && this.fuel > 0 && this.isIgnitionOn) {
         this.currentSpeed = Math.min(
@@ -340,7 +349,7 @@ class CarStore {
         } else {
           this.currentSpeed = Math.max(
             0,
-            this.currentSpeed - this.friction / 4 * deltaTime,
+            this.currentSpeed - (this.friction / 4) * deltaTime,
           );
         }
       }

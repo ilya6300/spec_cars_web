@@ -4,6 +4,9 @@ import redBody from "../assets/cars/\other/sport_red_body.png";
 import redWhell from "../assets/cars/\other/sport_red_wheel.png";
 import blackBody from "../assets/cars/\other/sport_black_body.png";
 import blackWhell from "../assets/cars/\other/sport_black_wheel.png";
+import car1 from "../assets/cars/\other/car1_body.png";
+import car2 from "../assets/cars/\other/car2_body.png";
+import car3 from "../assets/cars/\other/car3_body.png";
 
 const Cars = {
   speedMultiplierUI: 0.156,
@@ -63,6 +66,39 @@ const Cars = {
       urlBody: blackBody,
       urlShell: blackWhell,
       maxSpeed: 55,
+      minSpeed: 50,
+      enemy: false,
+      speedMultiplier: 6.43,
+    },
+    {
+      id: 4,
+      type: "car",
+      name: "Авто 1",
+      urlBody: car1,
+      urlShell: blackWhell,
+      maxSpeed: 59,
+      minSpeed: 50,
+      enemy: false,
+      speedMultiplier: 6.43,
+    },
+    {
+      id: 5,
+      type: "car",
+      name: "Авто 2",
+      urlBody: car2,
+      urlShell: blackWhell,
+      maxSpeed: 59,
+      minSpeed: 50,
+      enemy: false,
+      speedMultiplier: 6.43,
+    },
+    {
+      id: 6,
+      type: "car",
+      name: "Авто 3",
+      urlBody: car3,
+      urlShell: blackWhell,
+      maxSpeed: 59,
       minSpeed: 50,
       enemy: false,
       speedMultiplier: 6.43,

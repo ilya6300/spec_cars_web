@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { enablePlaywrightTestState, startDriving } from "./helpers.js";
+import { enablePlaywrightTestState, startDriving, navigateToFreeMode } from "./helpers.js";
 
 test.describe("Game Initialization", () => {
   test("Game renders and game-viewport is visible", async ({ page }) => {
@@ -9,7 +9,7 @@ test.describe("Game Initialization", () => {
 
     await page.goto("/");
     await page.waitForSelector("#root", { timeout: 10000 });
-    await page.waitForSelector(".game-viewport", { timeout: 10000 });
+    await navigateToFreeMode(page);
 
     const gameViewport = await page.$(".game-viewport");
     expect(gameViewport).toBeTruthy();
@@ -21,7 +21,7 @@ test.describe("Game Initialization", () => {
     test.setTimeout(240000);
 
     await page.goto("/");
-    await page.waitForSelector(".game-viewport", { timeout: 10000 });
+    await navigateToFreeMode(page);
     await page.waitForTimeout(1000);
 
     const ignition = await page.$('[data-type="ignition"]');
@@ -38,7 +38,7 @@ test.describe("Game Initialization", () => {
     test.setTimeout(240000);
 
     await page.goto("/");
-    await page.waitForSelector(".game-viewport", { timeout: 10000 });
+    await navigateToFreeMode(page);
     await page.waitForTimeout(1000);
 
     const ignitionBtn = page.locator('[data-type="ignition"]');
@@ -57,7 +57,7 @@ test.describe("Game Initialization", () => {
     test.setTimeout(240000);
 
     await page.goto("/");
-    await page.waitForSelector(".game-viewport", { timeout: 10000 });
+    await navigateToFreeMode(page);
     await page.waitForTimeout(1000);
 
     await page.click('[data-type="ignition"]', { force: true });
@@ -91,7 +91,7 @@ test.describe("Game Initialization", () => {
     });
 
     await page.goto("/");
-    await page.waitForSelector(".game-viewport", { timeout: 10000 });
+    await navigateToFreeMode(page);
     await page.waitForTimeout(1000);
 
     await startDriving(page, { gear: "1", gasMs: 3000 });

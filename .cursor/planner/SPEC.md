@@ -1,27 +1,59 @@
 # Техническая спецификация (текущая задача)
 
-> Спецификация **активной** задачи из `TASKS.md`.
-> Architect готовит текст → Orchestrator записывает в этот файл.
-> При переключении на другую задачу файл перезаписывается.
+**Задача:** TASK-023 — Mobile lane, HUD transparency, help icons
 
-**Задача:** _не назначена_
-
-**Статус:** _ожидает новую задачу из PLAN.md_
+**Статус:** DONE
 
 ---
 
 ## Обзор решения
 
-_Будет заполнено Architect при активации следующей задачи._
+Три mobile-only улучшения без изменения desktop:
+
+1. **Lane calibration** — mobile overrides CSS-токенов полос в `media.css`
+2. **HUD transparency** — снижение непрозрачности glass-панелей на mobile
+3. **Help badges A+B** — action-SVG иконки + микро-подписи
+
+---
+
+## UI/UX требования
+
+### Адаптивность (mobile breakpoint)
+
+`(max-width: 900px) and (orientation: landscape), (max-height: 500px)`
+
+| Элемент | Desktop | Mobile |
+|---|---|---|
+| `--player-car-lane-y` | 62% | 66% |
+| `--car-lane-y` | 56% | 58% |
+| `--ui-glass-bg` | 0.65 | 0.38 |
+| `--ui-glass-blur` | 12px | 8px |
+
+### Help badges
+
+- Иконка = действие игрока (погоня, арест, штраф)
+- Подпись 9px под счётчиком: «Погоня», «Арест», «Штраф»
+- Touch targets badge ≥ 44px
 
 ---
 
 ## Изменяемые файлы
 
-_—_
+| Файл | Изменение |
+|---|---|
+| `src/style/media.css` | Lane tokens + glass mobile overrides |
+| `src/style/ui-tokens.css` | Комментарий про mobile overrides |
+| `src/style/hud.css` | text-shadow на mobile |
+| `src/style/interface.css` | `.help-badge-meta`, `.help-badge-label` |
+| `src/components/car/HelpBadges.jsx` | Вертикальный layout + подписи |
+| `src/assets/ui/help-badge-*.svg` | Action-пиктограммы |
 
 ---
 
 ## Критерии готовности
 
-_—_
+- [x] Mobile: машина на нижней полосе, не пересекает пунктир
+- [x] Desktop: позиция машины и прозрачность HUD без регрессии
+- [x] Mobile: HUD и controls прозрачнее (~0.38), текст читаем
+- [x] Help badges: action-SVG + подписи
+- [x] `data-type` сохранены для E2E

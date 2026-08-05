@@ -5,7 +5,7 @@ import { Bensin } from "./Bensin";
 import { HelpBadges } from "./HelpBadges";
 import Cars from "../../state/cars";
 
-export const Car = observer(({ carStore }) => {
+export const Car = observer(({ carStore, showHeadlights = false }) => {
   const { currentSpeed, distanceMeters } = carStore;
 
   const displaySpeed = Math.round(currentSpeed * Cars.speedMultiplierUI);
@@ -44,7 +44,7 @@ export const Car = observer(({ carStore }) => {
                     style={{ transform: `rotate(${tickAngle}deg)` }}
                   >
                     <div
-                      className="gauge-label-text"
+                      className={`gauge-label-text${tickValue % 40 === 0 ? " gauge-label-text--major" : ""}`}
                       style={{
                         transform: `translateX(-50%) rotate(${-tickAngle}deg)`,
                       }}
@@ -73,14 +73,17 @@ export const Car = observer(({ carStore }) => {
 
           <div className="hud-panel__stats">
             <p className="hud-distance" data-type="hud-distance">
-              Пройдено: {(distanceMeters / 1000).toFixed(3)} км
+              <span className="hud-distance__label">Пройдено: </span>
+              <span className="hud-distance__value">
+                {(distanceMeters / 1000).toFixed(3)} км
+              </span>
             </p>
             <HelpBadges carStore={carStore} />
           </div>
         </div>
       </div>
 
-      <CarModel carStore={carStore} typeBody={0} />
+      <CarModel carStore={carStore} typeBody={0} showHeadlights={showHeadlights} />
     </div>
   );
 });

@@ -43,6 +43,11 @@ spec_cars_web/
 │   │   └── state_app.jsx     # Глобальные константы (distanceMetersFactor)
 │   ├── style/                # CSS по подсистемам
 │   └── assets/               # Спрайты, аудио, карты (импортируются через Vite)
+│       ├── background/       # Полноэкранные фоны меню и атмосферы (день/ночь)
+│       ├── maps/             # Тайлинг фона дороги (repeat-x в Maps.jsx)
+│       ├── objects/          # Спрайты объектов окружения
+│       ├── ui/               # HUD, меню, иконки режимов
+│       └── audio/            # Звуковые эффекты
 ├── tests/e2e/                # Playwright E2E
 ├── src/**/*.test.{js,jsx}    # Vitest unit/integration
 ├── cypress/e2e/              # Cypress (legacy, дублирует часть сценариев)
@@ -66,6 +71,7 @@ spec_cars_web/
 | Квест: блокировка машины | `QuestArrestModal.jsx`, `QuestCar.jsx`, `mapStore.checkQuestCarDistance` |
 | AI-трафик | `questCarStore.jsx`, `mapStore.spawnQuestCar` |
 | Данные машин | `src/state/cars.jsx` |
+| Фоны меню / атмосферы | `src/assets/background/` — полноэкранные PNG (день/ночь), не путать с `src/assets/maps/` (тайл дороги) |
 
 ---
 

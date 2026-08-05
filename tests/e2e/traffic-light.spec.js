@@ -3,6 +3,7 @@ import {
   enablePlaywrightTestState,
   startDriving,
   holdGasFor,
+  navigateToFreeMode,
 } from "./helpers.js";
 
 async function waitForTrafficLightSpawned(page, timeout = 15000) {
@@ -30,7 +31,7 @@ test.describe("Traffic Light E2E", () => {
 
     await page.goto("/");
     await page.waitForSelector("#root", { timeout: 10000 });
-    await page.waitForSelector(".game-viewport", { timeout: 10000 });
+    await navigateToFreeMode(page);
     await page.waitForTimeout(1000);
 
     await page.evaluate(() => {
@@ -56,7 +57,7 @@ test.describe("Traffic Light E2E", () => {
     test.setTimeout(240000);
 
     await page.goto("/");
-    await page.waitForSelector(".game-viewport", { timeout: 10000 });
+    await navigateToFreeMode(page);
     await page.waitForTimeout(1000);
 
     await startDriving(page, { gear: "2", gasMs: 0 });

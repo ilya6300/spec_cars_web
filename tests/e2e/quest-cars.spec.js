@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { enablePlaywrightTestState, startDriving, holdGasFor } from "./helpers.js";
+import { enablePlaywrightTestState, startDriving, holdGasFor, navigateToFreeMode } from "./helpers.js";
 
 async function waitForQuestCarsSpawned(page, timeout = 20000) {
   await page.waitForFunction(
@@ -17,7 +17,7 @@ test.describe("Quest Cars E2E", () => {
     test.setTimeout(240000);
 
     await page.goto("/");
-    await page.waitForSelector(".game-viewport", { timeout: 10000 });
+    await navigateToFreeMode(page);
     await page.waitForTimeout(1000);
 
     await startDriving(page, { gear: "2", gasMs: 0 });
@@ -33,7 +33,7 @@ test.describe("Quest Cars E2E", () => {
     test.setTimeout(240000);
 
     await page.goto("/");
-    await page.waitForSelector(".game-viewport", { timeout: 10000 });
+    await navigateToFreeMode(page);
     await page.waitForTimeout(1000);
 
     await startDriving(page, { gear: "3", gasMs: 0 });
@@ -51,7 +51,7 @@ test.describe("Quest Cars E2E", () => {
     test.setTimeout(240000);
 
     await page.goto("/");
-    await page.waitForSelector(".game-viewport", { timeout: 10000 });
+    await navigateToFreeMode(page);
     await page.waitForTimeout(1000);
 
     await startDriving(page, { gear: "2", gasMs: 0 });
@@ -79,7 +79,7 @@ test.describe("Quest Cars E2E", () => {
     test.setTimeout(240000);
 
     await page.goto("/");
-    await page.waitForSelector(".game-viewport", { timeout: 10000 });
+    await navigateToFreeMode(page);
     await page.waitForTimeout(1000);
 
     await startDriving(page, { gear: "2", gasMs: 0 });
@@ -104,7 +104,7 @@ test.describe("Quest Cars E2E", () => {
     test.setTimeout(240000);
 
     await page.goto("/");
-    await page.waitForSelector(".game-viewport", { timeout: 10000 });
+    await navigateToFreeMode(page);
     await page.waitForTimeout(1000);
 
     await startDriving(page, { gear: "2", gasMs: 0 });

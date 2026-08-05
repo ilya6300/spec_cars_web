@@ -4,10 +4,10 @@
 
 .canister {
   position: relative;
-  width: 52px;
-  height: 68px;
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  border-radius: 12px 12px 8px 8px;
+  width: 44px;
+  height: 58px;
+  border: 2px solid var(--ui-hud-accent-dim);
+  border-radius: 10px 10px 7px 7px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -27,12 +27,12 @@
 .canister::before {
   content: "";
   position: absolute;
-  top: -8px;
+  top: -7px;
   left: 50%;
   transform: translateX(-50%);
-  width: 22px;
-  height: 6px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  width: 18px;
+  height: 5px;
+  border: 2px solid var(--ui-hud-accent-dim);
   border-bottom: none;
   border-radius: 4px 4px 0 0;
   background: rgba(60, 60, 65, 0.9);
@@ -66,11 +66,11 @@
 }
 
 .fuel-text {
-  color: #ffffff;
+  color: var(--ui-hud-fg);
   font-family: sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: bold;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   z-index: 1;
   pointer-events: none;
 }
@@ -86,46 +86,65 @@
 
 .help-badges {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   gap: 6px;
   min-width: 0;
 }
 
 .help-stars {
-  font-size: 18px;
-  color: #f5b800;
-  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: #ffd700;
+  font-size: 14px;
+  font-weight: 800;
+  flex-shrink: 0;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .help-badges-row {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .help-badge {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 4px;
   background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  padding: 4px 8px;
+  border: 1px solid var(--ui-hud-accent-dim);
+  border-radius: 8px;
+  padding: 3px 6px;
+  min-width: auto;
+}
+
+.help-badge-meta {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.help-badge-label {
+  display: none;
 }
 
 .help-badge-icon {
   display: block;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
 }
 
 .help-badge-count {
   font-weight: bold;
-  font-size: 16px;
+  font-size: 14px;
   min-width: 1ch;
-  color: var(--ui-text-primary);
+  color: var(--ui-hud-fg);
   animation: badge-bounce 0.3s ease;
 }
 
@@ -171,5 +190,52 @@
   .ignition-key--flash-on,
   .ignition-key--flash-off {
     animation: none;
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape), (max-height: 500px) {
+  .canister {
+    width: 36px;
+    height: 46px;
+    border-radius: 8px 8px 6px 6px;
+  }
+
+  .canister::before {
+    width: 16px;
+    height: 4px;
+    top: -6px;
+  }
+
+  .fuel-text {
+    font-size: 11px;
+  }
+
+  .canister-warning-icon {
+    width: 14px;
+    height: 14px;
+    font-size: 10px;
+    line-height: 14px;
+  }
+
+  .help-badges {
+    gap: 4px;
+  }
+
+  .help-badges-row {
+    gap: 4px;
+  }
+
+  .help-badge {
+    padding: 2px 4px;
+    border-radius: 6px;
+  }
+
+  .help-badge-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .help-badge-count {
+    font-size: 12px;
   }
 }

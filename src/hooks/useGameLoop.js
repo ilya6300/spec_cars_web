@@ -1,7 +1,13 @@
 import { useEffect, useRef } from "react";
 import { tickGameFrame } from "../state/gameSession";
 
-export function useGameLoop(carStore, mapStore, viewportWidthRef, tutorialStore) {
+export function useGameLoop(
+  carStore,
+  mapStore,
+  viewportWidthRef,
+  tutorialStore,
+  modeStore,
+) {
   const lastTimeRef = useRef(performance.now());
 
   useEffect(() => {
@@ -20,6 +26,7 @@ export function useGameLoop(carStore, mapStore, viewportWidthRef, tutorialStore)
         viewportWidth: viewportWidthRef.current,
         deltaTime,
         tutorialStore,
+        modeStore,
       });
 
       animationFrameId = requestAnimationFrame(gameLoop);
@@ -31,5 +38,5 @@ export function useGameLoop(carStore, mapStore, viewportWidthRef, tutorialStore)
       running = false;
       cancelAnimationFrame(animationFrameId);
     };
-  }, [carStore, mapStore, viewportWidthRef, tutorialStore]);
+  }, [carStore, mapStore, viewportWidthRef, tutorialStore, modeStore]);
 }

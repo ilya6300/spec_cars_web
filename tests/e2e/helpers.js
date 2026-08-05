@@ -5,6 +5,18 @@ export async function enablePlaywrightTestState(page) {
   });
 }
 
+export async function navigateToFreeMode(page) {
+  await page.waitForSelector('[data-type="start-menu"]', { timeout: 10000 });
+  await page.click('[data-type="mode-free"]', { force: true });
+  await page.waitForSelector(".game-viewport", { timeout: 10000 });
+}
+
+export async function navigateToGameMode(page, dataType) {
+  await page.waitForSelector('[data-type="start-menu"]', { timeout: 10000 });
+  await page.click(`[data-type="${dataType}"]`, { force: true });
+  await page.waitForSelector(".game-viewport", { timeout: 10000 });
+}
+
 export async function getHelpCounts(page) {
   return page.evaluate(() => {
     const carStore = window.__TEST_STATE__?.activeCarStore;

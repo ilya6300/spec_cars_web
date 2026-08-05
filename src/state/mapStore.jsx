@@ -60,6 +60,8 @@ class MapStore {
   isQuestArrestActive = false;
   arrestAnimFinished = false;
 
+  gameMode = "free";
+
   constructor(mapData) {
     Object.assign(this, mapData);
     this.nextSpawnDistances = buildInitialNextSpawnDistances(objectConfigs);
@@ -101,6 +103,10 @@ class MapStore {
   // Спавн объектов окружения справа за экраном
   spawnEnvironmentObjects(viewportWidth) {
     objectConfigs.forEach((config) => {
+      if (config.type === "collectible_star" && this.gameMode !== "free") {
+        return;
+      }
+
       const nextSpawn = this.nextSpawnDistances[config.type];
 
       if (this.offsetX >= nextSpawn) {
@@ -311,9 +317,14 @@ class MapStore {
   }
 
   spawnQuestCar() {
-    const otherCars = Cars.otherCars;
-    const randomCarData =
-      otherCars[Math.floor(Math.random() * otherCars.length)];
+    let pool = Cars.otherCars;
+    if (this.gameMode === "chase") {
+      pool = Cars.otherCars.filter((car) => car.enemy);
+    }
+
+    if (pool.length === 0) return;
+
+    const randomCarData = pool[Math.floor(Math.random() * pool.length)];
 
     const questCar = new QuestCarStore(randomCarData);
 
@@ -331,7 +342,17 @@ class MapStore {
 
     runInAction(() => {
       this.questCars.push(questCar);
-      this.questCarSpawnTimer = 10 + Math.random() * 20;
+      if (this.gameMode === "chase") {
+        this.questCarSpawnTimer = 8 + Math.random() * 7;
+      } else {
+        this.questCarSpawnTimer = 10 + Math.random() * 20;
+      }
+    });
+  }
+
+  collectCollectibleStar(uid) {
+    runInAction(() => {
+      this.removeObjectByUid(uid);
     });
   }
 

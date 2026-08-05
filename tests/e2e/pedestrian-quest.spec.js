@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { enablePlaywrightTestState, getHelpCounts } from "./helpers.js";
+import { enablePlaywrightTestState, getHelpCounts, navigateToFreeMode } from "./helpers.js";
 
 test.describe("Pedestrian Quest E2E", () => {
   test("Pedestrian quest: red light -> quest modal -> click pedestrian -> siren -> car moves -> fine button -> helpCounts increases", async ({
@@ -7,7 +7,7 @@ test.describe("Pedestrian Quest E2E", () => {
   }) => {
     await enablePlaywrightTestState(page);
     await page.goto("/");
-    await page.waitForSelector(".game-viewport", { timeout: 10000 });
+    await navigateToFreeMode(page);
 
     await page.waitForTimeout(2000);
 

@@ -3,8 +3,33 @@
 > План: `.cursor/planner/PLAN.md` (Approved 5 авг. 2026)  
 > Источник UI wave: `.cursor/planner/UI_UX_DRAFT.md`
 
-**Активная задача:** нет (UI wave завершена 5 авг. 2026)  
-**Последнее закрытие:** TASK-016…022 → `DONE.md`
+**Активная задача:** нет  
+**Последнее закрытие:** TASK-023 → `DONE.md`
+
+---
+
+## TASK-023: Mobile lane, HUD transparency, help icons
+
+**Статус:** DONE  
+**Контекст:** `mixed`  
+**Приоритет:** High  
+**Зависимости:** TASK-016, TASK-021
+
+### Документация
+
+- @docs .cursor/planner/PROJECT_PRINCIPLES.md
+- @docs src/style/media.css — mobile breakpoints
+- @docs src/style/ui-tokens.css — lane + glass tokens
+- @docs src/components/car/HelpBadges.jsx
+
+### Критерии готовности
+
+- [x] Mobile landscape: `--car-lane-y: 58%`, `--player-car-lane-y: 66%` в `media.css`
+- [x] Desktop lane tokens без изменений
+- [x] Mobile `--ui-glass-bg: rgba(20,25,35,0.38)`, blur 8px
+- [x] Убран hardcoded `0.8` у `.controllers_container`
+- [x] Help badges: action-SVG (погоня/наручники/штраф) + подписи
+- [x] `data-type` на badges сохранены
 
 ---
 

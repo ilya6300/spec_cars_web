@@ -10,17 +10,26 @@
   pointer-events: none;
 }
 
-/* Контейнер машины — меняем только его, всё внутри подстроится автоматически */
+/* Контейнер машины — якорь по линии дороги, колёса на асфальте */
 .car_container {
   position: absolute;
-  top: 58%;
+  top: var(--car-lane-y);
   left: 30px;
-  transform: translateY(-45%); /* Стандартное центрирование */
-  /* Задаем размер через ширину, высота подстроится сама благодаря свойству картинок */
   width: 250px;
   height: auto;
-  /* Для адаптивности на очень маленьких экранах (мобилках) можно использовать max-width: */
-  /* width: 25%; */
+  transform: translateY(calc(-100% + var(--car-wheel-offset)));
+}
+
+.car_container--player {
+  top: var(--player-car-lane-y);
+}
+
+/* Внутри quest-car-other позиционирование делает обёртка */
+.car_container--nested {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
 }
 
 /* Кузов занимает 100% ширины контейнера и задает его реальную высоту */
@@ -80,5 +89,46 @@
     box-shadow:
       0px 0px 10px 4px #0055ff,
       0px 0px 25px 8px #0022aa;
+  }
+}
+
+.car_container--headlights {
+  isolation: isolate;
+}
+
+.car_container--headlights .car-body {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 0 6px rgba(255, 248, 200, 0.35));
+}
+
+.car_container--headlights .left-shell,
+.car_container--headlights .right-shell {
+  z-index: 2;
+}
+
+.car-headlight-beam {
+  position: absolute;
+  bottom: 4%;
+  left: 84%;
+  width: min(340px, 58vw);
+  height: 32%;
+  transform-origin: left center;
+  transform: skewX(10deg);
+  background: linear-gradient(
+    to right,
+    rgba(255, 248, 210, 0.72) 0%,
+    rgba(255, 248, 210, 0.28) 38%,
+    rgba(255, 248, 210, 0.08) 62%,
+    transparent 100%
+  );
+  border-radius: 0 50% 50% 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .car_container--headlights .car-body {
+    filter: drop-shadow(0 0 4px rgba(255, 248, 200, 0.3));
   }
 }

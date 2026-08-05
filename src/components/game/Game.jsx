@@ -10,10 +10,16 @@ import { QuestCar } from "./QuestCar";
 import { SpeedDisplay } from "./SpeedDisplay";
 import FullscreenButton from "./FullscreenButton";
 import { TutorialOverlay } from "./TutorialOverlay";
+import { AtmosphereOverlay } from "./AtmosphereOverlay";
+import { ModeTimer, ModeChaseProgress } from "./ModeTimer";
+import { ModeResultModal } from "./ModeResultModal";
+import { GlobalStarsDisplay } from "../ui/GlobalStarsDisplay";
 import { useGameLoop } from "../../hooks/useGameLoop";
 import { createGameStores } from "../../state/gameBootstrap";
 import { TutorialStore } from "../../state/tutorialStore";
 import { registerFuelSaveOnUnload } from "../../state/persistence";
+import modeStore from "../../state/modeStore";
+import atmosphereStore from "../../state/atmosphereStore";
 
 import "../../style/quest_arrest.css";
 
@@ -22,7 +28,7 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
   const tutorialStoreRef = useRef(null);
 
   if (!storesRef.current) {
-    storesRef.current = createGameStores({ carId, mapId });
+    storesRef.current = createGameStores({ carId, mapId, gameMode });
   }
   if (!tutorialStoreRef.current) {
     tutorialStoreRef.current = new TutorialStore();
@@ -48,6 +54,7 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
     activeMapStore,
     viewportWidthRef,
     gameMode === "free" ? tutorialStore : null,
+    modeStore,
   );
 
   useEffect(() => {
@@ -89,15 +96,27 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
     viewportWidthRef.current,
   );
 
+  const showPlayerHeadlights =
+    atmosphereStore.isNight && activeCarStore.isIgnitionOn;
+
   return (
-    <div className="game-viewport">
+    <div
+      className={`game-viewport${atmosphereStore.isNight ? " game-viewport--night" : ""}`}
+    >
       <FullscreenButton />
+      <GlobalStarsDisplay className="game-global-stars" />
+      <ModeTimer carStore={activeCarStore} />
+      <ModeChaseProgress carStore={activeCarStore} />
       <Maps
         map={activeMapStore}
         carStore={activeCarStore}
         onClickObject={handleObjectClick}
       />
-      <Car carStore={activeCarStore} />
+      <AtmosphereOverlay />
+      <Car
+        carStore={activeCarStore}
+        showHeadlights={showPlayerHeadlights}
+      />
       <Controllers activeCarStore={activeCarStore} />
 
       {gameMode === "free" && <TutorialOverlay tutorialStore={tutorialStore} />}
@@ -118,6 +137,7 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
           key={questCar.id}
           questCarStore={questCar}
           mapStore={activeMapStore}
+          showHeadlights={atmosphereStore.isNight}
         />
       ))}
 
@@ -132,7 +152,8 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
       {activeMapStore.questCarForArrest &&
         !activeMapStore.isPedestrianCrossingQuestActive &&
         !activeMapStore.isPoliceQuestActive &&
-        !activeMapStore.isQuestArrestActive && (
+        !activeMapStore.isQuestArrestActive &&
+        !modeStore.isPaused && (
           <button
             className="arrest-button-quest-car-map"
             data-type="arrest-button"
@@ -152,6 +173,8 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
             Блокировать
           </button>
         )}
+
+      <ModeResultModal carStore={activeCarStore} />
     </div>
   );
 });

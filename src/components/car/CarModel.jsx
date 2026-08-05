@@ -1,15 +1,17 @@
 import { observer } from "mobx-lite";
 import React from "react";
 
-export const CarModel = observer(({ carStore, typeBody }) => {
+export const CarModel = observer(({ carStore, typeBody, showHeadlights = false }) => {
+  const containerClass =
+    typeBody === 1
+      ? "car_container car_container--nested"
+      : "car_container car_container--player";
+
   return (
-    // transform: translateY(-45%);
     <div
-      className="car_container"
-      style={{
-        transform: typeBody === 0 ? "translateY(-50%)" : "translateY(-175%)",
-      }}
+      className={`${containerClass}${showHeadlights ? " car_container--headlights" : ""}`}
     >
+      {showHeadlights && <div className="car-headlight-beam" aria-hidden="true" />}
       <div className={carStore.sirena ? "sirena-car-on" : null}></div>
       <img src={carStore.urlBody} alt="Кузов" className="car-body" />
       <img

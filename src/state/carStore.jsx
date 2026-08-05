@@ -4,6 +4,11 @@ import theEngineIsRunning from "../assets/audio/effects/the_engine_is_running.wa
 import sirenaPolice from "../assets/audio/effects/police_siren.wav";
 import stateApp from "./state_app";
 import { loadFuel, scheduleFuelSave } from "./persistence";
+import {
+  calculateSessionScore,
+  calculateSessionStars,
+  GAME_MODES,
+} from "./modeScoring";
 
 class CarStore {
   id = 0;
@@ -27,6 +32,8 @@ class CarStore {
     enemyChase: 0,
     orientationMatch: 0,
   };
+
+  gameMode = GAME_MODES.FREE;
 
   static HELP_POINTS = {
     criminalArrest: 3,
@@ -90,21 +97,11 @@ class CarStore {
   }
 
   get sessionScore() {
-    const p = CarStore.HELP_POINTS;
-    return (
-      this.helpCounts.criminalArrest * p.criminalArrest +
-      this.helpCounts.pedestrianFine * p.pedestrianFine +
-      this.helpCounts.enemyChase * p.enemyChase +
-      this.helpCounts.orientationMatch * p.orientationMatch
-    );
+    return calculateSessionScore(this.helpCounts, this.gameMode);
   }
 
   get sessionStars() {
-    const score = this.sessionScore;
-    if (score >= 14) return 3;
-    if (score >= 8) return 2;
-    if (score >= 4) return 1;
-    return 0;
+    return calculateSessionStars(this.helpCounts, this.gameMode);
   }
 
   resetSessionHelp() {

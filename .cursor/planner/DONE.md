@@ -297,3 +297,18 @@
 **Проверка:** `npm test` 47/47
 
 ---
+
+## TASK-023: Mobile lane, HUD transparency, help icons
+
+**Статус:** DONE  
+**Закрыто:** 5 авг. 2026  
+**Контекст:** mixed
+
+| Критерий | Результат |
+|---|---|
+| Mobile lane tokens | ✅ `--car-lane-y: 58%`, `--player-car-lane-y: 66%` в `media.css` |
+| Mobile glass HUD | ✅ `--ui-glass-bg: 0.38`, blur 8px, убран override 0.8 |
+| Help badges A+B | ✅ action-SVG + подписи «Погоня/Арест/Штраф» |
+| Desktop regression | ✅ lane/glass tokens без изменений на desktop |
+
+---

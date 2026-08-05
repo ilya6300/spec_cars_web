@@ -52,12 +52,15 @@ export const HelpBadges = observer(({ carStore }) => {
               width={28}
               height={28}
             />
-            <span
-              key={carStore.helpCounts[key]}
-              className="help-badge-count"
-            >
-              {carStore.helpCounts[key]}
-            </span>
+            <div className="help-badge-meta">
+              <span
+                key={carStore.helpCounts[key]}
+                className="help-badge-count"
+              >
+                {carStore.helpCounts[key]}
+              </span>
+              <span className="help-badge-label">{label}</span>
+            </div>
           </div>
         ))}
       </div>

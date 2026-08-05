@@ -22,7 +22,7 @@
 /* Стили для линии разметки */
 .road-line {
   position: absolute;
-  top: 53%;
+  top: var(--road-lane-y);
   left: 0;
   width: 100%; /* Оставляем 100%, чтобы блок был на всю дорогу */
   height: 10px;

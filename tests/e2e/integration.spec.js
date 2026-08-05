@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { enablePlaywrightTestState, getHelpCounts } from "./helpers.js";
+import { enablePlaywrightTestState, getHelpCounts, navigateToFreeMode } from "./helpers.js";
 
 test.describe("Integration: Full Quest Flow", () => {
   test.skip("Full flow: stop on red -> 30% chance -> pedestrian quest -> fine -> helpCounts increases", async ({
@@ -7,7 +7,7 @@ test.describe("Integration: Full Quest Flow", () => {
   }) => {
     await enablePlaywrightTestState(page);
     await page.goto("/");
-    await page.waitForSelector(".game-viewport", { timeout: 10000 });
+    await navigateToFreeMode(page);
 
     let questStarted = false;
     try {

@@ -7,6 +7,8 @@ import { getDataSubObects, dataObjectsSub } from "./subobject";
 import humanAggr1Img from "../assets/objects/\police_quest/human_aggr1.png";
 import humanAggr2Img from "../assets/objects/\police_quest/human_aggr2.png";
 import humanAggr3Img from "../assets/objects/\police_quest/human_aggr3.png";
+import collectibleStarImg from "../assets/ui/collectible-star.svg";
+import starsStore from "./starsStore";
 
 class ObjectsClass {
   white_line = whiteLine;
@@ -137,6 +139,26 @@ const createDataObjects = () => {
     });
 
     objectConfigs.push(buildings, gasStationObj, trafficLightObj);
+
+    const collectibleStarObj = new ObjectConfig({
+      id: "collectible_star",
+      type: "collectible_star",
+      image: collectibleStarImg,
+      zIndex: 2,
+      width: 48,
+      height: 48,
+      minDistance: 15000,
+      maxDistance: 25000,
+      initialSpawnDistance: 20000,
+      onClick: (obj, mapStore) => {
+        starsStore.addStars(1);
+        mapStore.collectCollectibleStar(obj.uid);
+      },
+      onLongPress: () => {},
+      onAppear: () => {},
+    });
+
+    objectConfigs.push(collectibleStarObj);
 
     dataObjectsSub.forEach((tree) => {
       objectConfigs.push(tree);

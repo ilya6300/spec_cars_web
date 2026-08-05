@@ -42,7 +42,7 @@
 }
 
 .speed-display.critical {
-  color: red;
+  color: var(--ui-danger);
   animation: speed-pulse 0.5s ease-in-out infinite alternate;
 }
 .arrest-button-quest-car-map {

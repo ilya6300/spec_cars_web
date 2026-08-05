@@ -1,14 +1,10 @@
 import React from "react";
 import { observer } from "mobx-react-lite";
-import Objects from "../../state/objects";
-import { objectConfigs } from "../../state/objects";
+import Objects, { objectConfigByType } from "../../state/objects";
 
-export const Maps = observer(({ map, distance, carStore, onClickObject }) => {
+export const Maps = observer(({ map, carStore, onClickObject }) => {
   const activeObjects = map.activeObjects || [];
-  const configMap = {};
-  objectConfigs.forEach((c) => {
-    configMap[c.type] = c;
-  });
+  const scrollX = map.offsetX;
 
   return (
     <div
@@ -17,24 +13,20 @@ export const Maps = observer(({ map, distance, carStore, onClickObject }) => {
         backgroundImage: `url(${map.url})`,
       }}
     >
-      {/* Слой с прерывистой разметкой */}
       <div
         className="road-line"
         style={{
           backgroundImage: `url(${Objects.white_line})`,
-          backgroundPositionX: `-${distance}px`,
+          backgroundPositionX: `-${scrollX}px`,
         }}
       />
 
-      {/* Слой с объектами окружения */}
       {activeObjects.map((obj) => {
-        const config = configMap[obj.typeId];
+        const config = objectConfigByType[obj.typeId];
         if (!config) return null;
 
-        // Вычисляем экранную координату из мировой (аналог backgroundPositionX: -distance)
-        const screenX = obj.worldX - distance;
+        const screenX = obj.worldX - scrollX;
 
-        // Для светофора выбираем изображение по цвету
         const image =
           obj.typeId === "traffic_light"
             ? map.trafficLightColor === "red"
@@ -63,31 +55,28 @@ export const Maps = observer(({ map, distance, carStore, onClickObject }) => {
             }}
             onPointerDown={(e) => {
               e.stopPropagation();
-              const timeout = setTimeout(() => {
-                if (config.onLongPress) {
-                  config.onLongPress(obj, map, carStore);
-                }
+              if (obj.longPressTimeout) {
+                clearTimeout(obj.longPressTimeout);
+              }
+              obj.longPressTimeout = setTimeout(() => {
+                config.onLongPress?.(obj, map, carStore);
               }, 500);
-              e.currentTarget.longPressTimeout = timeout;
             }}
             onPointerUp={(e) => {
               e.stopPropagation();
-              const el = e.currentTarget;
-              if (el.longPressTimeout) {
-                clearTimeout(el.longPressTimeout);
-                el.longPressTimeout = null;
+              if (obj.longPressTimeout) {
+                clearTimeout(obj.longPressTimeout);
+                obj.longPressTimeout = null;
               }
-              // Останавливаем заправку при отпускании
               if (map.isRefueling) {
                 map.stopRefueling();
               }
             }}
             onPointerLeave={(e) => {
               e.stopPropagation();
-              const el = e.currentTarget;
-              if (el.longPressTimeout) {
-                clearTimeout(el.longPressTimeout);
-                el.longPressTimeout = null;
+              if (obj.longPressTimeout) {
+                clearTimeout(obj.longPressTimeout);
+                obj.longPressTimeout = null;
               }
             }}
           />

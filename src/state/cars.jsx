@@ -13,11 +13,13 @@ const Cars = {
   speedMultiplier: 6.43,
   cars: [
     {
-      id: 0,
+      id: "police-0",
+      service: "police",
       type: "police",
       name: "Полицейский автомобиль",
       urlBody: policeBody,
       urlShell: shell_1,
+      skins: [{ id: "default", urlBody: policeBody, urlShell: shell_1 }],
       maxSpeed: 140,
       speedMultiplier: 6.43,
       acceleration: 400,
@@ -105,4 +107,20 @@ const Cars = {
     },
   ],
 };
+
+export function getDefaultCar() {
+  return Cars.cars[0];
+}
+
+export function getCarById(carId) {
+  const found = Cars.cars.find(
+    (car) => car.id === carId || String(car.id) === String(carId),
+  );
+  return found ?? getDefaultCar();
+}
+
+export function getCarsByService(service) {
+  return Cars.cars.filter((car) => car.service === service);
+}
+
 export default Cars;

@@ -1,9 +1,11 @@
 import { test, expect } from "@playwright/test";
+import { enablePlaywrightTestState, getHelpCounts } from "./helpers.js";
 
 test.describe("Integration: Full Quest Flow", () => {
-  test.skip("Full flow: stop on red -> 30% chance -> pedestrian quest -> fine -> countHelp increases", async ({
+  test.skip("Full flow: stop on red -> 30% chance -> pedestrian quest -> fine -> helpCounts increases", async ({
     page,
   }) => {
+    await enablePlaywrightTestState(page);
     await page.goto("/");
     await page.waitForSelector(".game-viewport", { timeout: 10000 });
 
@@ -19,12 +21,7 @@ test.describe("Integration: Full Quest Flow", () => {
     }
 
     if (questStarted) {
-      const initialCount = await page.$eval(".game-viewport", (el) => {
-        const stores = Object.values(el).find(
-          (v) => v?.countHelp !== undefined,
-        );
-        return stores?.countHelp || 0;
-      });
+      const initialCounts = await getHelpCounts(page);
 
       await page.click(".quest-pedestrian");
       await page.waitForSelector(".fine-button", { state: "visible" });
@@ -34,14 +31,11 @@ test.describe("Integration: Full Quest Flow", () => {
         state: "hidden",
       });
 
-      const finalCount = await page.$eval(".game-viewport", (el) => {
-        const stores = Object.values(el).find(
-          (v) => v?.countHelp !== undefined,
-        );
-        return stores?.countHelp || 0;
-      });
+      const finalCounts = await getHelpCounts(page);
 
-      expect(finalCount).toBeGreaterThan(initialCount);
+      expect(finalCounts.pedestrianFine).toBeGreaterThan(
+        initialCounts.pedestrianFine,
+      );
     }
   });
 });

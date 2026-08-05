@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { CarModel } from "../car/CarModel";
 import CarStore from "../../state/carStore";
-import Cars from "../../state/cars";
+import { getDefaultCar } from "../../state/cars";
 import { runInAction } from "mobx";
 import { dataObjectsSub } from "../../state/subobject";
 import crossingImage from "../../assets/quest_location/police_pedestrian crossing.png";
@@ -10,36 +10,44 @@ import crossingImage from "../../assets/quest_location/police_pedestrian crossin
 export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
   const modalCarStore = useRef(null);
   if (!modalCarStore.current) {
-    modalCarStore.current = new CarStore(Cars.cars[0]);
+    modalCarStore.current = new CarStore(getDefaultCar());
   }
-  const handleArrest = useCallback(() => {
-    if (carRafRef.current) {
-      cancelAnimationFrame(carRafRef.current);
-      carRafRef.current = null;
-    }
-    mapStore.finishPedestrianCrossingQuest();
-    runInAction(() => {
-      carStore.countHelp += 1;
-      carStore.toggleSirena();
-    });
-  }, [mapStore, carStore]);
+
   const pedRafRef = useRef(null);
   const carRafRef = useRef(null);
   const timerRef = useRef(null);
   const [pedestrianImage, setPedestrianImage] = useState(null);
   const [pedestrianY, setPedestrianY] = useState(-50);
 
-  const handleFine = useCallback(() => {
+  const stopAnimations = useCallback(() => {
     if (carRafRef.current) {
       cancelAnimationFrame(carRafRef.current);
       carRafRef.current = null;
     }
+    if (pedRafRef.current) {
+      cancelAnimationFrame(pedRafRef.current);
+      pedRafRef.current = null;
+    }
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const finishQuestWithHelp = useCallback(() => {
+    stopAnimations();
     mapStore.finishPedestrianCrossingQuest();
     runInAction(() => {
-      carStore.countHelp += 1;
-      carStore.toggleSirena();
+      carStore.addHelp("pedestrianFine");
+      if (carStore.sirena) {
+        carStore.toggleSirena();
+      }
     });
-  }, [mapStore, carStore]);
+  }, [mapStore, carStore, stopAnimations]);
+
+  const handleFine = useCallback(() => {
+    finishQuestWithHelp();
+  }, [finishQuestWithHelp]);
 
   const handlePedestrianClick = useCallback(() => {
     if (mapStore.pedestrianState !== "walking") return;
@@ -48,14 +56,11 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
       carStore.toggleSirena();
     }
 
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
+    stopAnimations();
 
     const targetX = window.innerWidth / 4.5;
     const startPos = mapStore.pedestrianCarPosition;
-    let startTime = performance.now();
+    const startTime = performance.now();
 
     runInAction(() => {
       mapStore.pedestrianState = "stopped";
@@ -70,7 +75,6 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
       const elapsed = (currentTime - startTime) / 1000;
       const pos = startPos + 400 * elapsed;
 
-      // Вращение колёс на отдельном сторе (не конфликтует с основным игровым циклом)
       runInAction(() => {
         modalCarStore.current.wheelRotation += 400 * dt * 0.75;
         modalCarStore.current.wheelRotation %= 360;
@@ -82,16 +86,19 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
       } else {
         mapStore.updatePedestrianCarPosition(targetX);
         mapStore.pedestrianIsCarArrived = true;
+        carRafRef.current = null;
       }
     };
 
     carRafRef.current = requestAnimationFrame(animateCar);
-  }, [mapStore, carStore]);
+  }, [mapStore, carStore, stopAnimations]);
 
   useEffect(() => {
-    if (!mapStore.isPedestrianCrossingQuestActive) return;
+    if (!mapStore.isPedestrianCrossingQuestActive) {
+      stopAnimations();
+      return undefined;
+    }
 
-    // Сброс позиции пешехода при каждом открытии модалки
     setPedestrianY(-50);
 
     const targetObj = mapStore.pedestrianCrossingTargetObject;
@@ -101,48 +108,71 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
       );
       setPedestrianImage(found ? found.image : null);
     }
-    if (!pedestrianImage) return;
+
+    return () => stopAnimations();
+  }, [mapStore.isPedestrianCrossingQuestActive, mapStore.pedestrianCrossingTargetObject, stopAnimations]);
+
+  useEffect(() => {
+    if (!mapStore.isPedestrianCrossingQuestActive || !pedestrianImage) return undefined;
 
     const delay = 1000 + Math.random() * 2000;
     timerRef.current = setTimeout(() => {
       runInAction(() => {
         mapStore.pedestrianState = "walking";
       });
+      timerRef.current = null;
     }, delay);
 
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
     };
-  }, [mapStore.isPedestrianCrossingQuestActive, pedestrianImage]);
+  }, [mapStore.isPedestrianCrossingQuestActive, pedestrianImage, mapStore]);
 
   useEffect(() => {
-    if (mapStore.pedestrianState !== "walking") return;
+    if (mapStore.pedestrianState !== "walking") return undefined;
 
     const endY = 300;
     let prevTime = performance.now();
-    let animId = null;
 
     const animate = (currentTime) => {
-
       const dt = (currentTime - prevTime) / 1000;
       prevTime = currentTime;
-      if (mapStore.pedestrianState === "walking") {
-        setPedestrianY((prev) => {
-          const next = prev + 40 * dt;
-          return next >= endY ? mapStore.finishPedestrianCrossingQuest() : next;
-        });
-        animId = requestAnimationFrame(animate);
-        pedRafRef.current = animId;
+
+      if (mapStore.pedestrianState !== "walking") {
+        pedRafRef.current = null;
+        return;
       }
+
+      setPedestrianY((prev) => {
+        const next = prev + 40 * dt;
+        if (next >= endY) {
+          stopAnimations();
+          mapStore.finishPedestrianCrossingQuest();
+          return endY;
+        }
+        return next;
+      });
+
+      pedRafRef.current = requestAnimationFrame(animate);
     };
 
-    animId = requestAnimationFrame(animate);
-    pedRafRef.current = animId;
+    pedRafRef.current = requestAnimationFrame(animate);
 
     return () => {
-      if (animId) cancelAnimationFrame(animId);
+      if (pedRafRef.current) {
+        cancelAnimationFrame(pedRafRef.current);
+        pedRafRef.current = null;
+      }
     };
-  }, [mapStore.pedestrianState]);
+  }, [mapStore.pedestrianState, mapStore, stopAnimations]);
+
+  useEffect(() => () => {
+    stopAnimations();
+    modalCarStore.current?.dispose();
+  }, [stopAnimations]);
 
   if (!mapStore.isPedestrianCrossingQuestActive || !mapStore.pedestrianCrossingTargetObject) {
     return null;
@@ -176,9 +206,9 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
         <img src={pedestrianImage} alt="Pedestrian" className="pedestrian-image" />
       </div>
       {mapStore.pedestrianIsCarArrived && (
-          <button className="fine-button" onClick={handleFine}>
-            Выписать штраф
-          </button>
+        <button className="fine-button" onClick={handleFine}>
+          Выписать штраф
+        </button>
       )}
     </div>
   );

@@ -1,0 +1,182 @@
+/* TASK-016: HUD glass panel + speedometer */
+
+.hud-panel {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 12px;
+  padding: 14px 18px;
+  max-width: min(92vw, 520px);
+  background: var(--ui-glass-bg);
+  backdrop-filter: blur(var(--ui-glass-blur));
+  -webkit-backdrop-filter: blur(var(--ui-glass-blur));
+  border: 1px solid var(--ui-glass-border);
+  border-radius: var(--ui-glass-radius);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.45),
+    inset 0 1px 2px rgba(255, 255, 255, 0.12);
+  color: var(--ui-text-primary);
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  pointer-events: auto;
+}
+
+.hud-panel__main {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.hud-panel__stats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hud-distance {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ui-text-primary);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.speedometer-container {
+  position: relative;
+  width: 110px;
+  height: 55px;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.speedometer-gauge {
+  position: absolute;
+  bottom: 0;
+  width: 110px;
+  height: 55px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-bottom: none;
+  border-top-left-radius: 70px;
+  border-top-right-radius: 70px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.speedometer-arrow {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  height: 50px;
+  background: var(--ui-danger);
+  transform-origin: bottom center;
+  transition: transform 0.1s ease-out;
+  z-index: 4;
+}
+
+.speedometer-center {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  background: #333;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+}
+
+.speedometer-digital-display {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  font-weight: bold;
+  color: #1a1a1a;
+  z-index: 5;
+  text-align: center;
+  pointer-events: none;
+}
+
+.speedometer-unit {
+  font-size: 9px;
+  font-weight: normal;
+  margin-top: -2px;
+}
+
+.gauge-tick-wrapper {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 70px;
+  transform-origin: bottom center;
+}
+
+.gauge-tick-line {
+  position: absolute;
+  top: 0;
+  left: -1px;
+  width: 3px;
+  height: 12px;
+  background: #333;
+  display: none;
+}
+
+.gauge-label-wrapper {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  width: 0;
+  height: 50px;
+  z-index: 3;
+  transform-origin: bottom center;
+}
+
+.gauge-label-text {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: bold;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+@media (max-width: 900px) and (orientation: landscape), (max-height: 500px) {
+  .hud-panel {
+    margin: 8px;
+    padding: 10px 12px;
+    gap: 10px;
+    border-radius: 14px;
+  }
+
+  .speedometer-container,
+  .speedometer-gauge {
+    width: 80px;
+    height: 40px;
+  }
+
+  .speedometer-gauge {
+    border-top-left-radius: 50px;
+    border-top-right-radius: 50px;
+  }
+
+  .speedometer-arrow {
+    height: 36px;
+  }
+
+  .speedometer-digital-display {
+    font-size: 13px;
+    bottom: 8px;
+  }
+
+  .hud-distance {
+    font-size: 13px;
+  }
+}

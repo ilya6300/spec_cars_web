@@ -2,15 +2,16 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { CarModel } from "../car/CarModel";
 import CarStore from "../../state/carStore";
-import Cars from "../../state/cars";
-import Objects from "../../state/objects";
+import { getDefaultCar } from "../../state/cars";
+import { objectConfigByType } from "../../state/objects";
+import { getHelpTypeForPoliceObject } from "../../state/quests";
 import { runInAction } from "mobx";
 import roadImage from "../../assets/maps/road_1.png";
 
 export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
   const policeCarStore = useRef(null);
   if (!policeCarStore.current) {
-    policeCarStore.current = new CarStore(Cars.cars[0]);
+    policeCarStore.current = new CarStore(getDefaultCar());
   }
   const animationRef = useRef(null);
   const lastTimeRef = useRef(performance.now());
@@ -20,9 +21,12 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
     const target = mapStore.questTargetObject;
     if (target) {
       mapStore.removeObjectByUid(target.uid);
-      runInAction(() => {
-        carStore.countHelp += 1;
-      });
+      const helpType = getHelpTypeForPoliceObject(target.typeId);
+      if (helpType) {
+        runInAction(() => {
+          carStore.addHelp(helpType);
+        });
+      }
       if (carStore.sirena) {
         carStore.toggleSirena();
       }
@@ -34,11 +38,10 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
       const index = mapStore.questCars.indexOf(questCar);
       if (index !== -1) {
         runInAction(() => {
-          carStore.countHelp += 1;
+          carStore.addHelp("enemyChase");
         });
         mapStore.removeQuestCarByIndex(index);
         mapStore.questCarForArrest = null;
-        mapStore.questCarActive = false;
         if (carStore.sirena) {
           carStore.toggleSirena();
         }
@@ -90,6 +93,7 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
+      policeCarStore.current?.dispose();
     };
   }, [mapStore.isPoliceQuestActive, mapStore.questTargetObject]);
 
@@ -98,16 +102,9 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
   }
 
   const targetObj = mapStore.questTargetObject;
-  let targetImage = null;
-  if (targetObj.typeId === "human_aggr1") {
-    targetImage = Objects.humanAggr1Img;
-  } else if (targetObj.typeId === "human_aggr2") {
-    targetImage = Objects.humanAggr2Img;
-  } else if (targetObj.typeId === "human_aggr3") {
-    targetImage = Objects.humanAggr3Img;
-  }
+  const targetImage = objectConfigByType[targetObj.typeId]?.image;
 
-  if (!targetImage) {
+  if (!targetImage || !getHelpTypeForPoliceObject(targetObj.typeId)) {
     return null;
   }
 

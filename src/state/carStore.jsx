@@ -3,6 +3,7 @@ import carStartSound from "../assets/audio/effects/car_start.mp3";
 import theEngineIsRunning from "../assets/audio/effects/the_engine_is_running.wav";
 import sirenaPolice from "../assets/audio/effects/police_siren.wav";
 import stateApp from "./state_app";
+import { loadFuel, scheduleFuelSave } from "./persistence";
 
 class CarStore {
   id = 0;
@@ -10,7 +11,29 @@ class CarStore {
   name = "";
   urlBody = "";
   urlShell = "";
-  countHelp = 0;
+  // Ссылка на MapStore (устанавливается в Game.jsx)
+  mapStore = null;
+
+  disposed = false;
+
+  audioCtx = null;
+  engineSource = null;
+  startSound = null;
+  engineBuffer = null;
+
+  helpCounts = {
+    criminalArrest: 0,
+    pedestrianFine: 0,
+    enemyChase: 0,
+    orientationMatch: 0,
+  };
+
+  static HELP_POINTS = {
+    criminalArrest: 3,
+    pedestrianFine: 1,
+    enemyChase: 4,
+    orientationMatch: 1,
+  };
 
   maxSpeed = 0;
   currentSpeed = 0;
@@ -51,15 +74,107 @@ class CarStore {
   sirenaBuffer = null;
   sirenaSource = null;
 
-  // Ссылка на MapStore (устанавливается в Game.jsx)
-  mapStore = null;
-
   constructor(carData) {
     Object.assign(this, carData);
     makeAutoObservable(this);
+
+    const savedFuel = loadFuel(this.maxFuel, this.id);
+    if (savedFuel !== null) {
+      this.fuel = savedFuel;
+    }
   }
 
-  // МЕТОДЫ УПРАВЛЕНИЯ
+  persistFuel() {
+    if (this.disposed) return;
+    scheduleFuelSave(this.fuel, this.id);
+  }
+
+  get sessionScore() {
+    const p = CarStore.HELP_POINTS;
+    return (
+      this.helpCounts.criminalArrest * p.criminalArrest +
+      this.helpCounts.pedestrianFine * p.pedestrianFine +
+      this.helpCounts.enemyChase * p.enemyChase +
+      this.helpCounts.orientationMatch * p.orientationMatch
+    );
+  }
+
+  get sessionStars() {
+    const score = this.sessionScore;
+    if (score >= 14) return 3;
+    if (score >= 8) return 2;
+    if (score >= 4) return 1;
+    return 0;
+  }
+
+  resetSessionHelp() {
+    runInAction(() => {
+      this.helpCounts = {
+        criminalArrest: 0,
+        pedestrianFine: 0,
+        enemyChase: 0,
+        orientationMatch: 0,
+      };
+    });
+  }
+
+  addHelp(type) {
+    if (this.disposed || !(type in this.helpCounts)) return;
+    runInAction(() => {
+      this.helpCounts[type] += 1;
+    });
+  }
+
+  stopEngineSource() {
+    if (this.engineSource) {
+      try {
+        this.engineSource.stop();
+      } catch (e) {
+        /* already stopped */
+      }
+      this.engineSource.disconnect();
+      this.engineSource = null;
+    }
+  }
+
+  stopSirenaSource() {
+    if (this.sirenaSource) {
+      try {
+        this.sirenaSource.stop();
+      } catch (e) {
+        /* already stopped */
+      }
+      this.sirenaSource.disconnect();
+      this.sirenaSource = null;
+    }
+  }
+
+  dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
+
+    if (this.ignitionTimeoutId) {
+      clearTimeout(this.ignitionTimeoutId);
+      this.ignitionTimeoutId = null;
+    }
+
+    this.stopEngineSource();
+    this.stopSirenaSource();
+
+    if (this.sirena) {
+      this.sirena = false;
+    }
+
+    if (this.audioCtx) {
+      this.audioCtx.close().catch(() => {});
+      this.audioCtx = null;
+    }
+  }
+
+  reattach() {
+    this.disposed = false;
+  }
+
   // Функция-помощник для скачивания аудиофайла в Web Audio буфер
   async loadSound(url) {
     if (!this.audioCtx) return null;
@@ -74,9 +189,14 @@ class CarStore {
   }
 
   async toggleSirena() {
-    this.sirena = !this.sirena;
+    if (this.disposed) return;
 
-    if (this.sirena) {
+    const turnOn = !this.sirena;
+    runInAction(() => {
+      this.sirena = turnOn;
+    });
+
+    if (turnOn) {
       // Инициализация AudioContext если нет
       if (!this.audioCtx) {
         this.audioCtx = new (
@@ -100,19 +220,16 @@ class CarStore {
         this.sirenaSource.start(0);
       }
     } else {
-      // Остановка сирены
-      if (this.sirenaSource) {
-        try {
-          this.sirenaSource.stop();
-        } catch (e) {}
-        this.sirenaSource.disconnect();
-        this.sirenaSource = null;
-      }
+      this.stopSirenaSource();
     }
   }
 
   async toggleIgnition() {
-    this.isIgnitionOn = !this.isIgnitionOn;
+    if (this.disposed) return;
+
+    runInAction(() => {
+      this.isIgnitionOn = !this.isIgnitionOn;
+    });
 
     // 1. Инициализируем аудиоконтекст при первом запуске (требование браузеров)
     if (!this.audioCtx) {
@@ -138,9 +255,8 @@ class CarStore {
 
       // ---- ПЛАНИРУЕМ БЕСШОВНЫЙ МОТОР ЧЕРЕЗ 1 СЕКУНДУ ----
       this.ignitionTimeoutId = setTimeout(() => {
-        if (!this.isIgnitionOn || !this.engineBuffer) return;
+        if (this.disposed || !this.isIgnitionOn || !this.engineBuffer) return;
 
-        // Создаем узел источника звука
         this.engineSource = this.audioCtx.createBufferSource();
         this.engineSource.buffer = this.engineBuffer;
 
@@ -158,14 +274,7 @@ class CarStore {
         this.ignitionTimeoutId = null;
       }
 
-      // Плавно или мгновенно останавливаем зацикленный мотор
-      if (this.engineSource) {
-        try {
-          this.engineSource.stop();
-        } catch (e) {}
-        this.engineSource.disconnect();
-        this.engineSource = null;
-      }
+      this.stopEngineSource();
 
       this.isGasPressed = false;
     }
@@ -185,6 +294,7 @@ class CarStore {
 
   refuel(amount) {
     this.fuel = Math.min(this.maxFuel, this.fuel + amount);
+    this.persistFuel();
   }
 
   // Принудительная остановка (сброс скорости, двигатель не глушим)
@@ -229,13 +339,22 @@ class CarStore {
   }
 
   // Обновление состояния светофора из mapStore
-  // Срабатывает только когда расстояние до светофора <= 200px
+  // Срабатывает только когда расстояние до ближайшего светофора в зоне 300–700 px
   checkTrafficLight(mapStore) {
-    const trafficLight = mapStore.activeObjects.find(
-      (obj) => obj.typeId === "traffic_light",
-    );
+    let nearestLight = null;
+    let nearestDistance = Infinity;
 
-    if (!trafficLight) {
+    for (const obj of mapStore.activeObjects) {
+      if (obj.typeId !== "traffic_light") continue;
+      const distance = obj.worldX - mapStore.offsetX;
+      if (distance < -80) continue;
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestLight = obj;
+      }
+    }
+
+    if (!nearestLight) {
       runInAction(() => {
         this.isTrafficLightOnScreen = false;
         this.trafficLightColor = null;
@@ -245,7 +364,7 @@ class CarStore {
       return;
     }
 
-    const distance = trafficLight.worldX - mapStore.offsetX;
+    const distance = nearestDistance;
 
     runInAction(() => {
       if (distance <= 700 && distance > 300) {
@@ -320,10 +439,11 @@ class CarStore {
           this.fuel = 0;
           this.isGasPressed = false;
         }
+        this.persistFuel();
       }
 
-      // 1.5. Остановка на красном светофоре
-      if (this.trafficLightColor === "red") {
+      // 1.5. Остановка на красном светофоре (только в зоне торможения)
+      if (this.shouldStopForLight) {
         this.forceStop();
       }
 

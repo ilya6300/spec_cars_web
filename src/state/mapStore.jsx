@@ -1,8 +1,13 @@
 ﻿import { makeAutoObservable, runInAction } from "mobx";
-import { objectConfigs } from "./objects";
-import stateApp from "./state_app";
+import {
+  objectConfigs,
+  objectConfigByType,
+  buildInitialNextSpawnDistances,
+} from "./objects";
 import QuestCarStore from "./questCarStore";
 import Cars from "./cars";
+
+const QUEST_CAR_VISIBLE_MARGIN = 150;
 
 class MapStore {
   id = 0;
@@ -16,34 +21,8 @@ class MapStore {
   // Каждый элемент: { uid, typeId, worldX, appeared }
   activeObjects = [];
 
-  // Расстояния до следующего спавна для каждого типа
-  nextSpawnDistances = {
-    building: 0,
-    gas_station: 30000,
-    traffic_light: 8000,
-    tree1: 350,
-    tree2: 450,
-    tree3: 750,
-    human1: 150,
-    human2: 50,
-    human3: 350,
-    human4: 550,
-    human5: 250,
-    human6: 180,
-    human7: 800,
-    human8: 100,
-    human9: 50,
-    human10: 550,
-    human11: 1000,
-    human12: 250,
-    human13: 80,
-    human14: 1950,
-    human15: 400,
-    human16: 200,
-    human_aggr1: 17700,
-    human_aggr2: 25000,
-    human_aggr3: 10500,
-  };
+  // Расстояния до следующего спавна — инициализируются из objectConfigs
+  nextSpawnDistances = {};
 
   // Состояние светофора
   trafficLightColor = "red";
@@ -83,23 +62,44 @@ class MapStore {
 
   constructor(mapData) {
     Object.assign(this, mapData);
+    this.nextSpawnDistances = buildInitialNextSpawnDistances(objectConfigs);
     makeAutoObservable(this);
   }
 
-  // Накопление смещения (аналог distance в Game.jsx)
-  update(carSpeed, deltaTime) {
+  // Накопление смещения мира (единственный источник для рендера карты)
+  advance(carSpeed, deltaTime) {
     runInAction(() => {
       this.offsetX += carSpeed * deltaTime;
     });
   }
 
-  // Спавн новых объектов справа за экраном
-  spawnObjects(viewportWidth, deltaTime) {
+  /** Один тик мира после advance: спавн, деспавн, quest-cars, зона ареста */
+  tickWorld(carStore, deltaTime, viewportWidth) {
+    this.updateQuestCarSpawner(deltaTime);
+    this.spawnEnvironmentObjects(viewportWidth);
+    this.despawnObjects(viewportWidth);
+    this.triggerAppearEvents(carStore);
+    this.updateQuestCars(deltaTime);
+    this.checkQuestCarDistance();
+  }
+
+  updateQuestCarSpawner(deltaTime) {
     this.questCarSpawnTimer -= deltaTime;
     if (this.questCarSpawnTimer <= 0) {
       this.spawnQuestCar();
     }
+  }
 
+  getVisibleQuestCars(viewportWidth, margin = QUEST_CAR_VISIBLE_MARGIN) {
+    const minX = -margin;
+    const maxX = viewportWidth;
+    return this.questCars.filter(
+      (car) => car.positionX > minX && car.positionX < maxX,
+    );
+  }
+
+  // Спавн объектов окружения справа за экраном
+  spawnEnvironmentObjects(viewportWidth) {
     objectConfigs.forEach((config) => {
       const nextSpawn = this.nextSpawnDistances[config.type];
 
@@ -134,32 +134,36 @@ class MapStore {
   // Удаление объектов, ушедших за левый край экрана
   despawnObjects(viewportWidth) {
     runInAction(() => {
-      const configMap = {};
-      objectConfigs.forEach((c) => {
-        configMap[c.type] = c;
-      });
-
       this.activeObjects = this.activeObjects.filter((obj) => {
-        const config = configMap[obj.typeId];
+        const config = objectConfigByType[obj.typeId];
+        if (!config) {
+          if (obj.longPressTimeout) {
+            clearTimeout(obj.longPressTimeout);
+            obj.longPressTimeout = null;
+          }
+          return false;
+        }
+
         const screenX = obj.worldX - this.offsetX;
         if (obj.typeId === "traffic_light") {
-          // Светофор виден на экране ТОЛЬКО когда его правый край вошёл
-          // за правую границу (screenX < viewportWidth) И левый край ещё
-          // не ушёл за левую границу (screenX + width > 0)
           this.trafficLightOnTheMap =
             screenX < viewportWidth && screenX + config.width > 0;
         }
-        return screenX > -config.width;
+
+        const visible = screenX > -config.width;
+        if (!visible && obj.longPressTimeout) {
+          clearTimeout(obj.longPressTimeout);
+          obj.longPressTimeout = null;
+        }
+        return visible;
       });
-      // Корректировка lastObjectEndMeter после удаления ушедших объектов
       const sorted = [...this.activeObjects].sort(
         (a, b) => b.worldX - a.worldX,
       );
       if (sorted.length > 0) {
-        const lastConfig = configMap[sorted[0].typeId];
+        const lastConfig = objectConfigByType[sorted[0].typeId];
         this.lastObjectEndMeter = sorted[0].worldX + lastConfig.width;
       } else {
-        // Нет активных объектов — сбрасываем на текущую позицию
         this.lastObjectEndMeter = this.offsetX;
       }
     });
@@ -167,14 +171,10 @@ class MapStore {
 
   // Вызов onAppear для новых объектов
   triggerAppearEvents(carStore) {
-    const configMap = {};
-    objectConfigs.forEach((c) => {
-      configMap[c.type] = c;
-    });
     this.activeObjects.forEach((obj) => {
       if (!obj.appeared) {
-        const config = configMap[obj.typeId];
-        if (config.onAppear) {
+        const config = objectConfigByType[obj.typeId];
+        if (config?.onAppear) {
           config.onAppear({ ...obj, config }, this, carStore);
         }
         runInAction(() => {
@@ -207,6 +207,7 @@ class MapStore {
           this.carStore.maxFuel,
         );
       });
+      this.carStore.persistFuel();
     }
   }
 
@@ -225,6 +226,7 @@ class MapStore {
             this.carStore.maxFuel,
           );
         });
+        this.carStore.persistFuel();
       }
     }, 100);
   }
@@ -242,6 +244,8 @@ class MapStore {
 
   // Очистка всех таймеров
   dispose() {
+    this.stopRefueling();
+
     if (this.trafficLightTimer) {
       clearInterval(this.trafficLightTimer);
       this.trafficLightTimer = null;
@@ -280,8 +284,7 @@ class MapStore {
       const idx = this.activeObjects.findIndex((obj) => obj.uid === uid);
       if (idx !== -1) {
         this.activeObjects.splice(idx, 1);
-        const configMap = {};
-        objectConfigs.forEach((c) => (configMap[c.type] = c));
+        const configMap = objectConfigByType;
         const sorted = [...this.activeObjects].sort(
           (a, b) => b.worldX - a.worldX,
         );
@@ -358,34 +361,31 @@ class MapStore {
     });
   }
 
-  checkQuestCarDistance(questCarStores, viewportWidth) {
+  checkQuestCarDistance(questCarStores = this.questCars) {
     const policeScreenX = 30;
-    const arrestThreshold = 250; // CONCEPT.md: +250px от X-координаты полицейского
-    const minArrestX = policeScreenX; // enemy «сравнялся» с полицейским
+    const arrestThreshold = 250;
+    const minArrestX = policeScreenX;
     const maxArrestX = policeScreenX + arrestThreshold;
 
     let closestQuestCar = null;
 
     for (const questCar of questCarStores) {
-      if (questCar.enemy) {
-        try {
-          const questCarScreenX = questCar.positionX;
+      if (!questCar.enemy) continue;
 
-          if (questCarScreenX >= minArrestX && questCarScreenX <= maxArrestX) {
-            if (
-              !closestQuestCar ||
-              questCarScreenX < closestQuestCar.positionX
-            ) {
-              closestQuestCar = questCar;
-            }
-          }
-        } catch (error) {
-          console.error("Error checking quest car distance:", error);
+      const questCarScreenX = questCar.positionX;
+      if (questCarScreenX >= minArrestX && questCarScreenX <= maxArrestX) {
+        if (
+          !closestQuestCar ||
+          questCarScreenX < closestQuestCar.positionX
+        ) {
+          closestQuestCar = questCar;
         }
       }
     }
 
-    this.questCarForArrest = closestQuestCar;
+    runInAction(() => {
+      this.questCarForArrest = closestQuestCar;
+    });
   }
 
   startQuestArrest() {
@@ -421,6 +421,21 @@ class MapStore {
       this.pedestrianCarPosition = -150;
       this.pedestrianState = "waiting";
       this.pedestrianIsCarArrived = false;
+
+      // После квеста — зелёный, чтобы не зависать на красном
+      this.trafficLightColor = "green";
+
+      if (this.carStore) {
+        this.carStore.pedestrianQuestTriggered = false;
+        this.carStore.trafficLightRedChecked = true;
+        if (this.carStore.isTrafficLightOnScreen) {
+          this.carStore.trafficLightColor = "green";
+        }
+      }
+
+      if (!this.trafficLightTimer) {
+        this.startTrafficLightTimer();
+      }
     });
   }
 }

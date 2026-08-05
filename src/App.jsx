@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Game } from "./components/game/Game";
 
 const App = () => {

@@ -1,21 +1,33 @@
-import { expect, test } from 'vitest';
-import CarStore from './carStore';
-import Cars from './cars';
+import { expect, test } from "vitest";
+import CarStore from "./carStore";
 
-test('CarStore: pedestrianQuestTriggered flag', () => {
-  const store = new CarStore(Cars.cars[0]);
-  
-  expect(store.pedestrianQuestTriggered).toBe(false);
-  
-  store.pedestrianQuestTriggered = true;
-  expect(store.pedestrianQuestTriggered).toBe(true);
+test("CarStore: addHelp increments helpCounts and sessionScore", () => {
+  const store = new CarStore({ id: "test", maxFuel: 100, fuel: 100 });
+
+  expect(store.sessionScore).toBe(0);
+  expect(store.sessionStars).toBe(0);
+
+  store.addHelp("enemyChase");
+  expect(store.helpCounts.enemyChase).toBe(1);
+  expect(store.sessionScore).toBe(4);
+  expect(store.sessionStars).toBe(1);
+
+  store.addHelp("criminalArrest");
+  store.addHelp("pedestrianFine");
+  expect(store.sessionScore).toBe(8);
+  expect(store.sessionStars).toBe(2);
 });
 
-test('CarStore: countHelp increment', () => {
-  const store = new CarStore(Cars.cars[0]);
-  
-  expect(store.countHelp).toBe(0);
-  
-  store.countHelp += 1;
-  expect(store.countHelp).toBe(1);
+test("CarStore: resetSessionHelp clears counters", () => {
+  const store = new CarStore({ id: "test", maxFuel: 100, fuel: 100 });
+  store.addHelp("enemyChase");
+  store.resetSessionHelp();
+  expect(store.sessionScore).toBe(0);
+});
+
+test("CarStore: dispose prevents addHelp", () => {
+  const store = new CarStore({ id: "test", maxFuel: 100, fuel: 100 });
+  store.dispose();
+  store.addHelp("enemyChase");
+  expect(store.helpCounts.enemyChase).toBe(0);
 });

@@ -11,6 +11,7 @@
     "deploy": "npm run build && npx gh-pages -d dist",
     "test": "vitest",
     "test:playwright": "playwright test tests/e2e",
+    "test:playwright:install": "playwright install chromium",
     "test:e2e:cypress": "cypress open"
   },
   "devDependencies": {

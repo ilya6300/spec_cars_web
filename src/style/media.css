@@ -11,6 +11,12 @@
    ========================================================================== */
 @media (max-width: 900px) and (orientation: landscape), (max-height: 500px) {
   
+  .hud-panel {
+    margin: 6px;
+    padding: 8px 10px;
+    max-width: min(70vw, 380px);
+  }
+
   /* Главный контейнер прижимаем к самому низу и растягиваем */
   .controllers_container {
     right: 2%;

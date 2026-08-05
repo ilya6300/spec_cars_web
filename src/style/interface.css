@@ -1,88 +1,175 @@
-/* Контейнер для центрирования и адаптивности */
-/* .bensin-container {
+.bensin-container {
+  flex-shrink: 0;
+}
+
+.canister {
+  position: relative;
+  width: 52px;
+  height: 68px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px 12px 8px 8px;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 10px;
-  width: 100%;
-} */
-.header_interface {
-    display: flex;
-    flex-direction: row;
-    margin: 2vh 10px;
-    gap: 10px;
-}
-/* Контур и форма канистры */
-.canister {
-    position: relative;
-    width: 45px;
-    height: 60px;
-    border: 2px solid #737373bd;
-    border-radius: 12px 12px 6px 6px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: background 0.3s ease, border-color 0.3s ease;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  background: linear-gradient(
+    to top,
+    #22c55e 0%,
+    #84cc16 calc(var(--fuel-percent, 50%) * 0.5),
+    #eab308 var(--fuel-percent, 50%),
+    rgba(40, 40, 45, 0.9) var(--fuel-percent, 50%),
+    rgba(40, 40, 45, 0.9) 100%
+  );
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Горлышко канистры сверху */
 .canister::before {
-content: "";
-    position: absolute;
-    top: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 20px;
-    height: 3px;
-    background-color: inherit;
-    border: 3px solid #737373bd;
-    border-bottom: none;
-    border-radius: 4px 4px 0 0;
-    background: #737373bd;
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 6px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  background: rgba(60, 60, 65, 0.9);
 }
 
-/* Текст по центру */
+.canister--warning {
+  border-color: var(--ui-warning);
+  box-shadow: 0 0 10px var(--ui-warning-glow);
+}
+
+.canister--low {
+  border-color: var(--ui-danger);
+  animation: fuel-pulse 0.8s infinite alternate;
+  box-shadow: 0 0 12px var(--ui-danger-glow);
+}
+
+.canister-warning-icon {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ui-danger);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 18px;
+  text-align: center;
+  z-index: 2;
+}
+
 .fuel-text {
   color: #ffffff;
   font-family: sans-serif;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: bold;
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
-  z-index: 10;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  z-index: 1;
   pointer-events: none;
 }
 
-/* Анимация мигания красным */
-.blink-red {
-  animation: blink 1s infinite alternate;
-}
-
-@keyframes blink {
+@keyframes fuel-pulse {
   0% {
-    border-color: #ef4444;
-    box-shadow: 0 0 5px #ef4444;
+    box-shadow: 0 0 8px var(--ui-danger-glow);
   }
   100% {
-    border-color: #374151;
-    box-shadow: 0 0 0px transparent;
+    box-shadow: 0 0 16px var(--ui-danger);
   }
 }
 
-/* Адаптивность под мобильные устройства (уменьшаем размер) */
-@media (max-width: 480px) {
-  /* .canister {
-    width: 80px;
-    height: 130px;
-    border-width: 3px;
+.help-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.help-stars {
+  font-size: 18px;
+  color: #f5b800;
+  letter-spacing: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.help-badges-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.help-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 4px 8px;
+}
+
+.help-badge-icon {
+  display: block;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.help-badge-count {
+  font-weight: bold;
+  font-size: 16px;
+  min-width: 1ch;
+  color: var(--ui-text-primary);
+  animation: badge-bounce 0.3s ease;
+}
+
+@keyframes badge-bounce {
+  0% {
+    transform: scale(1);
   }
-  .canister::before {
-    width: 20px;
-    height: 8px;
-    top: -11px;
-    border-width: 3px;
+  50% {
+    transform: scale(1.35);
+    color: var(--ui-accent);
   }
-  .fuel-text {
-    font-size: 16px;
-  } */
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* TASK-020: ignition flash */
+@keyframes ignition-flash {
+  0% {
+    box-shadow: 0 0 0 0 var(--ui-accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
+.ignition-key--flash-on {
+  animation: ignition-flash 0.4s ease;
+  border-color: #22c55e !important;
+}
+
+.ignition-key--flash-off {
+  animation: ignition-flash 0.4s ease;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .help-badge-count,
+  .canister--low,
+  .ignition-key--flash-on,
+  .ignition-key--flash-off {
+    animation: none;
+  }
 }

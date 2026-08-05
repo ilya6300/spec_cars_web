@@ -1,0 +1,16 @@
+/* TASK-018: единая цветовая система UI */
+:root {
+  --ui-accent: #00c6ff;
+  --ui-accent-glow: rgba(0, 198, 255, 0.5);
+  --ui-warning: #ff9900;
+  --ui-warning-glow: rgba(255, 153, 0, 0.5);
+  --ui-danger: #ff0055;
+  --ui-danger-glow: rgba(255, 0, 85, 0.5);
+
+  --ui-glass-bg: rgba(20, 25, 35, 0.65);
+  --ui-glass-border: rgba(255, 255, 255, 0.1);
+  --ui-glass-radius: 18px;
+  --ui-glass-blur: 12px;
+  --ui-text-primary: rgba(255, 255, 255, 0.95);
+  --ui-text-muted: rgba(255, 255, 255, 0.55);
+}

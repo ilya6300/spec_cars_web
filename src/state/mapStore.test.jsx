@@ -1,5 +1,20 @@
 import { expect, test } from 'vitest';
 import MapStore from './mapStore';
+import { buildInitialNextSpawnDistances } from './objects';
+
+test('buildInitialNextSpawnDistances includes all object types', () => {
+  const distances = buildInitialNextSpawnDistances();
+  expect(distances.building).toBe(0);
+  expect(distances.gas_station).toBe(30000);
+  expect(distances.human_aggr1).toBe(17700);
+  expect(distances.human1).toBe(150);
+});
+
+test('MapStore: nextSpawnDistances initialized from objectConfigs', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  expect(store.nextSpawnDistances.human_aggr2).toBe(25000);
+  expect(store.nextSpawnDistances.traffic_light).toBe(8000);
+});
 
 test('MapStore: startPedestrianCrossingQuest', () => {
   const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
@@ -116,7 +131,7 @@ test('MapStore: checkQuestCarDistance sets questCarForArrest for enemy in [30, 2
   const enemyOutOfRange = { enemy: true, positionX: 400 };
   const civilian = { enemy: false, positionX: 100 };
 
-  store.checkQuestCarDistance([enemyInRange, enemyOutOfRange, civilian], 1024);
+  store.checkQuestCarDistance([enemyInRange, enemyOutOfRange, civilian]);
 
   expect(store.questCarForArrest).not.toBeNull();
   expect(store.questCarForArrest.positionX).toBe(150);
@@ -127,7 +142,7 @@ test('MapStore: checkQuestCarDistance clears questCarForArrest when no enemy in 
   store.questCarForArrest = { enemy: true, positionX: 150 };
 
   const enemyOutOfRange = { enemy: true, positionX: 300 };
-  store.checkQuestCarDistance([enemyOutOfRange], 1024);
+  store.checkQuestCarDistance([enemyOutOfRange]);
 
   expect(store.questCarForArrest).toBeNull();
 });
@@ -136,7 +151,7 @@ test('MapStore: checkQuestCarDistance ignores non-enemy cars', () => {
   const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
 
   const civilian = { enemy: false, positionX: 100 };
-  store.checkQuestCarDistance([civilian], 1024);
+  store.checkQuestCarDistance([civilian]);
 
   expect(store.questCarForArrest).toBeNull();
 });

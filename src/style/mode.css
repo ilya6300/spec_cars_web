@@ -1,7 +1,7 @@
 .mode-hud {
   position: absolute;
-  top: 12px;
-  right: 56px;
+  top: 64px;
+  right: 12px;
   z-index: 120;
   display: flex;
   flex-direction: column;
@@ -29,9 +29,45 @@
 .game-global-stars {
   position: absolute;
   top: 12px;
-  right: 12px;
+  right: 64px;
   z-index: 130;
   pointer-events: none;
+}
+
+.back-to-menu-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  left: auto;
+  z-index: 300;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ui-glass-border, rgba(255, 255, 255, 0.12));
+  border-radius: 12px;
+  background: var(--ui-glass-bg, rgba(20, 25, 35, 0.65));
+  backdrop-filter: blur(var(--ui-glass-blur, 12px));
+  -webkit-backdrop-filter: blur(var(--ui-glass-blur, 12px));
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.back-to-menu-button__icon {
+  width: 22px;
+  height: 22px;
+}
+
+.back-to-menu-button:hover {
+  background: rgba(40, 50, 70, 0.85);
+}
+
+.back-to-menu-button:active {
+  transform: scale(0.96);
 }
 
 .mode-result-overlay {
@@ -110,8 +146,8 @@
 @media (max-width: 900px) and (orientation: landscape),
   (max-height: 500px) {
   .mode-hud {
-    top: 8px;
-    right: 48px;
+    top: 56px;
+    right: 8px;
     padding: 8px 10px;
   }
 
@@ -121,8 +157,20 @@
 
   .game-global-stars {
     top: 8px;
-    right: 8px;
+    right: 56px;
     transform: scale(0.9);
     transform-origin: top right;
+  }
+
+  .back-to-menu-button {
+    top: 8px;
+    right: 8px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .back-to-menu-button__icon {
+    width: 20px;
+    height: 20px;
   }
 }

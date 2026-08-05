@@ -9,6 +9,7 @@ import { QuestArrestModal } from "./QuestArrestModal";
 import { QuestCar } from "./QuestCar";
 import { SpeedDisplay } from "./SpeedDisplay";
 import FullscreenButton from "./FullscreenButton";
+import BackToMenuButton from "./BackToMenuButton";
 import { TutorialOverlay } from "./TutorialOverlay";
 import { AtmosphereOverlay } from "./AtmosphereOverlay";
 import { ModeTimer, ModeChaseProgress } from "./ModeTimer";
@@ -103,6 +104,7 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
     <div
       className={`game-viewport${atmosphereStore.isNight ? " game-viewport--night" : ""}`}
     >
+      {!modeStore.isComplete && <BackToMenuButton />}
       <FullscreenButton />
       <GlobalStarsDisplay className="game-global-stars" />
       <ModeTimer carStore={activeCarStore} />

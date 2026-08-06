@@ -3,9 +3,9 @@ import appStore from "../../state/appStore";
 import { GlobalStarsDisplay } from "../ui/GlobalStarsDisplay";
 import { GAME_MODES } from "../../state/modeScoring";
 import menuBackground from "../../assets/background/background_police_day_1.png";
-import modeFreeIcon from "../../assets/ui/mode-free.svg";
-import modeTimedIcon from "../../assets/ui/mode-timed.svg";
-import modeChaseIcon from "../../assets/ui/mode-chase.svg";
+import modeFreeIcon from "../../assets/menu/mode-free.png";
+import modeTimedIcon from "../../assets/menu/mode-timed.png";
+import modeChaseIcon from "../../assets/menu/mode-chase.png";
 
 const MODES = [
   {
@@ -35,23 +35,23 @@ export const StartMenu = observer(() => (
       style={{ backgroundImage: `url(${menuBackground})` }}
       aria-hidden="true"
     />
+    <GlobalStarsDisplay className="start-menu__stars" />
     <div className="start-menu__content">
       <header className="start-menu__header">
-        <h1 className="start-menu__title">Spec Cars</h1>
-        <GlobalStarsDisplay className="start-menu__stars" />
+        <h1 className="start-menu__title">Машины специального назначения</h1>
       </header>
       <div className="start-menu__modes">
         {MODES.map(({ id, dataType, title, icon }) => (
           <button
             key={id}
             type="button"
-            className="mode-card"
+            className="mode-card__frame"
             data-type={dataType}
             onClick={() => appStore.startGame(id)}
           >
-            <span className="mode-card__frame">
-              <img src={icon} alt="" className="mode-card__icon" />
-            </span>
+            {/* <span className="mode-card__frame"> */}
+            <img src={icon} alt="" className="mode-card__icon" />
+            {/* </span> */}
             <span className="mode-card__label">{title}</span>
           </button>
         ))}

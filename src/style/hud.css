@@ -46,6 +46,7 @@
   color: var(--ui-hud-fg);
   white-space: nowrap;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
 }
 
 .hud-distance__label {
@@ -53,7 +54,12 @@
 }
 
 .hud-distance__value {
+  display: inline-block;
+  min-width: 5.75em;
   color: var(--ui-hud-fg);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  text-align: right;
 }
 
 .speedometer-container {
@@ -184,6 +190,10 @@
 
   .hud-distance {
     font-size: 11px;
+  }
+
+  .hud-distance__value {
+    min-width: 5.75em;
   }
 
   .speedometer-container,

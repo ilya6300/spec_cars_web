@@ -16,6 +16,27 @@
   pointer-events: none;
 }
 
+.mode-hud--timed {
+  top: 12px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  flex-direction: row;
+  align-items: baseline;
+  gap: 10px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.mode-hud--timed .mode-hud__sep {
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 600;
+}
+
 .mode-hud__timer {
   font-size: 1.4rem;
   font-variant-numeric: tabular-nums;
@@ -32,6 +53,10 @@
   right: 64px;
   z-index: 130;
   pointer-events: none;
+}
+
+.global-stars__count--bounce {
+  animation: badge-bounce 0.3s ease;
 }
 
 .back-to-menu-button {
@@ -82,30 +107,101 @@
 }
 
 .mode-result-card {
-  width: min(360px, 88vw);
-  padding: 28px 24px;
+  width: min(520px, 92vw);
+  padding: 36px 32px;
   border-radius: 20px;
   background: var(--ui-glass-bg, rgba(20, 25, 35, 0.85));
   border: 1px solid var(--ui-glass-border, rgba(255, 255, 255, 0.12));
   text-align: center;
   color: #fff;
+  animation: mode-result-pop 0.45s ease-out forwards;
 }
 
 .mode-result-card__title {
-  margin: 0 0 16px;
-  font-size: 1.6rem;
+  margin: 0 0 20px;
+  font-size: 2.2rem;
 }
 
 .mode-result-card__stars {
-  font-size: 2.4rem;
-  color: #ffd700;
-  letter-spacing: 0.15em;
-  margin-bottom: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mode-result-star {
+  width: 48px;
+  height: 48px;
+  animation: mode-result-star-pop 0.35s ease-out forwards;
+  opacity: 0;
+}
+
+.mode-result-star:nth-child(1) {
+  animation-delay: 0.15s;
+}
+
+.mode-result-star:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.mode-result-star:nth-child(3) {
+  animation-delay: 0.45s;
+}
+
+.mode-result-star--empty {
+  opacity: 0;
+  filter: grayscale(1) brightness(0.7);
+  animation-name: mode-result-star-pop-empty;
 }
 
 .mode-result-card__score {
-  margin: 0 0 20px;
-  opacity: 0.85;
+  margin: 0 0 24px;
+  font-size: 1.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-accent, #00c6ff);
+  opacity: 1;
+}
+
+.mode-result-card__chase {
+  margin: 0 0 24px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  opacity: 0.95;
+}
+
+@keyframes mode-result-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes mode-result-star-pop {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes mode-result-star-pop-empty {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 0.35;
+    transform: scale(1);
+  }
 }
 
 .mode-result-card__button {
@@ -141,6 +237,29 @@
   .game-viewport--night .game-map {
     filter: brightness(0.73);
   }
+
+  .mode-result-card {
+    animation: mode-result-pop-reduced 0.3s ease-out forwards;
+  }
+
+  .mode-result-star {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .mode-result-star--empty {
+    opacity: 0.35;
+  }
+
+  @keyframes mode-result-pop-reduced {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 
 @media (max-width: 900px) and (orientation: landscape),
@@ -149,6 +268,15 @@
     top: 56px;
     right: 8px;
     padding: 8px 10px;
+  }
+
+  .mode-hud--timed {
+    top: 8px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    padding: 0;
+    gap: 8px;
   }
 
   .mode-hud__timer {
@@ -172,5 +300,27 @@
   .back-to-menu-button__icon {
     width: 20px;
     height: 20px;
+  }
+
+  .mode-result-card {
+    width: min(520px, 92vw);
+    padding: 28px 24px;
+  }
+
+  .mode-result-card__title {
+    font-size: 1.9rem;
+  }
+
+  .mode-result-card__score {
+    font-size: 1.5rem;
+  }
+
+  .mode-result-card__chase {
+    font-size: 1.3rem;
+  }
+
+  .mode-result-star {
+    width: 40px;
+    height: 40px;
   }
 }

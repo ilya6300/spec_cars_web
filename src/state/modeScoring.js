@@ -1,3 +1,5 @@
+import atmosphereStore from "./atmosphereStore";
+
 export const GAME_MODES = {
   FREE: "free",
   TIMED: "timed",
@@ -66,4 +68,14 @@ export function getAtmosphereForMode(gameMode) {
     return { timeOfDay: "night", weather: "clear" };
   }
   return { timeOfDay: "day", weather: "clear" };
+}
+
+export function isNightChaseContext(mapStore) {
+  return (
+    mapStore?.gameMode === GAME_MODES.CHASE || atmosphereStore.isNight
+  );
+}
+
+export function isPeacefulHumanType(type) {
+  return /^human\d+$/.test(type);
 }

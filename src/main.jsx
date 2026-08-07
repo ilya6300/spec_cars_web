@@ -8,6 +8,8 @@ import "./style/pedestrian_crossing.css";
 import "./style/quest_car.css";
 import "./style/menu.css";
 import "./style/mode.css";
+import "./style/quest-finish.css";
+import "./style/refuel-modal.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

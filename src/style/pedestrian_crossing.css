@@ -36,12 +36,13 @@
 
 .quest-car {
   position: absolute;
-  width: 120px;
-  height: 80px;
+  top: var(--player-car-lane-y);
+  width: 250px;
+  height: auto;
+  transform: translateY(calc(-100% + var(--car-wheel-offset)));
   z-index: 1004;
   left: 0;
   transition: none;
-   bottom: 22% !important;
 }
 
 .quest-pedestrian {

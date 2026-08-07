@@ -15,10 +15,11 @@ export const ModeTimer = observer(({ carStore }) => {
   const score = modeStore.getScoreForCarStore(carStore);
 
   return (
-    <div className="mode-hud" data-type="mode-hud">
+    <div className="mode-hud mode-hud--timed" data-type="mode-hud">
       <div className="mode-hud__timer" data-type="mode-timer">
         {formatTime(modeStore.timeRemainingSec)}
       </div>
+      <span className="mode-hud__sep" aria-hidden="true">·</span>
       <div className="mode-hud__goal" data-type="mode-score">
         Очки: {score} / 10
       </div>

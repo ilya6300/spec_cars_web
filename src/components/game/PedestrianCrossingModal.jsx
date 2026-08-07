@@ -6,6 +6,7 @@ import { getDefaultCar } from "../../state/cars";
 import { runInAction } from "mobx";
 import { dataObjectsSub } from "../../state/subobject";
 import crossingImage from "../../assets/quest_location/police_pedestrian crossing.png";
+import { QuestFinishOverlay } from "./QuestFinishOverlay";
 
 export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
   const modalCarStore = useRef(null);
@@ -16,8 +17,11 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
   const pedRafRef = useRef(null);
   const carRafRef = useRef(null);
   const timerRef = useRef(null);
+  const finishTimerRef = useRef(null);
+  const dismissCalledRef = useRef(false);
   const [pedestrianImage, setPedestrianImage] = useState(null);
   const [pedestrianY, setPedestrianY] = useState(-50);
+  const [finishPhase, setFinishPhase] = useState("idle");
 
   const stopAnimations = useCallback(() => {
     if (carRafRef.current) {
@@ -34,8 +38,12 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
     }
   }, []);
 
-  const finishQuestWithHelp = useCallback(() => {
-    stopAnimations();
+  const handleFinishDismiss = useCallback(() => {
+    if (dismissCalledRef.current) {
+      return;
+    }
+    dismissCalledRef.current = true;
+
     mapStore.finishPedestrianCrossingQuest();
     runInAction(() => {
       carStore.addHelp("pedestrianFine");
@@ -43,11 +51,12 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
         carStore.toggleSirena();
       }
     });
-  }, [mapStore, carStore, stopAnimations]);
+  }, [mapStore, carStore]);
 
   const handleFine = useCallback(() => {
-    finishQuestWithHelp();
-  }, [finishQuestWithHelp]);
+    stopAnimations();
+    setFinishPhase("waiting");
+  }, [stopAnimations]);
 
   const handlePedestrianClick = useCallback(() => {
     if (mapStore.pedestrianState !== "walking") return;
@@ -100,6 +109,8 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
     }
 
     setPedestrianY(-50);
+    setFinishPhase("idle");
+    dismissCalledRef.current = false;
 
     const targetObj = mapStore.pedestrianCrossingTargetObject;
     if (targetObj) {
@@ -169,6 +180,29 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
     };
   }, [mapStore.pedestrianState, mapStore, stopAnimations]);
 
+  useEffect(() => {
+    if (finishPhase !== "waiting") {
+      return undefined;
+    }
+
+    finishTimerRef.current = setTimeout(() => {
+      setFinishPhase("overlay");
+    }, 1000);
+
+    return () => {
+      if (finishTimerRef.current) {
+        clearTimeout(finishTimerRef.current);
+        finishTimerRef.current = null;
+      }
+    };
+  }, [finishPhase]);
+
+  useEffect(() => () => {
+    if (finishTimerRef.current) {
+      clearTimeout(finishTimerRef.current);
+    }
+  }, []);
+
   useEffect(() => () => {
     stopAnimations();
     modalCarStore.current?.dispose();
@@ -187,12 +221,9 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
       />
       <div
         className="quest-car"
-        style={{
-          left: `${mapStore.pedestrianCarPosition}px`,
-          bottom: "45%",
-        }}
+        style={{ left: `${mapStore.pedestrianCarPosition}px` }}
       >
-        <CarModel carStore={modalCarStore.current} />
+        <CarModel carStore={modalCarStore.current} typeBody={1} />
       </div>
       <div
         className="quest-pedestrian"
@@ -205,10 +236,14 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
       >
         <img src={pedestrianImage} alt="Pedestrian" className="pedestrian-image" />
       </div>
-      {mapStore.pedestrianIsCarArrived && (
+      {mapStore.pedestrianIsCarArrived && finishPhase === "idle" && (
         <button className="fine-button" onClick={handleFine}>
           Выписать штраф
         </button>
+      )}
+
+      {finishPhase === "overlay" && (
+        <QuestFinishOverlay variant="pedestrian" onDismiss={handleFinishDismiss} />
       )}
     </div>
   );

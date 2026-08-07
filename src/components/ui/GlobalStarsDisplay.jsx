@@ -10,6 +10,8 @@ export const GlobalStarsDisplay = observer(({ className = "" }) => (
     <span className="global-stars__icon" aria-hidden="true">
       ★
     </span>
-    <span className="global-stars__count">{starsStore.totalStars}</span>
+    <span key={starsStore.totalStars} className="global-stars__count global-stars__count--bounce">
+      {starsStore.totalStars}
+    </span>
   </div>
 ));

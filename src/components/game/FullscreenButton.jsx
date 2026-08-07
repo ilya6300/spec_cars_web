@@ -35,7 +35,7 @@ const FullscreenButton = () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, [handleFullscreenChange]);
 
-  const isMobile = window.innerWidth <= 768;
+  const isMobile = window.innerHeight <= 500;
 
   if (!isMobile) return null;
 

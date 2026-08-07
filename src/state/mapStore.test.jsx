@@ -1,7 +1,6 @@
 import { expect, test } from 'vitest';
 import MapStore from './mapStore';
 import { buildInitialNextSpawnDistances } from './objects';
-
 test('buildInitialNextSpawnDistances includes all object types', () => {
   const distances = buildInitialNextSpawnDistances();
   expect(distances.building).toBe(0);
@@ -154,4 +153,25 @@ test('MapStore: checkQuestCarDistance ignores non-enemy cars', () => {
   store.checkQuestCarDistance([civilian]);
 
   expect(store.questCarForArrest).toBeNull();
+});
+
+test('MapStore: spawnEnvironmentObjects skips peaceful humans in chase', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.gameMode = 'chase';
+  store.offsetX = 10000;
+  store.nextSpawnDistances.human1 = 0;
+
+  store.spawnEnvironmentObjects(1024);
+
+  const peacefulHumans = store.activeObjects.filter((obj) =>
+    /^human\d+$/.test(obj.typeId),
+  );
+  expect(peacefulHumans.length).toBe(0);
+});
+
+test('MapStore: startTrafficLightTimer no-op in chase', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.gameMode = 'chase';
+  store.startTrafficLightTimer();
+  expect(store.trafficLightTimer).toBeNull();
 });

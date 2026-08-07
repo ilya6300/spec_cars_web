@@ -6,6 +6,7 @@ import {
   calculateSessionStars,
 } from "./modeScoring";
 import starsStore from "./starsStore";
+import recordsStore from "./recordsStore";
 
 class ModeStore {
   gameMode = GAME_MODES.FREE;
@@ -57,6 +58,7 @@ class ModeStore {
       this.starsEarned = stars;
     });
     starsStore.addStars(stars);
+    recordsStore.commitSession("complete");
   }
 
   get sessionScore() {

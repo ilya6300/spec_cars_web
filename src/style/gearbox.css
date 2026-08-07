@@ -42,7 +42,7 @@
 /* Общий контейнер - Эффект футуристичной панели */
 .controllers_container {
   position: absolute;
-  z-index: 20;
+  z-index: 110;
   bottom: 15px;
   right: 5%;
   display: flex;

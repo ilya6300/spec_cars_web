@@ -100,6 +100,58 @@ test.describe("Quest Cars E2E", () => {
     }
   });
 
+  test("Enemy arrest: open modal, arrest, finish overlay, quest closed", async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(240000);
+
+    await page.goto("/");
+    await navigateToFreeMode(page);
+    await page.waitForTimeout(1000);
+
+    await startDriving(page, { gear: "2", gasMs: 0 });
+    await holdGasFor(page, 30000);
+
+    let arrestButtonFound = false;
+    for (let i = 0; i < 5; i++) {
+      const arrestButton = await page.$('[data-type="arrest-button"]');
+      if (arrestButton) {
+        arrestButtonFound = true;
+        break;
+      }
+      await page.waitForTimeout(3000);
+    }
+
+    if (!arrestButtonFound) {
+      testInfo.skip(true, "Arrest button not found in random window");
+      return;
+    }
+
+    await page.click('[data-type="arrest-button"]');
+    await page.waitForSelector(".quest-arrest-modal", {
+      state: "visible",
+      timeout: 30000,
+    });
+
+    await page.waitForSelector(".quest-arrest-modal .arrest-button-quest-car-map", {
+      state: "visible",
+      timeout: 5000,
+    });
+
+    await page.click(".quest-arrest-modal .arrest-button-quest-car-map");
+    await page.waitForSelector('[data-type="quest-finish-overlay"]', {
+      timeout: 5000,
+    });
+    await page.click('[data-type="quest-finish-continue"]');
+
+    await page.waitForSelector(".quest-arrest-modal", { state: "hidden" });
+
+    const isQuestArrestActive = await page.evaluate(
+      () => window.__TEST_STATE__?.activeMapStore?.isQuestArrestActive ?? true,
+    );
+    expect(isQuestArrestActive).toBe(false);
+  });
+
   test("Quest cars accumulate while driving", async ({ page }) => {
     test.setTimeout(240000);
 

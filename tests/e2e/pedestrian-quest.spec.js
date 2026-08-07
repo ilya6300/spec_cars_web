@@ -40,6 +40,8 @@ test.describe("Pedestrian Quest E2E", () => {
       const initialCounts = await getHelpCounts(page);
 
       await page.click(".fine-button");
+      await page.waitForSelector('[data-type="quest-finish-overlay"]', { timeout: 5000 });
+      await page.click('[data-type="quest-finish-continue"]');
       await page.waitForSelector(".pedestrian-crossing-modal", {
         state: "hidden",
       });

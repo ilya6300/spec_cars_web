@@ -28,4 +28,7 @@
   --player-car-lane-y: 62%;
   /* Колёса в CarModel bottom:-11% — компенсация для посадки на асфальт */
   --car-wheel-offset: 11%;
+
+  /* Вертикальный сдвиг всего слоя карты (mobile: media.css) */
+  --map-shift-y: 0;
 }

@@ -2,6 +2,8 @@ import { makeAutoObservable, runInAction } from "mobx";
 import { GAME_MODES, getAtmosphereForMode } from "./modeScoring";
 import atmosphereStore from "./atmosphereStore";
 import modeStore from "./modeStore";
+import recordsStore from "./recordsStore";
+import { flushPendingFuelSave } from "./persistence";
 
 class AppStore {
   screen = "menu";
@@ -24,6 +26,8 @@ class AppStore {
   }
 
   backToMenu() {
+    flushPendingFuelSave();
+    recordsStore.commitSession("menu");
     runInAction(() => {
       this.screen = "menu";
     });

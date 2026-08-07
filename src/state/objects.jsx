@@ -2,18 +2,19 @@ import house1 from "../assets/objects/house_1.png";
 import gasStation from "../assets/objects/gas_station.png";
 import trafficLightRed from "../assets/objects/traffic_light_red.png";
 import trafficLightGreen from "../assets/objects/traffic_light_green.png";
+import trafficLightYellow from "../assets/objects/traffic_light_yellow.png";
 import whiteLine from "../assets/objects/road_white_line.png";
 import { getDataSubObects, dataObjectsSub } from "./subobject";
 import humanAggr1Img from "../assets/objects/\police_quest/human_aggr1.png";
 import humanAggr2Img from "../assets/objects/\police_quest/human_aggr2.png";
 import humanAggr3Img from "../assets/objects/\police_quest/human_aggr3.png";
 import collectibleStarImg from "../assets/ui/collectible-star.svg";
-import starsStore from "./starsStore";
 
 class ObjectsClass {
   white_line = whiteLine;
   trafficLightRed = trafficLightRed;
   trafficLightGreen = trafficLightGreen;
+  trafficLightYellow = trafficLightYellow;
 }
 
 export class ObjectConfig {
@@ -150,10 +151,7 @@ const createDataObjects = () => {
       minDistance: 15000,
       maxDistance: 25000,
       initialSpawnDistance: 20000,
-      onClick: (obj, mapStore) => {
-        starsStore.addStars(1);
-        mapStore.collectCollectibleStar(obj.uid);
-      },
+      onClick: () => {},
       onLongPress: () => {},
       onAppear: () => {},
     });

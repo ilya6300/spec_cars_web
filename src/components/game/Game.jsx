@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { observer } from "mobx-react-lite";
 import { Car } from "../car/Car";
 import { Maps } from "../map/Maps";
@@ -14,13 +14,20 @@ import { TutorialOverlay } from "./TutorialOverlay";
 import { AtmosphereOverlay } from "./AtmosphereOverlay";
 import { ModeTimer, ModeChaseProgress } from "./ModeTimer";
 import { ModeResultModal } from "./ModeResultModal";
+import { RefuelModal } from "./RefuelModal";
 import { GlobalStarsDisplay } from "../ui/GlobalStarsDisplay";
+import { StarFlyOverlay } from "./StarFlyOverlay";
+import { CollectibleStarLayer } from "./CollectibleStarLayer";
 import { useGameLoop } from "../../hooks/useGameLoop";
 import { createGameStores } from "../../state/gameBootstrap";
 import { TutorialStore } from "../../state/tutorialStore";
 import { registerFuelSaveOnUnload } from "../../state/persistence";
 import modeStore from "../../state/modeStore";
 import atmosphereStore from "../../state/atmosphereStore";
+import recordsStore from "../../state/recordsStore";
+import starsStore from "../../state/starsStore";
+import stateApp from "../../state/state_app";
+import { calculateSessionScore } from "../../state/modeScoring";
 
 import "../../style/quest_arrest.css";
 
@@ -41,13 +48,18 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
   const viewportWidthRef = useRef(
     typeof window !== "undefined" ? window.innerWidth : 1024,
   );
+  const gameViewportRef = useRef(null);
+  const [isRefuelModalOpen, setIsRefuelModalOpen] = useState(false);
 
   useEffect(() => {
-    const handleResize = () => {
-      viewportWidthRef.current = window.innerWidth;
+    const updateViewportWidth = () => {
+      const measured =
+        gameViewportRef.current?.clientWidth ?? window.innerWidth;
+      viewportWidthRef.current = measured;
     };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    updateViewportWidth();
+    window.addEventListener("resize", updateViewportWidth);
+    return () => window.removeEventListener("resize", updateViewportWidth);
   }, []);
 
   useGameLoop(
@@ -57,6 +69,55 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
     gameMode === "free" ? tutorialStore : null,
     modeStore,
   );
+
+  useEffect(() => {
+    const sessionStart = performance.now();
+    const sessionStartStars = starsStore.totalStars;
+    const chaseTimeRef = { current: null };
+    let frameId;
+    let running = true;
+
+    const trackSession = () => {
+      if (!running) return;
+
+      const now = performance.now();
+      const durationSec = (now - sessionStart) / 1000;
+      const km =
+        activeMapStore.offsetX / stateApp.distanceMetersFactor / 1000;
+      const starsEarned = starsStore.totalStars - sessionStartStars;
+      const score = calculateSessionScore(
+        activeCarStore.helpCounts,
+        gameMode,
+      );
+
+      if (
+        gameMode === "chase" &&
+        chaseTimeRef.current === null &&
+        activeCarStore.helpCounts.enemyChase >= 3
+      ) {
+        chaseTimeRef.current = durationSec;
+      }
+
+      recordsStore.setLiveSession({
+        mode: gameMode,
+        durationSec,
+        km,
+        starsEarned,
+        score,
+        chaseTimeSec: chaseTimeRef.current,
+      });
+
+      frameId = requestAnimationFrame(trackSession);
+    };
+
+    frameId = requestAnimationFrame(trackSession);
+
+    return () => {
+      running = false;
+      cancelAnimationFrame(frameId);
+      recordsStore.clearLiveSession();
+    };
+  }, [activeCarStore, activeMapStore, gameMode]);
 
   useEffect(() => {
     const stores = storesRef.current;
@@ -72,6 +133,30 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
       stores.mapStore.dispose();
     };
   }, []);
+  useEffect(() => {
+    if (activeCarStore.fuel <= 0 && activeCarStore.isIgnitionOn) {
+      setIsRefuelModalOpen(true);
+      activeCarStore.releaseGas();
+    }
+  }, [activeCarStore.fuel, activeCarStore.isIgnitionOn, activeCarStore]);
+
+  useEffect(() => {
+    if (!activeCarStore.isIgnitionOn) {
+      setIsRefuelModalOpen(false);
+    }
+  }, [activeCarStore.isIgnitionOn]);
+
+  const handleEmptyGasPress = useCallback(() => {
+    if (activeCarStore.isIgnitionOn) {
+      setIsRefuelModalOpen(true);
+    }
+  }, [activeCarStore.isIgnitionOn]);
+
+  const handleRefuelWatchVideo = useCallback(() => {
+    activeCarStore.refuel(5000);
+    setIsRefuelModalOpen(false);
+  }, [activeCarStore]);
+
   useEffect(() => {
     if (typeof window !== "undefined" && window.__PLAYWRIGHT__) {
       window.__TEST_STATE__ = {
@@ -102,11 +187,15 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
 
   return (
     <div
+      ref={gameViewportRef}
       className={`game-viewport${atmosphereStore.isNight ? " game-viewport--night" : ""}`}
     >
       {!modeStore.isComplete && <BackToMenuButton />}
-      <FullscreenButton />
+      {/* <FullscreenButton /> */}
       <GlobalStarsDisplay className="game-global-stars" />
+      {gameMode === "free" && (
+        <StarFlyOverlay mapStore={activeMapStore} />
+      )}
       <ModeTimer carStore={activeCarStore} />
       <ModeChaseProgress carStore={activeCarStore} />
       <Maps
@@ -115,11 +204,18 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
         onClickObject={handleObjectClick}
       />
       <AtmosphereOverlay />
+      {gameMode === "free" && (
+        <CollectibleStarLayer mapStore={activeMapStore} />
+      )}
       <Car
         carStore={activeCarStore}
         showHeadlights={showPlayerHeadlights}
       />
-      <Controllers activeCarStore={activeCarStore} />
+      <Controllers
+        activeCarStore={activeCarStore}
+        controlsBlocked={isRefuelModalOpen}
+        onEmptyGasPress={handleEmptyGasPress}
+      />
 
       {gameMode === "free" && <TutorialOverlay tutorialStore={tutorialStore} />}
 
@@ -175,6 +271,13 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
             Блокировать
           </button>
         )}
+
+      {isRefuelModalOpen && (
+        <RefuelModal
+          carStore={activeCarStore}
+          onWatchVideo={handleRefuelWatchVideo}
+        />
+      )}
 
       <ModeResultModal carStore={activeCarStore} />
     </div>

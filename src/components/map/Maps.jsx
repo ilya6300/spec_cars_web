@@ -1,6 +1,7 @@
 import React from "react";
 import { observer } from "mobx-react-lite";
 import Objects, { objectConfigByType } from "../../state/objects";
+import { isNightChaseContext } from "../../state/modeScoring";
 
 export const Maps = observer(({ map, carStore, onClickObject }) => {
   const activeObjects = map.activeObjects || [];
@@ -29,16 +30,22 @@ export const Maps = observer(({ map, carStore, onClickObject }) => {
 
         const image =
           obj.typeId === "traffic_light"
-            ? map.trafficLightColor === "red"
-              ? Objects.trafficLightRed
-              : Objects.trafficLightGreen
+            ? isNightChaseContext(map)
+              ? Objects.trafficLightYellow
+              : map.trafficLightColor === "red"
+                ? Objects.trafficLightRed
+                : Objects.trafficLightGreen
             : config.image;
+
+        const isCollectibleStar = obj.typeId === "collectible_star";
+        if (isCollectibleStar) return null;
 
         return (
           <div
             key={obj.uid}
             className="game-object"
             data-type={obj.typeId}
+            data-uid={obj.uid}
             style={{
               backgroundImage: `url(${image})`,
               left: `${screenX}px`,

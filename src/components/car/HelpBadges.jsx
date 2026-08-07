@@ -1,7 +1,7 @@
 import { observer } from "mobx-react-lite";
-import enemyIcon from "../../assets/ui/help-badge-enemy.svg";
-import criminalIcon from "../../assets/ui/help-badge-criminal.svg";
-import pedestrianIcon from "../../assets/ui/help-badge-pedestrian.svg";
+import enemyIcon from "../../assets/ui/help-badge-enemy.png";
+import criminalIcon from "../../assets/ui/help-badge-criminal.png";
+import pedestrianIcon from "../../assets/ui/help-badge-pedestrian.png";
 
 const BADGES = [
   {
@@ -49,14 +49,11 @@ export const HelpBadges = observer(({ carStore }) => {
               src={icon}
               alt=""
               className="help-badge-icon"
-              width={28}
-              height={28}
+              width={64}
+              height={34}
             />
             <div className="help-badge-meta">
-              <span
-                key={carStore.helpCounts[key]}
-                className="help-badge-count"
-              >
+              <span key={carStore.helpCounts[key]} className="help-badge-count">
                 {carStore.helpCounts[key]}
               </span>
               <span className="help-badge-label">{label}</span>

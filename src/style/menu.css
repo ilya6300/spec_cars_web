@@ -68,6 +68,61 @@
   gap: clamp(12px, 2vw, 20px);
 }
 
+.start-menu__mode-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.leaderboard-panel {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(180, 220, 255, 0.45);
+  border: 1px solid rgba(120, 170, 220, 0.35);
+  box-shadow: 0 1px 3px rgba(40, 80, 120, 0.12);
+}
+
+.leaderboard-panel__empty {
+  margin: 0;
+  font-size: clamp(0.75rem, 1.8vw, 0.85rem);
+  color: rgba(60, 70, 80, 0.7);
+  text-align: center;
+}
+
+.leaderboard-panel__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.leaderboard-panel__row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 4px;
+  font-size: clamp(0.75rem, 1.8vw, 0.85rem);
+  color: rgba(35, 42, 50, 0.95);
+  font-variant-numeric: tabular-nums;
+}
+
+.leaderboard-panel__value {
+  color: rgba(35, 42, 50, 0.95);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.leaderboard-panel__sep {
+  color: rgba(60, 70, 80, 0.7);
+}
+
+.leaderboard-panel__hint {
+  color: rgba(60, 70, 80, 0.7);
+  font-size: 0.85em;
+}
+
 .mode-card {
   display: flex;
   flex-direction: column;
@@ -155,6 +210,17 @@
 }
 
 @media (max-width: 900px) and (orientation: landscape), (max-height: 500px) {
+  .start-menu__hud {
+    top: clamp(10px, 2vh, 12px);
+    right: clamp(10px, 2vh, 12px);
+    gap: clamp(6px, 1vw, 8px);
+  }
+
+  .start-menu__hud .global-stars {
+    padding: 4px 10px;
+    font-size: 0.85rem;
+  }
+
   .start-menu__modes {
     grid-template-columns: repeat(3, minmax(120px, 1fr));
     overflow-x: auto;
@@ -167,6 +233,15 @@
 
   .mode-card {
     min-width: 120px;
+  }
+
+  .leaderboard-panel {
+    min-width: 110px;
+    padding: 8px 10px;
+  }
+
+  .leaderboard-panel__row {
+    font-size: clamp(0.65rem, 1.6vw, 0.75rem);
   }
 }
 
@@ -220,9 +295,22 @@
   transform: scale(1.02) rotate(-4deg);
 }
 
-.start-menu__stars {
+.start-menu__hud {
   position: fixed;
-  right: 20px;
   top: 20px;
+  right: 20px;
+  z-index: 10;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: clamp(8px, 1.2vw, 12px);
+  pointer-events: none;
+}
+
+.start-menu__hud .global-stars {
   border: none;
+}
+
+[data-type="menu-fuel-gauge"] {
+  pointer-events: none;
 }

@@ -11,6 +11,9 @@
   /* ИЗМЕНЕНО: Центрируем картинку, чтобы верхний и нижний газон не обрезались криво */
   background-position: center center;
 
+  /* Mobile: единый сдвиг фона, разметки и объектов (media.css --map-shift-y) */
+  transform: translateY(var(--map-shift-y));
+
   width: 100vw;
   height: 100dvh;
   min-height: 500px;

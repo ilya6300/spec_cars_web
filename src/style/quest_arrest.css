@@ -96,3 +96,20 @@
 .arrest-button-final:hover {
   background: #c0392b;
 }
+
+.quest-arrest-modal--night .quest-arrest-background {
+  filter: brightness(0.6) saturate(0.65);
+}
+
+.quest-arrest-modal .atmosphere-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1201;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quest-arrest-modal--night .quest-arrest-background {
+    filter: brightness(0.73);
+  }
+}

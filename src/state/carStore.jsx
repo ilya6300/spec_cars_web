@@ -3,11 +3,12 @@ import carStartSound from "../assets/audio/effects/car_start.mp3";
 import theEngineIsRunning from "../assets/audio/effects/the_engine_is_running.wav";
 import sirenaPolice from "../assets/audio/effects/police_siren.wav";
 import stateApp from "./state_app";
-import { loadFuel, scheduleFuelSave } from "./persistence";
+import { flushPendingFuelSave, loadFuel, scheduleFuelSave } from "./persistence";
 import {
   calculateSessionScore,
   calculateSessionStars,
   GAME_MODES,
+  isNightChaseContext,
 } from "./modeScoring";
 
 class CarStore {
@@ -104,6 +105,15 @@ class CarStore {
     return calculateSessionStars(this.helpCounts, this.gameMode);
   }
 
+  get totalQuestCompletions() {
+    const { criminalArrest, pedestrianFine, enemyChase } = this.helpCounts;
+    return criminalArrest + pedestrianFine + enemyChase;
+  }
+
+  get isStarCollectionUnlocked() {
+    return this.totalQuestCompletions >= 2;
+  }
+
   resetSessionHelp() {
     runInAction(() => {
       this.helpCounts = {
@@ -148,6 +158,7 @@ class CarStore {
 
   dispose() {
     if (this.disposed) return;
+    flushPendingFuelSave(this.fuel, this.id);
     this.disposed = true;
 
     if (this.ignitionTimeoutId) {
@@ -375,6 +386,10 @@ class CarStore {
       }
     });
 
+    if (isNightChaseContext(mapStore)) {
+      return;
+    }
+
     // Запуск квеста пешеходного перехода при остановке на красном светофоре (30% шанс)
     // Срабатывает только при выключенной сирене и отсутствии других активных квестов
     // Проверка происходит ТОЛЬКО ОДИН РАЗ за каждый цикл красного света
@@ -422,6 +437,7 @@ class CarStore {
 
   // Готовый признак: нужно ли останавливаться из-за светофора
   get shouldStopForLight() {
+    if (isNightChaseContext(this.mapStore)) return false;
     return this.isTrafficLightOnScreen && this.trafficLightColor === "red";
   }
 

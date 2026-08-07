@@ -4,7 +4,9 @@ import {
   calculateSessionStars,
   GAME_MODES,
   TIMED_DURATION_SEC,
+  isNightChaseContext,
 } from "./modeScoring";
+import atmosphereStore from "./atmosphereStore";
 
 test("modeScoring timed: thresholds 10/5/1 guaranteed", () => {
   const empty = {
@@ -36,4 +38,22 @@ test("modeScoring chase: 3 enemies = 3 stars", () => {
 
 test("TIMED_DURATION_SEC is 150 (2:30)", () => {
   expect(TIMED_DURATION_SEC).toBe(150);
+});
+
+test("isNightChaseContext: chase mode", () => {
+  const mapStore = { gameMode: GAME_MODES.CHASE };
+  expect(isNightChaseContext(mapStore)).toBe(true);
+});
+
+test("isNightChaseContext: free + day atmosphere", () => {
+  atmosphereStore.setAtmosphere({ timeOfDay: "day" });
+  const mapStore = { gameMode: GAME_MODES.FREE };
+  expect(isNightChaseContext(mapStore)).toBe(false);
+});
+
+test("isNightChaseContext: free + night atmosphere", () => {
+  atmosphereStore.setAtmosphere({ timeOfDay: "night" });
+  const mapStore = { gameMode: GAME_MODES.FREE };
+  expect(isNightChaseContext(mapStore)).toBe(true);
+  atmosphereStore.setAtmosphere({ timeOfDay: "day" });
 });

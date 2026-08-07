@@ -1,0 +1,158 @@
+.quest-finish-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1501;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.quest-finish-dimmer {
+  position: absolute;
+  inset: 0;
+  z-index: 1500;
+  background: rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  cursor: default;
+}
+
+.quest-finish-card {
+  position: relative;
+  z-index: 1501;
+  width: min(720px, 92vw);
+  padding: 10px 12px;
+  border-radius: var(--ui-glass-radius, 18px);
+  background: var(--ui-glass-bg, rgba(20, 25, 35, 0.65));
+  backdrop-filter: blur(var(--ui-glass-blur, 12px));
+  -webkit-backdrop-filter: blur(var(--ui-glass-blur, 12px));
+  border: 1px solid var(--ui-glass-border, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  animation: questFinishAppear 0.3s ease-out forwards;
+}
+
+.quest-finish-frame {
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px;
+  border-radius: 18px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    90deg,
+    #0055ff 0%,
+    #0022aa 18%,
+    #ff0000 42%,
+    #aa0000 58%,
+    #0055ff 82%,
+    #0022aa 100%
+  );
+  background-size: 220% 100%;
+  animation: questFinishSirenBorder 1.5s ease-in-out infinite;
+}
+
+.quest-finish-image {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: min(68vh, 520px);
+  object-fit: contain;
+  border-radius: 14px;
+}
+
+.quest-finish-continue {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 12px 32px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: white;
+  background: #ff4444;
+  border: 2px solid #fff;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.quest-finish-continue:hover {
+  background: #cc0000;
+}
+
+.quest-finish-continue:active {
+  transform: scale(0.98);
+}
+
+@keyframes questFinishAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes questFinishSirenBorder {
+  0%,
+  100% {
+    background-position: 0% 50%;
+    box-shadow:
+      0 0 10px 4px #0055ff,
+      0 0 25px 8px #0022aa;
+  }
+  50% {
+    background-position: 100% 50%;
+    box-shadow:
+      0 0 10px 4px #ff0000,
+      0 0 25px 8px #aa0000;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quest-finish-card {
+    animation: questFinishAppearReduced 0.3s ease-out forwards;
+  }
+
+  .quest-finish-frame {
+    background: linear-gradient(180deg, #0055ff, #0022aa);
+    background-size: auto;
+    background-position: 0 0;
+    animation: none;
+    box-shadow:
+      0 0 10px 4px #0055ff,
+      0 0 25px 8px #0022aa;
+  }
+
+  @keyframes questFinishAppearReduced {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape), (max-height: 500px) {
+  .quest-finish-card {
+    width: min(640px, 94vw);
+    padding: 8px 10px;
+  }
+
+  .quest-finish-image {
+    max-height: min(62vh, 400px);
+  }
+
+  .quest-finish-continue {
+    font-size: 1rem;
+    padding: 12px 28px;
+  }
+}

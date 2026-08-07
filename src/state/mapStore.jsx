@@ -6,8 +6,38 @@ import {
 } from "./objects";
 import QuestCarStore from "./questCarStore";
 import Cars from "./cars";
+import {
+  isNightChaseContext,
+  isPeacefulHumanType,
+} from "./modeScoring";
+import starsStore from "./starsStore";
 
 const QUEST_CAR_VISIBLE_MARGIN = 150;
+
+// #region agent log
+let starDebugLastLog = 0;
+const starDebugLog = (location, message, data, hypothesisId) => {
+  fetch("http://127.0.0.1:7266/ingest/053c2454-03a1-497a-bc51-1e14d05d5e7f", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "cc4486",
+    },
+    body: JSON.stringify({
+      sessionId: "cc4486",
+      location,
+      message,
+      data,
+      hypothesisId,
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+};
+// #endregion
+
+export const STAR_PICKUP_MIN_X = 30;
+export const STAR_PICKUP_MAX_X = 280;
+export const STAR_SPAWN_RIGHT_INSET = 16;
 
 class MapStore {
   id = 0;
@@ -62,6 +92,10 @@ class MapStore {
 
   gameMode = "free";
 
+  questsAtLastStarEvent = 0;
+  collectibleStarSpawnTimer = null;
+  starFlies = [];
+
   constructor(mapData) {
     Object.assign(this, mapData);
     this.nextSpawnDistances = buildInitialNextSpawnDistances(objectConfigs);
@@ -81,8 +115,192 @@ class MapStore {
     this.spawnEnvironmentObjects(viewportWidth);
     this.despawnObjects(viewportWidth);
     this.triggerAppearEvents(carStore);
+    this.updateCollectibleStarSpawner(deltaTime, viewportWidth);
+    this.checkCollectibleStarPickup();
     this.updateQuestCars(deltaTime);
     this.checkQuestCarDistance();
+  }
+
+  get questsSinceLastStar() {
+    if (!this.carStore) return 0;
+    return this.carStore.totalQuestCompletions - this.questsAtLastStarEvent;
+  }
+
+  hasActiveCollectibleStar() {
+    return this.activeObjects.some((obj) => obj.typeId === "collectible_star");
+  }
+
+  randomCollectibleStarSpawnDelay() {
+    return 15 + Math.random() * 10;
+  }
+
+  updateCollectibleStarSpawner(deltaTime, viewportWidth) {
+    if (this.gameMode !== "free") return;
+    if (!this.carStore?.isStarCollectionUnlocked) return;
+    if (this.hasActiveCollectibleStar()) return;
+
+    if (this.questsSinceLastStar < 2) {
+      runInAction(() => {
+        this.collectibleStarSpawnTimer = null;
+      });
+      return;
+    }
+
+    if (this.collectibleStarSpawnTimer === null) {
+      runInAction(() => {
+        this.collectibleStarSpawnTimer = this.randomCollectibleStarSpawnDelay();
+      });
+      return;
+    }
+
+    runInAction(() => {
+      this.collectibleStarSpawnTimer -= deltaTime;
+      if (this.collectibleStarSpawnTimer <= 0) {
+        this.spawnCollectibleStar(viewportWidth);
+        this.collectibleStarSpawnTimer = null;
+      }
+    });
+  }
+
+  spawnCollectibleStar(viewportWidth) {
+    if (this.hasActiveCollectibleStar()) return;
+
+    const config = objectConfigByType.collectible_star;
+    if (!config) return;
+
+    const spawnScreenX = viewportWidth;
+    const worldX = this.offsetX + spawnScreenX;
+    const uid = `obj_collectible_star_${Date.now()}_${Math.random()}`;
+
+    runInAction(() => {
+      this.activeObjects.push({
+        uid,
+        typeId: "collectible_star",
+        worldX,
+        appeared: false,
+      });
+    });
+
+    // #region agent log
+    starDebugLog(
+      "mapStore.jsx:spawnCollectibleStar",
+      "star spawned",
+      {
+        uid,
+        worldX,
+        screenX: spawnScreenX,
+        viewportWidth,
+        offsetX: this.offsetX,
+      },
+      "H3",
+    );
+    // #endregion
+  }
+
+  checkCollectibleStarPickup() {
+    if (this.gameMode !== "free") return;
+    if (!this.carStore?.isStarCollectionUnlocked) return;
+
+    const star = this.activeObjects.find(
+      (obj) => obj.typeId === "collectible_star",
+    );
+    if (!star) return;
+
+    const screenX = star.worldX - this.offsetX;
+
+    // #region agent log
+    const now = Date.now();
+    if (now - starDebugLastLog > 500) {
+      starDebugLastLog = now;
+      const el = document.querySelector(`[data-uid="${star.uid}"]`);
+      const rect = el?.getBoundingClientRect();
+      const cs = el ? getComputedStyle(el) : null;
+      starDebugLog(
+        "mapStore.jsx:checkCollectibleStarPickup",
+        "star active on map",
+        {
+          uid: star.uid,
+          screenX,
+          inPickupZone:
+            screenX >= STAR_PICKUP_MIN_X && screenX <= STAR_PICKUP_MAX_X,
+          domFound: Boolean(el),
+          rect: rect
+            ? {
+                left: rect.left,
+                top: rect.top,
+                width: rect.width,
+                height: rect.height,
+              }
+            : null,
+          zIndex: cs?.zIndex ?? null,
+          opacity: cs?.opacity ?? null,
+          visibility: cs?.visibility ?? null,
+          viewportWidth:
+            typeof window !== "undefined" ? window.innerWidth : null,
+        },
+        rect && rect.width > 0 && rect.height > 0 ? "H1" : "H2",
+      );
+    }
+    // #endregion
+
+    if (screenX < STAR_PICKUP_MIN_X || screenX > STAR_PICKUP_MAX_X) return;
+
+    const config = objectConfigByType.collectible_star;
+    let startX = screenX + (config?.width ?? 48) / 2;
+    let startY = window.innerHeight * 0.62;
+
+    let domUsed = false;
+    if (typeof document !== "undefined") {
+      const el = document.querySelector(`[data-uid="${star.uid}"]`);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        startX = rect.left + rect.width / 2;
+        startY = rect.top + rect.height / 2;
+        domUsed = rect.width > 0 && rect.height > 0;
+      }
+    }
+
+    // #region agent log
+    starDebugLog(
+      "mapStore.jsx:checkCollectibleStarPickup",
+      "star pickup triggered",
+      {
+        uid: star.uid,
+        screenX,
+        startX,
+        startY,
+        domUsed,
+        fallbackY: window.innerHeight * 0.62,
+      },
+      domUsed ? "H5" : "H4",
+    );
+    // #endregion
+
+    this.beginStarPickup(star.uid, startX, startY);
+  }
+
+  beginStarPickup(uid, startX, startY) {
+    if (!this.carStore) return;
+
+    runInAction(() => {
+      this.questsAtLastStarEvent = this.carStore.totalQuestCompletions;
+      this.collectibleStarSpawnTimer = null;
+      this.removeObjectByUid(uid);
+
+      const flyId = `star_fly_${Date.now()}_${Math.random()}`;
+      this.starFlies.push({
+        id: flyId,
+        startX,
+        startY,
+      });
+    });
+  }
+
+  completeStarFly(flyId) {
+    runInAction(() => {
+      this.starFlies = this.starFlies.filter((fly) => fly.id !== flyId);
+    });
+    starsStore.addStars(1);
   }
 
   updateQuestCarSpawner(deltaTime) {
@@ -103,7 +321,11 @@ class MapStore {
   // Спавн объектов окружения справа за экраном
   spawnEnvironmentObjects(viewportWidth) {
     objectConfigs.forEach((config) => {
-      if (config.type === "collectible_star" && this.gameMode !== "free") {
+      if (config.type === "collectible_star") {
+        return;
+      }
+
+      if (isPeacefulHumanType(config.type) && isNightChaseContext(this)) {
         return;
       }
 
@@ -192,6 +414,14 @@ class MapStore {
 
   // Глобальный таймер светофора (10 секунд)
   startTrafficLightTimer() {
+    if (isNightChaseContext(this)) {
+      if (this.trafficLightTimer) {
+        clearInterval(this.trafficLightTimer);
+        this.trafficLightTimer = null;
+      }
+      return;
+    }
+
     if (this.trafficLightTimer) {
       clearInterval(this.trafficLightTimer);
     }
@@ -262,6 +492,9 @@ class MapStore {
     }
     this.questCars = [];
     this.questCarForArrest = null;
+    this.questsAtLastStarEvent = 0;
+    this.collectibleStarSpawnTimer = null;
+    this.starFlies = [];
   }
 
   // Готовый признак: светофор на экране И красный

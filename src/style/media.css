@@ -6,6 +6,10 @@
   .quest-car-other {
     width: 220px;
   }
+
+  .quest-car {
+    width: 220px;
+  }
 }
 /* ==========================================================================
    ЭРГОНОМИЧНАЯ МОБИЛЬНАЯ АДАПТАЦИЯ (Экраны до 900px, например, смартфоны в ландшафте)
@@ -17,6 +21,8 @@
     --car-lane-y: 58%;
     --player-car-lane-y: 66%;
     --car-wheel-offset: 11%;
+    /* Поднимаем весь слой карты (фон + разметка + объекты) */
+    --map-shift-y: -10vh;
 
     /* Более прозрачный glass HUD — игра важнее интерфейса */
     --ui-glass-bg: rgba(20, 25, 35, 0.38);
@@ -34,13 +40,15 @@
     right: 2%;
     /* left: 2%; */
     bottom: 5px !important;
-    padding: 3px 12px !important;
-    gap: 15px;
-    border-radius: 12px;
-    background: var(--ui-glass-bg);
+    padding: 4px 6px !important;
+    gap: 6px;
+    border-radius: 10px;
+    background: rgba(20, 25, 35, 0.28);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     box-shadow:
-      0 4px 12px rgba(0, 0, 0, 0.25),
-      inset 0 1px 2px rgba(255, 255, 255, 0.1);
+      0 2px 8px rgba(0, 0, 0, 0.18),
+      inset 0 1px 1px rgba(255, 255, 255, 0.08);
     align-items: center;
     height: auto;
   }

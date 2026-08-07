@@ -13,7 +13,8 @@ function activateControl(action) {
   };
 }
 
-export const Controllers = observer(({ activeCarStore }) => {
+export const Controllers = observer(
+  ({ activeCarStore, controlsBlocked = false, onEmptyGasPress }) => {
   const [ignitionFlash, setIgnitionFlash] = useState(null);
   const prevIgnitionRef = useRef(activeCarStore.isIgnitionOn);
 
@@ -35,6 +36,22 @@ export const Controllers = observer(({ activeCarStore }) => {
   ]
     .filter(Boolean)
     .join(" ");
+
+  const handlePressGas = () => {
+    if (controlsBlocked) return;
+    if (activeCarStore.fuel <= 0) {
+      if (activeCarStore.isIgnitionOn && onEmptyGasPress) {
+        onEmptyGasPress();
+      }
+      return;
+    }
+    activeCarStore.pressGas();
+  };
+
+  const handleReleaseGas = () => {
+    if (controlsBlocked) return;
+    activeCarStore.releaseGas();
+  };
 
   return (
     <div className="controllers_container">
@@ -58,20 +75,20 @@ export const Controllers = observer(({ activeCarStore }) => {
         alt="Педаль газа"
         src={gasPedal}
         onContextMenu={(e) => e.preventDefault()}
-        onMouseDown={() => activeCarStore.pressGas()}
-        onMouseUp={() => activeCarStore.releaseGas()}
-        onMouseLeave={() => activeCarStore.releaseGas()}
+        onMouseDown={handlePressGas}
+        onMouseUp={handleReleaseGas}
+        onMouseLeave={handleReleaseGas}
         onTouchStart={(e) => {
           e.preventDefault();
-          activeCarStore.pressGas();
+          handlePressGas();
         }}
         onTouchEnd={(e) => {
           e.preventDefault();
-          activeCarStore.releaseGas();
+          handleReleaseGas();
         }}
         onTouchCancel={(e) => {
           e.preventDefault();
-          activeCarStore.releaseGas();
+          handleReleaseGas();
         }}
       />
       <img
@@ -87,4 +104,5 @@ export const Controllers = observer(({ activeCarStore }) => {
       />
     </div>
   );
-});
+},
+);

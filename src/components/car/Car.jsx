@@ -83,7 +83,11 @@ export const Car = observer(({ carStore, showHeadlights = false }) => {
         </div>
       </div>
 
-      <CarModel carStore={carStore} typeBody={0} showHeadlights={showHeadlights} />
+      <CarModel
+        carStore={carStore}
+        variant="player"
+        showHeadlights={showHeadlights}
+      />
     </div>
   );
 });

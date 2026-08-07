@@ -37,7 +37,7 @@
 .quest-car {
   position: absolute;
   top: var(--player-car-lane-y);
-  width: 250px;
+  width: var(--player-car-width);
   height: auto;
   transform: translateY(calc(-100% + var(--car-wheel-offset)));
   z-index: 1004;

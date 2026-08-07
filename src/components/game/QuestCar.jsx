@@ -15,7 +15,8 @@ export const QuestCar = observer(({ questCarStore, showHeadlights = false }) => 
     >
       <CarModel
         carStore={questCarStore}
-        typeBody={1}
+        variant="traffic"
+        nested
         showHeadlights={showHeadlights}
       />
     </div>

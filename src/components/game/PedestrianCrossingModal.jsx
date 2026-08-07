@@ -223,7 +223,7 @@ export const PedestrianCrossingModal = observer(({ mapStore, carStore }) => {
         className="quest-car"
         style={{ left: `${mapStore.pedestrianCarPosition}px` }}
       >
-        <CarModel carStore={modalCarStore.current} typeBody={1} />
+        <CarModel carStore={modalCarStore.current} variant="player" nested />
       </div>
       <div
         className="quest-pedestrian"

@@ -87,11 +87,13 @@ export const QuestArrestModal = observer(({ mapStore, carStore }) => {
       <AtmosphereOverlay />
 
       <div className="quest-arrest-target-car">
-        {targetCarStore && <CarModel carStore={targetCarStore} typeBody={0} />}
+        {targetCarStore && (
+          <CarModel carStore={targetCarStore} variant="traffic" nested />
+        )}
       </div>
 
       <div className="quest-arrest-police-car">
-        <CarModel carStore={policeCarStore} typeBody={0} />
+        <CarModel carStore={policeCarStore} variant="player" nested />
       </div>
 
       {mapStore.arrestAnimFinished && finishPhase === "idle" && (

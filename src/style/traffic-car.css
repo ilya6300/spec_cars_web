@@ -1,0 +1,12 @@
+/* Квестовый / AI трафик — other/*.png */
+
+.car_container--traffic {
+  --car-wheel-offset: var(--traffic-car-wheel-offset);
+  --car-body-lift: var(--traffic-car-body-lift);
+  --car-wheel-bottom: var(--traffic-car-wheel-bottom);
+  --car-wheel-size: var(--traffic-car-wheel-size);
+  --car-wheel-left: var(--traffic-car-wheel-left);
+  --car-wheel-right: var(--traffic-car-wheel-right);
+
+  width: var(--traffic-car-width);
+}

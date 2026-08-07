@@ -2,7 +2,7 @@
   position: absolute;
   top: var(--car-lane-y);
   left: 0;
-  width: 250px;
+  width: var(--traffic-car-width);
   height: auto;
   transform: translateY(calc(-100% + var(--car-wheel-offset)));
   z-index: 50;
@@ -11,7 +11,7 @@
 /* 
 .quest-car-enemy {
   position: absolute;
-  width: 250px;
+  width: var(--traffic-car-width);
   height: auto;
   top: 58%;
   z-index: 50;
@@ -20,7 +20,7 @@
 
 .quest-car-civilian {
   position: absolute;
-  width: 250px;
+  width: var(--traffic-car-width);
   height: auto;
   top: 58%;
   z-index: 50;

@@ -171,7 +171,7 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
         className="quest-car"
         style={{ left: `${mapStore.questCarPosition}px` }}
       >
-        <CarModel carStore={policeCarStore.current} typeBody={1} />
+        <CarModel carStore={policeCarStore.current} variant="player" nested />
       </div>
 
       {/* Целевой объект справа */}

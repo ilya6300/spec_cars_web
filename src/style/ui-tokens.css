@@ -25,9 +25,27 @@
   /* Нижняя полоса — квестовый / AI трафик */
   --car-lane-y: 56%;
   /* Ещё ниже — полицейская машина игрока (отдельная полоса, без наложения) */
-  --player-car-lane-y: 62%;
-  /* Колёса в CarModel bottom:-11% — компенсация для посадки на асфальт */
+  --player-car-lane-y: 69%;
+  /* Колёса — компенсация для посадки на асфальт (контейнер) */
   --car-wheel-offset: 11%;
+
+  /* --- Машина игрока (police/body.png) --- */
+  --player-car-width: 250px;
+  --player-car-wheel-offset: 11%;
+  --player-car-body-lift: 0%;
+  --player-car-wheel-bottom: -11%;
+  --player-car-wheel-size: 21%;
+  --player-car-wheel-left: 9%;
+  --player-car-wheel-right: 69%;
+
+  /* --- Квестовый трафик (other/*.png) --- */
+  --traffic-car-width: 250px;
+  --traffic-car-wheel-offset: 11%;
+  --traffic-car-body-lift: 0%;
+  --traffic-car-wheel-bottom: -11%;
+  --traffic-car-wheel-size: 19%;
+  --traffic-car-wheel-left: 8%;
+  --traffic-car-wheel-right: 69%;
 
   /* Вертикальный сдвиг всего слоя карты (mobile: media.css) */
   --map-shift-y: 0;

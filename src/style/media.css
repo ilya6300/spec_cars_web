@@ -1,14 +1,7 @@
 @media (max-height: 600px) {
-  .car_container:not(.car_container--nested) {
-    width: 220px;
-  }
-
-  .quest-car-other {
-    width: 220px;
-  }
-
-  .quest-car {
-    width: 220px;
+  :root {
+    --player-car-width: 220px;
+    --traffic-car-width: 220px;
   }
 }
 /* ==========================================================================

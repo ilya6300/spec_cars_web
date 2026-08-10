@@ -1,0 +1,80 @@
+---
+description: Когда и как использовать @docs, @web и проектную документацию spec_cars_web. Запрет на выдумывание игровой логики.
+alwaysApply: true
+---
+
+# Источники документации
+
+## Главное правило
+
+**Не выдумывать.** Нет данных в коде, SPEC или TASKS — **`Needs Clarification`**, не предполагать.
+
+Подробности анализа до правок: **`evidence-based-work.mdc`**.
+
+## Обязательный источник — архитектура проекта
+
+| Документ | Путь | Когда читать |
+|---|---|---|
+| **Принципы работы проекта** | `.cursor/planner/PROJECT_PRINCIPLES.md` | **Все агенты** — React, MobX, game loop, квесты, слои |
+| **Работа на основе данных** | `.cursor/rules/evidence-based-work.mdc` | **Перед изменением кода** — анализ, grep, gate |
+
+## Файлы планирования
+
+Все файлы — в `.cursor/planner/`.
+
+| Файл | Назначение | Когда читать |
+|---|---|---|
+| `PLAN.md` | План пользователя | Planner, Architect |
+| `TASKS.md` | Задачи с чекпоинтами (шаблон — в начале файла) | Все агенты |
+| `SPEC.md` | Спецификация **активной** задачи (перезаписывается при смене задачи) | Developer, Reviewer |
+| `SOURCES.md` | Реестр документации и внешних источников | Planner, Architect; **заполняет Orchestrator** (дополняют Planner/Architect) |
+| `PROJECT_DOCS.md` | Постоянная техдокументация проекта | **Только после завершения задачи** (Technical Documentation Writer) |
+| `DONE.md` | Архив завершённых задач | Planner, Orchestrator |
+| `GAME_DESIGN_DRAFT.md` | Черновик идей геймдизайна (вне TASK pipeline) | Game Design Director → Orchestrator |
+
+## Где указаны источники для задачи
+
+1. **`.cursor/planner/PROJECT_PRINCIPLES.md`** — архитектурные ограничения и принципы.
+2. **`.cursor/planner/SPEC.md`** — основной документ для разработчика (Architect); спецификация активной задачи.
+3. **Поле «Документация»** в записи задачи в `.cursor/planner/TASKS.md`.
+4. **`.cursor/planner/SOURCES.md`** — реестр документации проекта и внешних источников.
+
+## Как обращаться к документации в Cursor
+
+| Ситуация | Действие |
+|---|---|
+| Архитектура, MobX, game loop | `@docs .cursor/planner/PROJECT_PRINCIPLES.md` |
+| Техническая спецификация для реализации | `@docs .cursor/planner/SPEC.md` |
+| План и требования | `@docs .cursor/planner/PLAN.md` |
+| Документ из реестра SOURCES.md | `@docs <путь или имя из реестра>` |
+| Файлы проекта | `@docs` (код `Game.jsx`, `carStore.jsx` и т.д.) или `@web` |
+| MDN: MobX, React, Web Audio | `@web` + URL из SOURCES.md |
+| Неясно, какой источник нужен | Спросить Planner или пользователя |
+
+## Кто заполняет поле «Документация»
+
+**Planner** при создании задачи указывает все нужные источники:
+- `@docs .cursor/planner/PROJECT_PRINCIPLES.md` — **обязательно** для задач с изменением кода;
+- пути к файлам проекта (`Game.jsx`, `mapStore.jsx` и т.д.);
+- внешние URL (MDN, MobX docs);
+- пометку `@web` — если нужна актуальная информация из интернета;
+- пометку `@docs` — если документ уже в индексе Cursor.
+
+**Architect** при подготовке `SPEC.md` дополняет список, если найдены новые релевантные источники (через Orchestrator).
+
+## Примеры поля «Документация» в задаче
+
+```markdown
+- @docs .cursor/planner/PROJECT_PRINCIPLES.md — MobX, game loop, z-index
+- @docs src/state/mapStore.jsx — спавн объектов
+- @docs src/components/game/Game.jsx — game loop
+- @docs tests/e2e/quest-cars.spec.js — E2E quest cars
+- @web https://mobx.js.org/react-integration.html — observer
+```
+
+## Запрещено
+
+- Реализовывать игровую логику без проверки в коде проекта или `PROJECT_PRINCIPLES.md`.
+- Указывать версии библиотек и сигнатуры методов «из памяти» без @web/@docs.
+- Игнорировать `PROJECT_PRINCIPLES.md`, `SPEC.md` и поле «Документация» в задаче.
+- Обновлять `.cursor/planner/PROJECT_DOCS.md` до завершения задачи.

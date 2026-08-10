@@ -1,87 +1,173 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useEffect, useRef, useState, useCallback } from "react";
 import { observer } from "mobx-react-lite";
 import { Car } from "../car/Car";
-import CarStore from "../../state/carStore";
-import Cars from "../../state/cars";
-import MapsStore from "../../state/maps";
-import MapStore from "../../state/mapStore";
 import { Maps } from "../map/Maps";
 import { Controllers } from "../controllers/Controllers";
 import { PoliceQuestModal } from "./PoliceQuestModal";
-import { PedestrianCrossingModal } from "./PedestrianCrossingModal";
+import { PedestrianCrossingLayer } from "./PedestrianCrossingLayer";
 import { QuestArrestModal } from "./QuestArrestModal";
 import { QuestCar } from "./QuestCar";
-
-import "../../style/quest_arrest.css";
 import { SpeedDisplay } from "./SpeedDisplay";
 import FullscreenButton from "./FullscreenButton";
+import BackToMenuButton from "./BackToMenuButton";
+import { TutorialOverlay } from "./TutorialOverlay";
+import { AtmosphereOverlay } from "./AtmosphereOverlay";
+import { ModeTimer, ModeChaseProgress } from "./ModeTimer";
+import { ModeResultModal } from "./ModeResultModal";
+import { RefuelModal } from "./RefuelModal";
+import { GlobalStarsDisplay } from "../ui/GlobalStarsDisplay";
+import { StarFlyOverlay } from "./StarFlyOverlay";
+import { CollectibleStarLayer } from "./CollectibleStarLayer";
+import { useGameLoop } from "../../hooks/useGameLoop";
+import { createGameStores } from "../../state/gameBootstrap";
+import { TutorialStore } from "../../state/tutorialStore";
+import { registerFuelSaveOnUnload } from "../../state/persistence";
+import modeStore from "../../state/modeStore";
+import atmosphereStore from "../../state/atmosphereStore";
+import recordsStore from "../../state/recordsStore";
+import starsStore from "../../state/starsStore";
+import stateApp from "../../state/state_app";
+import { calculateSessionScore } from "../../state/modeScoring";
 
-export const Game = observer(() => {
-  const [activeCarStore] = useState(() => new CarStore(Cars.cars[0]));
-  const [activeMapStore] = useState(() => {
-    const store = new MapStore(MapsStore.maps[0]);
-    store.carStore = activeCarStore;
-    return store;
-  });
+import "../../style/quest_arrest.css";
 
-  // Связываем сторы: CarStore получает ссылку на MapStore
-  activeCarStore.mapStore = activeMapStore;
+export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
+  const storesRef = useRef(null);
+  const tutorialStoreRef = useRef(null);
 
-  const [distance, setDistance] = useState(0);
-  const lastTimeRef = useRef(performance.now());
-  const viewportWidthRef = useRef(window.innerWidth);
+  if (!storesRef.current) {
+    storesRef.current = createGameStores({ carId, mapId, gameMode });
+  }
+  if (!tutorialStoreRef.current) {
+    tutorialStoreRef.current = new TutorialStore();
+  }
+
+  const { carStore: activeCarStore, mapStore: activeMapStore } =
+    storesRef.current;
+  const tutorialStore = tutorialStoreRef.current;
+  const viewportWidthRef = useRef(
+    typeof window !== "undefined" ? window.innerWidth : 1024,
+  );
+  const gameViewportRef = useRef(null);
+  const [isRefuelModalOpen, setIsRefuelModalOpen] = useState(false);
 
   useEffect(() => {
-    const handleResize = () => {
-      viewportWidthRef.current = window.innerWidth;
+    const updateViewportWidth = () => {
+      const measured =
+        gameViewportRef.current?.clientWidth ?? window.innerWidth;
+      viewportWidthRef.current = measured;
     };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    updateViewportWidth();
+    window.addEventListener("resize", updateViewportWidth);
+    return () => window.removeEventListener("resize", updateViewportWidth);
   }, []);
 
+  useGameLoop(
+    activeCarStore,
+    activeMapStore,
+    viewportWidthRef,
+    gameMode === "free" ? tutorialStore : null,
+    modeStore,
+  );
+
   useEffect(() => {
-    let animationFrameId;
+    const sessionStart = performance.now();
+    const sessionStartStars = starsStore.totalStars;
+    const chaseTimeRef = { current: null };
+    let frameId;
+    let running = true;
 
-    const gameLoop = (currentTime) => {
-      const deltaTime = (currentTime - lastTimeRef.current) / 1000;
-      lastTimeRef.current = currentTime;
+    const trackSession = () => {
+      if (!running) return;
 
-      activeCarStore.updatePhysics(deltaTime);
-
-      const pixelsMoved = activeCarStore.currentSpeed * deltaTime;
-      setDistance((prev) => prev + pixelsMoved);
-
-      // Обновляем offsetX в MapStore (синхронно с distance)
-      activeMapStore.update(activeCarStore.currentSpeed, deltaTime);
-      activeCarStore.checkTrafficLight(activeMapStore);
-      activeMapStore.spawnObjects(viewportWidthRef.current, deltaTime);
-      activeMapStore.despawnObjects(viewportWidthRef.current);
-      activeMapStore.triggerAppearEvents(activeCarStore);
-      activeMapStore.updateQuestCars(deltaTime);
-      activeMapStore.checkQuestCarDistance(
-        activeMapStore.questCars,
-        viewportWidthRef.current,
+      const now = performance.now();
+      const durationSec = (now - sessionStart) / 1000;
+      const km =
+        activeMapStore.offsetX / stateApp.distanceMetersFactor / 1000;
+      const starsEarned = starsStore.totalStars - sessionStartStars;
+      const score = calculateSessionScore(
+        activeCarStore.helpCounts,
+        gameMode,
       );
 
-      animationFrameId = requestAnimationFrame(gameLoop);
+      if (
+        gameMode === "chase" &&
+        chaseTimeRef.current === null &&
+        activeCarStore.helpCounts.enemyChase >= 3
+      ) {
+        chaseTimeRef.current = durationSec;
+      }
+
+      recordsStore.setLiveSession({
+        mode: gameMode,
+        durationSec,
+        km,
+        starsEarned,
+        score,
+        chaseTimeSec: chaseTimeRef.current,
+      });
+
+      frameId = requestAnimationFrame(trackSession);
     };
 
-    animationFrameId = requestAnimationFrame(gameLoop);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [activeCarStore, activeMapStore]);
+    frameId = requestAnimationFrame(trackSession);
+
+    return () => {
+      running = false;
+      cancelAnimationFrame(frameId);
+      recordsStore.clearLiveSession();
+    };
+  }, [activeCarStore, activeMapStore, gameMode]);
 
   useEffect(() => {
-    activeMapStore.startTrafficLightTimer();
+    const stores = storesRef.current;
+    if (!stores) return undefined;
+
+    stores.carStore.reattach();
+    stores.mapStore.startTrafficLightTimer();
+    const unregisterFuelSave = registerFuelSaveOnUnload();
+
     return () => {
-      activeMapStore.dispose();
+      unregisterFuelSave();
+      stores.carStore.dispose();
+      stores.mapStore.dispose();
     };
-  }, [activeMapStore]);
+  }, []);
+  useEffect(() => {
+    if (activeCarStore.fuel <= 0 && activeCarStore.isIgnitionOn) {
+      setIsRefuelModalOpen(true);
+      activeCarStore.releaseGas();
+    }
+  }, [activeCarStore.fuel, activeCarStore.isIgnitionOn, activeCarStore]);
+
+  useEffect(() => {
+    if (!activeCarStore.isIgnitionOn) {
+      setIsRefuelModalOpen(false);
+    }
+  }, [activeCarStore.isIgnitionOn]);
+
+  const handleEmptyGasPress = useCallback(() => {
+    if (activeCarStore.isIgnitionOn) {
+      setIsRefuelModalOpen(true);
+    }
+  }, [activeCarStore.isIgnitionOn]);
+
+  const handleRefuelWatchVideo = useCallback(() => {
+    activeCarStore.refuel(5000);
+    setIsRefuelModalOpen(false);
+  }, [activeCarStore]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.__PLAYWRIGHT__) {
-      window.__TEST_STATE__ = { activeMapStore, activeCarStore, distance };
+      window.__TEST_STATE__ = {
+        activeMapStore,
+        activeCarStore,
+        get distance() {
+          return activeMapStore.offsetX;
+        },
+      };
     }
-  }, [activeMapStore, activeCarStore, distance]);
+  }, [activeMapStore, activeCarStore]);
 
   const handleObjectClick = (obj, config, mapStore, carStore) => {
     if (obj.longPressTimeout) {
@@ -89,69 +175,85 @@ export const Game = observer(() => {
       obj.longPressTimeout = null;
     }
 
-    if (config.onClick) {
-      config.onClick(obj, mapStore, carStore);
-    }
+    config.onClick?.(obj, mapStore, carStore);
   };
 
+  const visibleQuestCars = activeMapStore.getVisibleQuestCars(
+    viewportWidthRef.current,
+  );
+
+  const showPlayerHeadlights =
+    atmosphereStore.isNight && activeCarStore.isIgnitionOn;
+
   return (
-    <div className="game-viewport">
-      <FullscreenButton />
+    <div
+      ref={gameViewportRef}
+      className={`game-viewport${atmosphereStore.isNight ? " game-viewport--night" : ""}`}
+    >
+      {!modeStore.isComplete && <BackToMenuButton />}
+      {/* <FullscreenButton /> */}
+      <GlobalStarsDisplay className="game-global-stars" />
+      {gameMode === "free" && (
+        <StarFlyOverlay mapStore={activeMapStore} />
+      )}
+      <ModeTimer carStore={activeCarStore} />
+      <ModeChaseProgress carStore={activeCarStore} />
       <Maps
         map={activeMapStore}
-        distance={distance}
         carStore={activeCarStore}
         onClickObject={handleObjectClick}
       />
-      <Car carStore={activeCarStore} />
-      <Controllers activeCarStore={activeCarStore} />
-
-      {/* Police Quest Modal - для квеста со светофором и human_aggr* */}
-      <PoliceQuestModal mapStore={activeMapStore} carStore={activeCarStore} />
-
-      {/* Pedestrian Crossing Quest Modal - для квеста с пешеходным переходом */}
-      <PedestrianCrossingModal
-        mapStore={activeMapStore}
+      <AtmosphereOverlay />
+      {gameMode === "free" && (
+        <CollectibleStarLayer mapStore={activeMapStore} />
+      )}
+      <Car
         carStore={activeCarStore}
+        showHeadlights={showPlayerHeadlights}
+      />
+      <Controllers
+        activeCarStore={activeCarStore}
+        controlsBlocked={isRefuelModalOpen}
+        onEmptyGasPress={handleEmptyGasPress}
       />
 
-      {/* Quest Arrest Modal - для квеста блокировки */}
+      {gameMode === "free" && <TutorialOverlay tutorialStore={tutorialStore} />}
+
+      <PoliceQuestModal mapStore={activeMapStore} carStore={activeCarStore} />
+
+      {gameMode === "free" && (
+        <PedestrianCrossingLayer
+          mapStore={activeMapStore}
+          carStore={activeCarStore}
+        />
+      )}
+
       {activeMapStore.isQuestArrestActive && (
         <QuestArrestModal mapStore={activeMapStore} carStore={activeCarStore} />
       )}
 
-      {activeMapStore.questCars
-        .filter(
-          (car) =>
-            car.positionX > -150 && car.positionX < viewportWidthRef.current,
-        )
-        .map((questCar) => (
-          <QuestCar
-            key={questCar.id}
-            questCarStore={questCar}
-            mapStore={activeMapStore}
-          />
-        ))}
+      {visibleQuestCars.map((questCar) => (
+        <QuestCar
+          key={questCar.id}
+          questCarStore={questCar}
+          mapStore={activeMapStore}
+          showHeadlights={atmosphereStore.isNight}
+        />
+      ))}
 
-      {(() => {
-        const visibleCars = activeMapStore.questCars.filter(
-          (car) =>
-            car.positionX > -150 && car.positionX < viewportWidthRef.current,
-        );
-        if (visibleCars.length === 0) return null;
-        return (
-          <SpeedDisplay
-            currentSpeed={Math.max(
-              ...visibleCars.map((car) => car.currentSpeed),
-            )}
-          />
-        );
-      })()}
+      {visibleQuestCars.length > 0 && (
+        <SpeedDisplay
+          currentSpeed={Math.max(
+            ...visibleQuestCars.map((car) => car.currentSpeed),
+          )}
+        />
+      )}
 
       {activeMapStore.questCarForArrest &&
         !activeMapStore.isPedestrianCrossingQuestActive &&
         !activeMapStore.isPoliceQuestActive &&
-        !activeMapStore.isQuestArrestActive && (
+        !activeMapStore.isQuestArrestActive &&
+        !modeStore.isPaused && (
           <button
             className="arrest-button-quest-car-map"
             data-type="arrest-button"
@@ -168,9 +270,18 @@ export const Game = observer(() => {
               }
             }}
           >
-            Блокировать
+            ╨С╨╗╨╛╨║╨╕╤А╨╛╨▓╨░╤В╤М
           </button>
         )}
+
+      {isRefuelModalOpen && (
+        <RefuelModal
+          carStore={activeCarStore}
+          onWatchVideo={handleRefuelWatchVideo}
+        />
+      )}
+
+      <ModeResultModal carStore={activeCarStore} />
     </div>
   );
 });

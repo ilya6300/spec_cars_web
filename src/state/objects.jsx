@@ -2,22 +2,29 @@ import house1 from "../assets/objects/house_1.png";
 import gasStation from "../assets/objects/gas_station.png";
 import trafficLightRed from "../assets/objects/traffic_light_red.png";
 import trafficLightGreen from "../assets/objects/traffic_light_green.png";
+import trafficLightYellow from "../assets/objects/traffic_light_yellow.png";
+import trafficLightRedQuestHuman from "../assets/objects/traffic_light_red_quest_human.png";
+import trafficLightGreenQuestHuman from "../assets/objects/traffic_light_green_quest_human.png";
+import {
+  QUEST_CROSSING_HEIGHT_DESKTOP,
+  QUEST_CROSSING_TYPE,
+  QUEST_CROSSING_WIDTH_DESKTOP,
+  QUEST_CROSSING_Z_INDEX,
+} from "./questCrossingConstants";
 import whiteLine from "../assets/objects/road_white_line.png";
 import { getDataSubObects, dataObjectsSub } from "./subobject";
-// полиция
 import humanAggr1Img from "../assets/objects/\police_quest/human_aggr1.png";
 import humanAggr2Img from "../assets/objects/\police_quest/human_aggr2.png";
 import humanAggr3Img from "../assets/objects/\police_quest/human_aggr3.png";
+import collectibleStarImg from "../assets/ui/collectible-star.svg";
 
 class ObjectsClass {
   white_line = whiteLine;
   trafficLightRed = trafficLightRed;
   trafficLightGreen = trafficLightGreen;
-
-  // Police quest images
-  humanAggr1Img = humanAggr1Img;
-  humanAggr2Img = humanAggr2Img;
-  humanAggr3Img = humanAggr3Img;
+  trafficLightYellow = trafficLightYellow;
+  trafficLightRedQuestHuman = trafficLightRedQuestHuman;
+  trafficLightGreenQuestHuman = trafficLightGreenQuestHuman;
 }
 
 export class ObjectConfig {
@@ -30,6 +37,7 @@ export class ObjectConfig {
     this.height = config.height;
     this.minDistance = config.minDistance;
     this.maxDistance = config.maxDistance;
+    this.initialSpawnDistance = config.initialSpawnDistance ?? 0;
     this.onClick = config.onClick;
     this.onLongPress = config.onLongPress;
     this.onAppear = config.onAppear;
@@ -38,76 +46,44 @@ export class ObjectConfig {
 
 const objectConfigs = [];
 
-const getPolicequest = () => {
-  const humanAggr1Obj = new ObjectConfig({
-    id: "human_aggr1",
-    type: "human_aggr1",
-    image: humanAggr1Img,
-    zIndex: 2,
-    width: 110,
-    height: 100,
-    minDistance: 8000,
-    maxDistance: 40000,
-    onClick: (obj, mapStore, carStore) => {
-      mapStore.startQuest(obj);
-      carStore.toggleSirena();
-    },
-    onLongPress: (obj, mapStore, carStore) => {
-      /* ничего */
-    },
-    onAppear: () => {
-      // Логика торможения перенесена в carStore.updatePhysics
-      // и привязана к видимости светофора на экране
-    },
-  });
-  const humanAggr2Obj = new ObjectConfig({
-    id: "human_aggr2",
-    type: "human_aggr2",
-    image: humanAggr2Img,
-    zIndex: 2,
-    width: 110,
-    height: 100,
-    minDistance: 8000,
-    maxDistance: 40000,
-    onClick: (obj, mapStore, carStore) => {
-      mapStore.startQuest(obj);
-      carStore.toggleSirena();
-    },
-    onLongPress: (obj, mapStore, carStore) => {
-      /* ничего */
-    },
-    onAppear: () => {
-      // Логика торможения перенесена в carStore.updatePhysics
-      // и привязана к видимости светофора на экране
-    },
-  });
-  const humanAggr3Obj = new ObjectConfig({
-    id: "human_aggr3",
-    type: "human_aggr3",
-    image: humanAggr3Img,
-    zIndex: 2,
-    width: 110,
-    height: 100,
-    minDistance: 8000,
-    maxDistance: 40000,
-    onClick: (obj, mapStore, carStore) => {
-      mapStore.startQuest(obj);
-      carStore.toggleSirena();
-    },
-    onLongPress: (obj, mapStore, carStore) => {
-      /* ничего */
-    },
-    onAppear: () => {
-      // Логика торможения перенесена в carStore.updatePhysics
-      // и привязана к видимости светофора на экране
-    },
-  });
+const POLICE_AGGRO_DEFS = [
+  { type: "human_aggr1", image: humanAggr1Img, initialSpawnDistance: 17700 },
+  { type: "human_aggr2", image: humanAggr2Img, initialSpawnDistance: 25000 },
+  { type: "human_aggr3", image: humanAggr3Img, initialSpawnDistance: 10500 },
+];
 
-  objectConfigs.push(humanAggr1Obj, humanAggr2Obj, humanAggr3Obj);
+function createPoliceAggroConfig({ type, image, initialSpawnDistance }) {
+  return new ObjectConfig({
+    id: type,
+    type,
+    image,
+    zIndex: 2,
+    width: 110,
+    height: 100,
+    minDistance: 8000,
+    maxDistance: 40000,
+    initialSpawnDistance,
+    onClick: (obj, mapStore, carStore) => {
+      carStore.releaseGas();
+      mapStore.startQuest(obj);
+      carStore.toggleSirena();
+    },
+    onLongPress: () => {
+      /* ничего */
+    },
+    onAppear: () => {
+      // Логика торможения перенесена в carStore.updatePhysics
+    },
+  });
+}
+
+const getPolicequest = () => {
+  POLICE_AGGRO_DEFS.forEach((def) => {
+    objectConfigs.push(createPoliceAggroConfig(def));
+  });
 };
 
 const createDataObjects = () => {
-  // Инициализируем lthtdmz при загрузке модуля
   getDataSubObects();
   getPolicequest();
   try {
@@ -120,13 +96,14 @@ const createDataObjects = () => {
       height: 300,
       minDistance: 400,
       maxDistance: 11000,
-      onClick: (obj, mapStore, carStore) => {
+      initialSpawnDistance: 0,
+      onClick: () => {
         /* ничего */
       },
-      onLongPress: (obj, mapStore, carStore) => {
+      onLongPress: () => {
         /* ничего */
       },
-      onAppear: (obj, mapStore, carStore) => {
+      onAppear: () => {
         /* ничего */
       },
     });
@@ -140,13 +117,14 @@ const createDataObjects = () => {
       height: 100,
       minDistance: 10000,
       maxDistance: 30000,
-      onClick: (obj, mapStore, carStore) => {
+      initialSpawnDistance: 30000,
+      onClick: (obj, mapStore) => {
         mapStore.refuelCar(10);
       },
-      onLongPress: (obj, mapStore, carStore) => {
+      onLongPress: (obj, mapStore) => {
         mapStore.startRefueling();
       },
-      onAppear: (obj, mapStore, carStore) => {
+      onAppear: () => {
         /* ничего */
       },
     });
@@ -160,19 +138,65 @@ const createDataObjects = () => {
       height: 160,
       minDistance: 3500,
       maxDistance: 8000,
-      onClick: (obj, mapStore, carStore) => {
+      initialSpawnDistance: 8000,
+      onClick: () => {
         /* ничего */
       },
-      onLongPress: (obj, mapStore, carStore) => {
+      onLongPress: () => {
         /* ничего */
       },
       onAppear: () => {
         // Логика торможения перенесена в carStore.updatePhysics
-        // и привязана к видимости светофора на экране
       },
     });
 
-    objectConfigs.push(buildings, gasStationObj, trafficLightObj);
+    const trafficLightQuestCrossingObj = new ObjectConfig({
+      id: QUEST_CROSSING_TYPE,
+      type: QUEST_CROSSING_TYPE,
+      image: null,
+      zIndex: QUEST_CROSSING_Z_INDEX,
+      width: QUEST_CROSSING_WIDTH_DESKTOP,
+      height: QUEST_CROSSING_HEIGHT_DESKTOP,
+      minDistance: 3500,
+      maxDistance: 8000,
+      initialSpawnDistance: 12000,
+      onClick: () => {
+        /* ничего */
+      },
+      onLongPress: () => {
+        /* ничего */
+      },
+      onAppear: (objData, mapStore) => {
+        const obj = mapStore.activeObjects.find((entry) => entry.uid === objData.uid);
+        if (obj) {
+          mapStore.initQuestCrossing(obj);
+        }
+      },
+    });
+
+    objectConfigs.push(
+      buildings,
+      gasStationObj,
+      trafficLightObj,
+      trafficLightQuestCrossingObj,
+    );
+
+    const collectibleStarObj = new ObjectConfig({
+      id: "collectible_star",
+      type: "collectible_star",
+      image: collectibleStarImg,
+      zIndex: 2,
+      width: 48,
+      height: 48,
+      minDistance: 15000,
+      maxDistance: 25000,
+      initialSpawnDistance: 20000,
+      onClick: () => {},
+      onLongPress: () => {},
+      onAppear: () => {},
+    });
+
+    objectConfigs.push(collectibleStarObj);
 
     dataObjectsSub.forEach((tree) => {
       objectConfigs.push(tree);
@@ -183,6 +207,17 @@ const createDataObjects = () => {
 };
 
 createDataObjects();
+
+/** Карта type → config, строится один раз при загрузке модуля */
+export const objectConfigByType = Object.fromEntries(
+  objectConfigs.map((config) => [config.type, config]),
+);
+
+export function buildInitialNextSpawnDistances(configs = objectConfigs) {
+  return Object.fromEntries(
+    configs.map((config) => [config.type, config.initialSpawnDistance ?? 0]),
+  );
+}
 
 const Objects = new ObjectsClass();
 export default Objects;

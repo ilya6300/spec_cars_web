@@ -1,8 +1,57 @@
 ﻿import { makeAutoObservable, runInAction } from "mobx";
-import { objectConfigs } from "./objects";
-import stateApp from "./state_app";
+import {
+  objectConfigs,
+  objectConfigByType,
+  buildInitialNextSpawnDistances,
+} from "./objects";
+import { dataObjectsSub } from "./subobject";
+import {
+  CROSS_ON_RED_CHANCE,
+  getCrosswalkStartX,
+  getCrosswalkStopX,
+  getQuestCrossingLayout,
+  isQuestCrossingEngaged,
+  isQuestCrossingType,
+  QUEST_CROSSING_HUMAN_WIDTH,
+  QUEST_CROSSING_WIDTH_DESKTOP,
+  randomGreenSwitchDelay,
+  randomRedWalkDelay,
+  WALK_SPEED,
+} from "./questCrossingConstants";
 import QuestCarStore from "./questCarStore";
 import Cars from "./cars";
+import {
+  isNightChaseContext,
+  isPeacefulHumanType,
+} from "./modeScoring";
+import starsStore from "./starsStore";
+
+const QUEST_CAR_VISIBLE_MARGIN = 150;
+
+// #region agent log
+let starDebugLastLog = 0;
+const starDebugLog = (location, message, data, hypothesisId) => {
+  fetch("http://127.0.0.1:7266/ingest/053c2454-03a1-497a-bc51-1e14d05d5e7f", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "cc4486",
+    },
+    body: JSON.stringify({
+      sessionId: "cc4486",
+      location,
+      message,
+      data,
+      hypothesisId,
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+};
+// #endregion
+
+export const STAR_PICKUP_MIN_X = 30;
+export const STAR_PICKUP_MAX_X = 280;
+export const STAR_SPAWN_RIGHT_INSET = 16;
 
 class MapStore {
   id = 0;
@@ -16,34 +65,8 @@ class MapStore {
   // Каждый элемент: { uid, typeId, worldX, appeared }
   activeObjects = [];
 
-  // Расстояния до следующего спавна для каждого типа
-  nextSpawnDistances = {
-    building: 0,
-    gas_station: 30000,
-    traffic_light: 8000,
-    tree1: 350,
-    tree2: 450,
-    tree3: 750,
-    human1: 150,
-    human2: 50,
-    human3: 350,
-    human4: 550,
-    human5: 250,
-    human6: 180,
-    human7: 800,
-    human8: 100,
-    human9: 50,
-    human10: 550,
-    human11: 1000,
-    human12: 250,
-    human13: 80,
-    human14: 1950,
-    human15: 400,
-    human16: 200,
-    human_aggr1: 17700,
-    human_aggr2: 25000,
-    human_aggr3: 10500,
-  };
+  // Расстояния до следующего спавна — инициализируются из objectConfigs
+  nextSpawnDistances = {};
 
   // Состояние светофора
   trafficLightColor = "red";
@@ -68,9 +91,8 @@ class MapStore {
   // Pedestrian Crossing Quest state
   isPedestrianCrossingQuestActive = false;
   pedestrianCrossingTargetObject = null;
-  pedestrianCarPosition = -150;
-  pedestrianState = "waiting"; // "waiting" | "walking" | "stopped"
-  pedestrianIsCarArrived = false;
+  lastViewportWidth = 1024;
+  __forcePedestrianCrossOnRed = false;
 
   // Quest Cars state
   questCars = [];
@@ -81,26 +103,251 @@ class MapStore {
   isQuestArrestActive = false;
   arrestAnimFinished = false;
 
+  gameMode = "free";
+
+  questsAtLastStarEvent = 0;
+  collectibleStarSpawnTimer = null;
+  starFlies = [];
+
   constructor(mapData) {
     Object.assign(this, mapData);
+    this.nextSpawnDistances = buildInitialNextSpawnDistances(objectConfigs);
     makeAutoObservable(this);
   }
 
-  // Накопление смещения (аналог distance в Game.jsx)
-  update(carSpeed, deltaTime) {
+  // Накопление смещения мира (единственный источник для рендера карты)
+  advance(carSpeed, deltaTime) {
     runInAction(() => {
       this.offsetX += carSpeed * deltaTime;
     });
   }
 
-  // Спавн новых объектов справа за экраном
-  spawnObjects(viewportWidth, deltaTime) {
+  /** Один тик мира после advance: спавн, деспавн, quest-cars, зона ареста */
+  tickWorld(carStore, deltaTime, viewportWidth) {
+    this.lastViewportWidth = viewportWidth;
+    this.updateQuestCarSpawner(deltaTime);
+    this.spawnEnvironmentObjects(viewportWidth);
+    this.despawnObjects(viewportWidth);
+    this.triggerAppearEvents(carStore);
+    this.updateCollectibleStarSpawner(deltaTime, viewportWidth);
+    this.checkCollectibleStarPickup();
+    this.updateQuestCars(deltaTime);
+    this.updateQuestCrossings(deltaTime, viewportWidth);
+    this.checkQuestCarDistance();
+  }
+
+  get questsSinceLastStar() {
+    if (!this.carStore) return 0;
+    return this.carStore.totalQuestCompletions - this.questsAtLastStarEvent;
+  }
+
+  hasActiveCollectibleStar() {
+    return this.activeObjects.some((obj) => obj.typeId === "collectible_star");
+  }
+
+  randomCollectibleStarSpawnDelay() {
+    return 15 + Math.random() * 10;
+  }
+
+  updateCollectibleStarSpawner(deltaTime, viewportWidth) {
+    if (this.gameMode !== "free") return;
+    if (!this.carStore?.isStarCollectionUnlocked) return;
+    if (this.hasActiveCollectibleStar()) return;
+
+    if (this.questsSinceLastStar < 2) {
+      runInAction(() => {
+        this.collectibleStarSpawnTimer = null;
+      });
+      return;
+    }
+
+    if (this.collectibleStarSpawnTimer === null) {
+      runInAction(() => {
+        this.collectibleStarSpawnTimer = this.randomCollectibleStarSpawnDelay();
+      });
+      return;
+    }
+
+    runInAction(() => {
+      this.collectibleStarSpawnTimer -= deltaTime;
+      if (this.collectibleStarSpawnTimer <= 0) {
+        this.spawnCollectibleStar(viewportWidth);
+        this.collectibleStarSpawnTimer = null;
+      }
+    });
+  }
+
+  spawnCollectibleStar(viewportWidth) {
+    if (this.hasActiveCollectibleStar()) return;
+
+    const config = objectConfigByType.collectible_star;
+    if (!config) return;
+
+    const spawnScreenX = viewportWidth;
+    const worldX = this.offsetX + spawnScreenX;
+    const uid = `obj_collectible_star_${Date.now()}_${Math.random()}`;
+
+    runInAction(() => {
+      this.activeObjects.push({
+        uid,
+        typeId: "collectible_star",
+        worldX,
+        appeared: false,
+      });
+    });
+
+    // #region agent log
+    starDebugLog(
+      "mapStore.jsx:spawnCollectibleStar",
+      "star spawned",
+      {
+        uid,
+        worldX,
+        screenX: spawnScreenX,
+        viewportWidth,
+        offsetX: this.offsetX,
+      },
+      "H3",
+    );
+    // #endregion
+  }
+
+  checkCollectibleStarPickup() {
+    if (this.gameMode !== "free") return;
+    if (!this.carStore?.isStarCollectionUnlocked) return;
+
+    const star = this.activeObjects.find(
+      (obj) => obj.typeId === "collectible_star",
+    );
+    if (!star) return;
+
+    const screenX = star.worldX - this.offsetX;
+
+    // #region agent log
+    const now = Date.now();
+    if (now - starDebugLastLog > 500) {
+      starDebugLastLog = now;
+      const el = document.querySelector(`[data-uid="${star.uid}"]`);
+      const rect = el?.getBoundingClientRect();
+      const cs = el ? getComputedStyle(el) : null;
+      starDebugLog(
+        "mapStore.jsx:checkCollectibleStarPickup",
+        "star active on map",
+        {
+          uid: star.uid,
+          screenX,
+          inPickupZone:
+            screenX >= STAR_PICKUP_MIN_X && screenX <= STAR_PICKUP_MAX_X,
+          domFound: Boolean(el),
+          rect: rect
+            ? {
+                left: rect.left,
+                top: rect.top,
+                width: rect.width,
+                height: rect.height,
+              }
+            : null,
+          zIndex: cs?.zIndex ?? null,
+          opacity: cs?.opacity ?? null,
+          visibility: cs?.visibility ?? null,
+          viewportWidth:
+            typeof window !== "undefined" ? window.innerWidth : null,
+        },
+        rect && rect.width > 0 && rect.height > 0 ? "H1" : "H2",
+      );
+    }
+    // #endregion
+
+    if (screenX < STAR_PICKUP_MIN_X || screenX > STAR_PICKUP_MAX_X) return;
+
+    const config = objectConfigByType.collectible_star;
+    let startX = screenX + (config?.width ?? 48) / 2;
+    let startY = window.innerHeight * 0.62;
+
+    let domUsed = false;
+    if (typeof document !== "undefined") {
+      const el = document.querySelector(`[data-uid="${star.uid}"]`);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        startX = rect.left + rect.width / 2;
+        startY = rect.top + rect.height / 2;
+        domUsed = rect.width > 0 && rect.height > 0;
+      }
+    }
+
+    // #region agent log
+    starDebugLog(
+      "mapStore.jsx:checkCollectibleStarPickup",
+      "star pickup triggered",
+      {
+        uid: star.uid,
+        screenX,
+        startX,
+        startY,
+        domUsed,
+        fallbackY: window.innerHeight * 0.62,
+      },
+      domUsed ? "H5" : "H4",
+    );
+    // #endregion
+
+    this.beginStarPickup(star.uid, startX, startY);
+  }
+
+  beginStarPickup(uid, startX, startY) {
+    if (!this.carStore) return;
+
+    runInAction(() => {
+      this.questsAtLastStarEvent = this.carStore.totalQuestCompletions;
+      this.collectibleStarSpawnTimer = null;
+      this.removeObjectByUid(uid);
+
+      const flyId = `star_fly_${Date.now()}_${Math.random()}`;
+      this.starFlies.push({
+        id: flyId,
+        startX,
+        startY,
+      });
+    });
+  }
+
+  completeStarFly(flyId) {
+    runInAction(() => {
+      this.starFlies = this.starFlies.filter((fly) => fly.id !== flyId);
+    });
+    starsStore.addStars(1);
+  }
+
+  updateQuestCarSpawner(deltaTime) {
     this.questCarSpawnTimer -= deltaTime;
     if (this.questCarSpawnTimer <= 0) {
       this.spawnQuestCar();
     }
+  }
 
+  getVisibleQuestCars(viewportWidth, margin = QUEST_CAR_VISIBLE_MARGIN) {
+    const minX = -margin;
+    const maxX = viewportWidth;
+    return this.questCars.filter(
+      (car) => car.positionX > minX && car.positionX < maxX,
+    );
+  }
+
+  // Спавн объектов окружения справа за экраном
+  spawnEnvironmentObjects(viewportWidth) {
     objectConfigs.forEach((config) => {
+      if (config.type === "collectible_star") {
+        return;
+      }
+
+      if (isPeacefulHumanType(config.type) && isNightChaseContext(this)) {
+        return;
+      }
+
+      if (isQuestCrossingType(config.type) && isNightChaseContext(this)) {
+        return;
+      }
+
       const nextSpawn = this.nextSpawnDistances[config.type];
 
       if (this.offsetX >= nextSpawn) {
@@ -134,32 +381,57 @@ class MapStore {
   // Удаление объектов, ушедших за левый край экрана
   despawnObjects(viewportWidth) {
     runInAction(() => {
-      const configMap = {};
-      objectConfigs.forEach((c) => {
-        configMap[c.type] = c;
-      });
-
       this.activeObjects = this.activeObjects.filter((obj) => {
-        const config = configMap[obj.typeId];
+        const config = objectConfigByType[obj.typeId];
+        if (!config) {
+          if (obj.longPressTimeout) {
+            clearTimeout(obj.longPressTimeout);
+            obj.longPressTimeout = null;
+          }
+          return false;
+        }
+
         const screenX = obj.worldX - this.offsetX;
         if (obj.typeId === "traffic_light") {
-          // Светофор виден на экране ТОЛЬКО когда его правый край вошёл
-          // за правую границу (screenX < viewportWidth) И левый край ещё
-          // не ушёл за левую границу (screenX + width > 0)
           this.trafficLightOnTheMap =
             screenX < viewportWidth && screenX + config.width > 0;
         }
-        return screenX > -config.width;
+
+        if (isQuestCrossingType(obj.typeId)) {
+          const objectVisible = screenX > -config.width;
+          let humanVisible = false;
+          if (obj.questCrossing) {
+            const humanScreenX =
+              obj.questCrossing.humanWorldX - this.offsetX;
+            humanVisible =
+              humanScreenX > -QUEST_CROSSING_HUMAN_WIDTH;
+          }
+          const visible = objectVisible || humanVisible;
+          if (!visible) {
+            if (obj.longPressTimeout) {
+              clearTimeout(obj.longPressTimeout);
+              obj.longPressTimeout = null;
+            }
+            this.clearPedestrianQuestTargetIfMatches(obj);
+            return false;
+          }
+          return true;
+        }
+
+        const visible = screenX > -config.width;
+        if (!visible && obj.longPressTimeout) {
+          clearTimeout(obj.longPressTimeout);
+          obj.longPressTimeout = null;
+        }
+        return visible;
       });
-      // Корректировка lastObjectEndMeter после удаления ушедших объектов
       const sorted = [...this.activeObjects].sort(
         (a, b) => b.worldX - a.worldX,
       );
       if (sorted.length > 0) {
-        const lastConfig = configMap[sorted[0].typeId];
+        const lastConfig = objectConfigByType[sorted[0].typeId];
         this.lastObjectEndMeter = sorted[0].worldX + lastConfig.width;
       } else {
-        // Нет активных объектов — сбрасываем на текущую позицию
         this.lastObjectEndMeter = this.offsetX;
       }
     });
@@ -167,14 +439,10 @@ class MapStore {
 
   // Вызов onAppear для новых объектов
   triggerAppearEvents(carStore) {
-    const configMap = {};
-    objectConfigs.forEach((c) => {
-      configMap[c.type] = c;
-    });
     this.activeObjects.forEach((obj) => {
       if (!obj.appeared) {
-        const config = configMap[obj.typeId];
-        if (config.onAppear) {
+        const config = objectConfigByType[obj.typeId];
+        if (config?.onAppear) {
           config.onAppear({ ...obj, config }, this, carStore);
         }
         runInAction(() => {
@@ -186,6 +454,14 @@ class MapStore {
 
   // Глобальный таймер светофора (10 секунд)
   startTrafficLightTimer() {
+    if (isNightChaseContext(this)) {
+      if (this.trafficLightTimer) {
+        clearInterval(this.trafficLightTimer);
+        this.trafficLightTimer = null;
+      }
+      return;
+    }
+
     if (this.trafficLightTimer) {
       clearInterval(this.trafficLightTimer);
     }
@@ -207,6 +483,7 @@ class MapStore {
           this.carStore.maxFuel,
         );
       });
+      this.carStore.persistFuel();
     }
   }
 
@@ -225,6 +502,7 @@ class MapStore {
             this.carStore.maxFuel,
           );
         });
+        this.carStore.persistFuel();
       }
     }, 100);
   }
@@ -242,6 +520,8 @@ class MapStore {
 
   // Очистка всех таймеров
   dispose() {
+    this.stopRefueling();
+
     if (this.trafficLightTimer) {
       clearInterval(this.trafficLightTimer);
       this.trafficLightTimer = null;
@@ -252,6 +532,9 @@ class MapStore {
     }
     this.questCars = [];
     this.questCarForArrest = null;
+    this.questsAtLastStarEvent = 0;
+    this.collectibleStarSpawnTimer = null;
+    this.starFlies = [];
   }
 
   // Готовый признак: светофор на экране И красный
@@ -280,8 +563,7 @@ class MapStore {
       const idx = this.activeObjects.findIndex((obj) => obj.uid === uid);
       if (idx !== -1) {
         this.activeObjects.splice(idx, 1);
-        const configMap = {};
-        objectConfigs.forEach((c) => (configMap[c.type] = c));
+        const configMap = objectConfigByType;
         const sorted = [...this.activeObjects].sort(
           (a, b) => b.worldX - a.worldX,
         );
@@ -301,16 +583,157 @@ class MapStore {
     });
   }
 
-  updatePedestrianCarPosition(newPosition) {
+  clearPedestrianQuestTargetIfMatches(obj) {
+    if (this.pedestrianCrossingTargetObject?.uid === obj.uid) {
+      this.isPedestrianCrossingQuestActive = false;
+      this.pedestrianCrossingTargetObject = null;
+    }
+  }
+
+  initQuestCrossing(obj) {
+    if (isNightChaseContext(this)) return;
+    if (
+      this.isPedestrianCrossingQuestActive ||
+      this.isPoliceQuestActive ||
+      this.isQuestArrestActive
+    ) {
+      return;
+    }
+    if (this.carStore?.sirena) return;
+    if (obj.questCrossing) return;
+
+    const humanTypes = dataObjectsSub.filter((entry) =>
+      /^human\d+$/.test(entry.type),
+    );
+    if (humanTypes.length === 0) return;
+
+    const randomHuman =
+      humanTypes[Math.floor(Math.random() * humanTypes.length)];
+    const crossesOnRed =
+      typeof window !== "undefined" &&
+      window.__PLAYWRIGHT__ &&
+      this.__forcePedestrianCrossOnRed
+        ? true
+        : Math.random() < CROSS_ON_RED_CHANCE;
+
+    const forceInstantWalk =
+      typeof window !== "undefined" &&
+      window.__PLAYWRIGHT__ &&
+      this.__forcePedestrianCrossOnRed;
+
+    const layout = getQuestCrossingLayout(this.lastViewportWidth);
+
     runInAction(() => {
-      this.pedestrianCarPosition = newPosition;
+      obj.questCrossing = {
+        humanType: randomHuman.type,
+        crossesOnRed,
+        phase: crossesOnRed ? "waiting_red" : "waiting_green",
+        crossingWidth: layout.width,
+        humanWorldX: getCrosswalkStartX(obj.worldX, layout.width),
+        trafficLightGreen: false,
+        greenSwitchTimer: null,
+        redWalkTimer: null,
+        forceInstantWalk,
+        stopWorldX: getCrosswalkStopX(obj.worldX, layout.width),
+        showFinishOverlay: false,
+      };
+      this.isPedestrianCrossingQuestActive = true;
+      this.pedestrianCrossingTargetObject = obj;
+    });
+  }
+
+  updateQuestCrossings(deltaTime, viewportWidth) {
+    runInAction(() => {
+      for (const obj of this.activeObjects) {
+        if (!isQuestCrossingType(obj.typeId) || !obj.questCrossing) continue;
+
+        const qc = obj.questCrossing;
+        if (qc.phase === "finished") continue;
+
+        const config = objectConfigByType[obj.typeId];
+        const crossingWidth =
+          qc.crossingWidth ?? config?.width ?? QUEST_CROSSING_WIDTH_DESKTOP;
+        const screenX = obj.worldX - this.offsetX;
+        const engaged = isQuestCrossingEngaged(
+          screenX,
+          crossingWidth,
+          viewportWidth,
+        );
+
+        if (qc.phase === "waiting_green") {
+          if (engaged) {
+            if (qc.greenSwitchTimer === null) {
+              qc.greenSwitchTimer = qc.forceInstantWalk
+                ? 0.05
+                : randomGreenSwitchDelay();
+            }
+            qc.greenSwitchTimer -= deltaTime;
+            if (qc.greenSwitchTimer <= 0) {
+              qc.trafficLightGreen = true;
+              qc.phase = "walking";
+            }
+          }
+        }
+
+        if (qc.phase === "waiting_red") {
+          if (engaged) {
+            if (qc.redWalkTimer === null) {
+              qc.redWalkTimer = qc.forceInstantWalk
+                ? 0.05
+                : randomRedWalkDelay();
+            }
+            qc.redWalkTimer -= deltaTime;
+            if (qc.redWalkTimer <= 0) {
+              qc.phase = "walking";
+            }
+          }
+        }
+
+        if (qc.phase === "walking") {
+          qc.humanWorldX -= WALK_SPEED * deltaTime;
+
+          if (qc.humanWorldX <= qc.stopWorldX) {
+            qc.phase = "stopped";
+            qc.humanWorldX = qc.stopWorldX;
+          }
+        }
+      }
+    });
+  }
+
+  handlePedestrianCrossingClick(obj) {
+    const qc = obj.questCrossing;
+    if (!qc || !qc.crossesOnRed) return;
+    if (qc.phase !== "walking" && qc.phase !== "stopped") return;
+    if (qc.showFinishOverlay) return;
+
+    runInAction(() => {
+      qc.phase = "stopped";
+      qc.showFinishOverlay = true;
+    });
+  }
+
+  finishPedestrianCrossingQuest() {
+    runInAction(() => {
+      const obj = this.pedestrianCrossingTargetObject;
+      if (obj?.questCrossing) {
+        obj.questCrossing.phase = "finished";
+        obj.questCrossing.showFinishOverlay = false;
+      }
+      this.isPedestrianCrossingQuestActive = false;
+      this.pedestrianCrossingTargetObject = null;
     });
   }
 
   spawnQuestCar() {
-    const otherCars = Cars.otherCars;
-    const randomCarData =
-      otherCars[Math.floor(Math.random() * otherCars.length)];
+    let pool = Cars.otherCars;
+    if (this.gameMode === "chase") {
+      pool = Cars.otherCars.filter((car) => car.enemy);
+    }
+
+    if (pool.length === 0) return;
+
+    const randomCarData = pool[Math.floor(Math.random() * pool.length)];
 
     const questCar = new QuestCarStore(randomCarData);
 
@@ -328,7 +751,17 @@ class MapStore {
 
     runInAction(() => {
       this.questCars.push(questCar);
-      this.questCarSpawnTimer = 10 + Math.random() * 20;
+      if (this.gameMode === "chase") {
+        this.questCarSpawnTimer = 8 + Math.random() * 7;
+      } else {
+        this.questCarSpawnTimer = 10 + Math.random() * 20;
+      }
+    });
+  }
+
+  collectCollectibleStar(uid) {
+    runInAction(() => {
+      this.removeObjectByUid(uid);
     });
   }
 
@@ -358,34 +791,31 @@ class MapStore {
     });
   }
 
-  checkQuestCarDistance(questCarStores, viewportWidth) {
+  checkQuestCarDistance(questCarStores = this.questCars) {
     const policeScreenX = 30;
-    const arrestThreshold = 250; // CONCEPT.md: +250px от X-координаты полицейского
-    const minArrestX = policeScreenX; // enemy «сравнялся» с полицейским
+    const arrestThreshold = 250;
+    const minArrestX = policeScreenX;
     const maxArrestX = policeScreenX + arrestThreshold;
 
     let closestQuestCar = null;
 
     for (const questCar of questCarStores) {
-      if (questCar.enemy) {
-        try {
-          const questCarScreenX = questCar.positionX;
+      if (!questCar.enemy) continue;
 
-          if (questCarScreenX >= minArrestX && questCarScreenX <= maxArrestX) {
-            if (
-              !closestQuestCar ||
-              questCarScreenX < closestQuestCar.positionX
-            ) {
-              closestQuestCar = questCar;
-            }
-          }
-        } catch (error) {
-          console.error("Error checking quest car distance:", error);
+      const questCarScreenX = questCar.positionX;
+      if (questCarScreenX >= minArrestX && questCarScreenX <= maxArrestX) {
+        if (
+          !closestQuestCar ||
+          questCarScreenX < closestQuestCar.positionX
+        ) {
+          closestQuestCar = questCar;
         }
       }
     }
 
-    this.questCarForArrest = closestQuestCar;
+    runInAction(() => {
+      this.questCarForArrest = closestQuestCar;
+    });
   }
 
   startQuestArrest() {
@@ -403,26 +833,6 @@ class MapStore {
     });
   }
 
-  // Pedestrian Crossing Quest methods
-  startPedestrianCrossingQuest(targetObj) {
-    runInAction(() => {
-      this.isPedestrianCrossingQuestActive = true;
-      this.pedestrianCrossingTargetObject = targetObj;
-      this.pedestrianCarPosition = -150;
-      this.pedestrianState = "waiting";
-      this.pedestrianIsCarArrived = false;
-    });
-  }
-
-  finishPedestrianCrossingQuest() {
-    runInAction(() => {
-      this.isPedestrianCrossingQuestActive = false;
-      this.pedestrianCrossingTargetObject = null;
-      this.pedestrianCarPosition = -150;
-      this.pedestrianState = "waiting";
-      this.pedestrianIsCarArrived = false;
-    });
-  }
 }
 
 export default MapStore;

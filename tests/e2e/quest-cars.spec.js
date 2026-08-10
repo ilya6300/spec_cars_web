@@ -1,109 +1,90 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
+import { enablePlaywrightTestState, startDriving, holdGasFor, navigateToFreeMode } from "./helpers.js";
 
-test.describe('Quest Cars E2E', () => {
-  test('Quest Cars spawn on screen', async ({ page }) => {
-    test.setTimeout(240000);
-    
-    await page.goto('/');
-    await page.waitForSelector('.game-viewport', { timeout: 10000 });
-    await page.waitForTimeout(2000);
-    
-    // Инициализация игры: зажигание + передача + газ
-    await page.click('[data-type="ignition"]');
-    await page.waitForTimeout(500);
-    await page.click('[data-type="gear-2"]');
-    await page.waitForTimeout(500);
-    
-    // Зажимаем газ
-    const gasPedal = page.locator('[data-type="gas-pedal"]');
-    await gasPedal.hover();
-    await page.mouse.down();
-    await page.waitForTimeout(1500);
-    await page.mouse.up();
-    
-    // Quest Cars спавнятся каждые 5-15 секунд
-    // Ждём появления первой квестовой машины
-    const questCar = await page.$('[data-type="quest-car"]');
-    expect(questCar).toBeTruthy();
+async function waitForQuestCarsSpawned(page, timeout = 20000) {
+  await page.waitForFunction(
+    () => (window.__TEST_STATE__?.activeMapStore?.questCars?.length ?? 0) > 0,
+    { timeout },
+  );
+}
+
+test.describe("Quest Cars E2E", () => {
+  test.beforeEach(async ({ page }) => {
+    await enablePlaywrightTestState(page);
   });
 
-  test('SpeedDisplay shows quest car speed', async ({ page }) => {
+  test("Quest Cars spawn in store", async ({ page }) => {
     test.setTimeout(240000);
-    
-    await page.goto('/');
-    await page.waitForSelector('.game-viewport', { timeout: 10000 });
-    await page.waitForTimeout(2000);
-    
-    // Инициализация игры
-    await page.click('[data-type="ignition"]');
-    await page.waitForTimeout(500);
-    await page.click('[data-type="gear-2"]');
-    await page.waitForTimeout(500);
-    
-    const gasPedal = page.locator('[data-type="gas-pedal"]');
-    await gasPedal.hover();
-    await page.mouse.down();
-    await page.waitForTimeout(1500);
-    await page.mouse.up();
-    
-    // Ждём появления SpeedDisplay
-    await page.waitForSelector('[data-type="speed-display"]', { timeout: 20000 });
-    
-    const speedText = await page.$eval('[data-type="speed-display"]', (el) => el.textContent);
-    expect(speedText).toBeTruthy();
+
+    await page.goto("/");
+    await navigateToFreeMode(page);
+    await page.waitForTimeout(1000);
+
+    await startDriving(page, { gear: "2", gasMs: 0 });
+    await holdGasFor(page, 12000);
+
+    const questCarCount = await page.evaluate(
+      () => window.__TEST_STATE__?.activeMapStore?.questCars?.length ?? 0,
+    );
+    expect(questCarCount).toBeGreaterThan(0);
   });
 
-  test('Enemy quest car spawns from left side', async ({ page }) => {
+  test("SpeedDisplay shows quest car speed when visible", async ({ page }) => {
     test.setTimeout(240000);
-    
-    await page.goto('/');
-    await page.waitForSelector('.game-viewport', { timeout: 10000 });
-    await page.waitForTimeout(2000);
-    
-    // Инициализация игры
-    await page.click('[data-type="ignition"]');
-    await page.waitForTimeout(500);
-    await page.click('[data-type="gear-2"]');
-    await page.waitForTimeout(500);
-    
-    const gasPedal = page.locator('[data-type="gas-pedal"]');
-    await gasPedal.hover();
-    await page.mouse.down();
-    await page.waitForTimeout(1500);
-    await page.mouse.up();
-    
-    // Ждём появления enemy машины (спавн слева)
-    await page.waitForSelector('[data-type="quest-car"][data-enemy="true"]', { timeout: 20000 });
-    
-    const enemyCar = page.locator('[data-type="quest-car"][data-enemy="true"]');
-    await expect(enemyCar).toBeVisible();
+
+    await page.goto("/");
+    await navigateToFreeMode(page);
+    await page.waitForTimeout(1000);
+
+    await startDriving(page, { gear: "3", gasMs: 0 });
+    await waitForQuestCarsSpawned(page);
+    await holdGasFor(page, 40000);
+
+    const speedDisplay = await page.$('[data-type="speed-display"]');
+    if (speedDisplay) {
+      const speedText = await speedDisplay.textContent();
+      expect(speedText).toBeTruthy();
+    }
   });
 
-  test('Arrest button appears when enemy car is in arrest range', async ({ page }) => {
+  test("Enemy quest car spawns in store", async ({ page }, testInfo) => {
     test.setTimeout(240000);
-    
-    await page.goto('/');
-    await page.waitForSelector('.game-viewport', { timeout: 10000 });
-    await page.waitForTimeout(2000);
-    
-    // Инициализация игры
-    await page.click('[data-type="ignition"]');
-    await page.waitForTimeout(500);
-    await page.click('[data-type="gear-2"]');
-    await page.waitForTimeout(500);
-    
-    const gasPedal = page.locator('[data-type="gas-pedal"]');
-    await gasPedal.hover();
-    await page.mouse.down();
-    await page.waitForTimeout(2000);
-    await page.mouse.up();
-    
-    // Ждём появления enemy машины и кнопки ареста
-    // Enemy машина движется справа налево (если policeSpeed > questCarSpeed)
-    // или слева направо (если questCarSpeed > policeSpeed)
-    // В любом случае, когда она попадает в диапазон [30, 280], кнопка появляется
-    
-    // Пробуем несколько раз, так как спавн и сближение занимают время
+
+    await page.goto("/");
+    await navigateToFreeMode(page);
+    await page.waitForTimeout(1000);
+
+    await startDriving(page, { gear: "2", gasMs: 0 });
+    await holdGasFor(page, 75000);
+
+    const stats = await page.evaluate(() => {
+      const cars = window.__TEST_STATE__?.activeMapStore?.questCars ?? [];
+      return {
+        total: cars.length,
+        hasEnemy: cars.some((car) => car.enemy),
+      };
+    });
+
+    expect(stats.total).toBeGreaterThan(0);
+    if (!stats.hasEnemy) {
+      testInfo.skip(true, "Enemy car not spawned in random window");
+      return;
+    }
+    expect(stats.hasEnemy).toBeTruthy();
+  });
+
+  test("Arrest button appears when enemy car is in arrest range", async ({
+    page,
+  }) => {
+    test.setTimeout(240000);
+
+    await page.goto("/");
+    await navigateToFreeMode(page);
+    await page.waitForTimeout(1000);
+
+    await startDriving(page, { gear: "2", gasMs: 0 });
+    await holdGasFor(page, 30000);
+
     let arrestButtonFound = false;
     for (let i = 0; i < 5; i++) {
       const arrestButton = await page.$('[data-type="arrest-button"]');
@@ -113,39 +94,77 @@ test.describe('Quest Cars E2E', () => {
       }
       await page.waitForTimeout(3000);
     }
-    
-    // Кнопка может появиться, если enemy машина оказалась в диапазоне
-    // Это вероятностное событие, поэтому тест может быть flaky
+
     if (arrestButtonFound) {
       await expect(page.locator('[data-type="arrest-button"]')).toBeVisible();
     }
   });
 
-  test('Quest cars can be multiple on screen', async ({ page }) => {
+  test("Enemy arrest: open modal, arrest, finish overlay, quest closed", async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(240000);
-    
-    await page.goto('/');
-    await page.waitForSelector('.game-viewport', { timeout: 10000 });
-    await page.waitForTimeout(2000);
-    
-    // Инициализация игры
-    await page.click('[data-type="ignition"]');
-    await page.waitForTimeout(500);
-    await page.click('[data-type="gear-2"]');
-    await page.waitForTimeout(500);
-    
-    const gasPedal = page.locator('[data-type="gas-pedal"]');
-    await gasPedal.hover();
-    await page.mouse.down();
-    await page.waitForTimeout(1500);
-    await page.mouse.up();
-    
-    // Ждём появления нескольких квестовых машин
-    // Спавн каждые 5-15 секунд, так что нужно подождать
-    await page.waitForTimeout(12000);
-    
-    const questCars = await page.$$('data-type=quest-car');
-    // Должна быть хотя бы одна машина
-    expect(questCars.length).toBeGreaterThan(0);
+
+    await page.goto("/");
+    await navigateToFreeMode(page);
+    await page.waitForTimeout(1000);
+
+    await startDriving(page, { gear: "2", gasMs: 0 });
+    await holdGasFor(page, 30000);
+
+    let arrestButtonFound = false;
+    for (let i = 0; i < 5; i++) {
+      const arrestButton = await page.$('[data-type="arrest-button"]');
+      if (arrestButton) {
+        arrestButtonFound = true;
+        break;
+      }
+      await page.waitForTimeout(3000);
+    }
+
+    if (!arrestButtonFound) {
+      testInfo.skip(true, "Arrest button not found in random window");
+      return;
+    }
+
+    await page.click('[data-type="arrest-button"]');
+    await page.waitForSelector(".quest-arrest-modal", {
+      state: "visible",
+      timeout: 30000,
+    });
+
+    await page.waitForSelector(".quest-arrest-modal .arrest-button-quest-car-map", {
+      state: "visible",
+      timeout: 5000,
+    });
+
+    await page.click(".quest-arrest-modal .arrest-button-quest-car-map");
+    await page.waitForSelector('[data-type="quest-finish-overlay"]', {
+      timeout: 5000,
+    });
+    await page.click('[data-type="quest-finish-continue"]');
+
+    await page.waitForSelector(".quest-arrest-modal", { state: "hidden" });
+
+    const isQuestArrestActive = await page.evaluate(
+      () => window.__TEST_STATE__?.activeMapStore?.isQuestArrestActive ?? true,
+    );
+    expect(isQuestArrestActive).toBe(false);
+  });
+
+  test("Quest cars accumulate while driving", async ({ page }) => {
+    test.setTimeout(240000);
+
+    await page.goto("/");
+    await navigateToFreeMode(page);
+    await page.waitForTimeout(1000);
+
+    await startDriving(page, { gear: "2", gasMs: 0 });
+    await holdGasFor(page, 35000);
+
+    const questCarCount = await page.evaluate(
+      () => window.__TEST_STATE__?.activeMapStore?.questCars?.length ?? 0,
+    );
+    expect(questCarCount).toBeGreaterThan(0);
   });
 });

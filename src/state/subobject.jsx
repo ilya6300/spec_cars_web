@@ -30,6 +30,7 @@ class ObjectConfigTree {
     this.height = 170;
     this.minDistance = 50;
     this.maxDistance = 3000;
+    this.initialSpawnDistance = config.initialSpawnDistance ?? 0;
   }
 }
 
@@ -43,31 +44,42 @@ class ObjectConfigHuman {
     this.height = 100;
     this.minDistance = 50;
     this.maxDistance = 6000;
+    this.initialSpawnDistance = config.initialSpawnDistance ?? 0;
   }
 }
 
+const TREE_DEFS = [
+  { id: 1, type: "tree1", image: tree1Img, initialSpawnDistance: 350 },
+  { id: 2, type: "tree2", image: tree2Img, initialSpawnDistance: 450 },
+  { id: 3, type: "tree3", image: tree3Img, initialSpawnDistance: 750 },
+];
+
+const HUMAN_DEFS = [
+  { id: 4, type: "human1", image: human1, initialSpawnDistance: 150 },
+  { id: 5, type: "human2", image: human2, initialSpawnDistance: 50 },
+  { id: 6, type: "human3", image: human3, initialSpawnDistance: 350 },
+  { id: 7, type: "human4", image: human4, initialSpawnDistance: 550 },
+  { id: 8, type: "human5", image: human5, initialSpawnDistance: 250 },
+  { id: 9, type: "human6", image: human6, initialSpawnDistance: 180 },
+  { id: 10, type: "human7", image: human7, initialSpawnDistance: 800 },
+  { id: 11, type: "human8", image: human8, initialSpawnDistance: 100 },
+  { id: 12, type: "human9", image: human9, initialSpawnDistance: 50 },
+  { id: 13, type: "human10", image: human10, initialSpawnDistance: 550 },
+  { id: 15, type: "human11", image: human11, initialSpawnDistance: 1000 },
+  { id: 16, type: "human12", image: human12, initialSpawnDistance: 250 },
+  { id: 17, type: "human13", image: human13, initialSpawnDistance: 80 },
+  { id: 18, type: "human14", image: human14, initialSpawnDistance: 1950 },
+  { id: 19, type: "human15", image: human15, initialSpawnDistance: 400 },
+  { id: 20, type: "human16", image: human16, initialSpawnDistance: 200 },
+];
+
 const getDataSubObects = () => {
-  dataObjectsSub.push(
-    new ObjectConfigTree({ id: 1, type: "tree1", image: tree1Img }),
-    new ObjectConfigTree({ id: 2, type: "tree2", image: tree2Img }),
-    new ObjectConfigTree({ id: 3, type: "tree3", image: tree3Img }),
-    new ObjectConfigHuman({ id: 4, type: "human1", image: human1 }),
-    new ObjectConfigHuman({ id: 5, type: "human2", image: human2 }),
-    new ObjectConfigHuman({ id: 6, type: "human3", image: human3 }),
-    new ObjectConfigHuman({ id: 7, type: "human4", image: human4 }),
-    new ObjectConfigHuman({ id: 8, type: "human5", image: human5 }),
-    new ObjectConfigHuman({ id: 9, type: "human6", image: human6 }),
-    new ObjectConfigHuman({ id: 10, type: "human7", image: human7 }),
-    new ObjectConfigHuman({ id: 11, type: "human8", image: human8 }),
-    new ObjectConfigHuman({ id: 12, type: "human9", image: human9 }),
-    new ObjectConfigHuman({ id: 13, type: "human10", image: human10 }),
-    new ObjectConfigHuman({ id: 15, type: "human11", image: human11 }),
-    new ObjectConfigHuman({ id: 16, type: "human12", image: human12 }),
-    new ObjectConfigHuman({ id: 17, type: "human13", image: human13 }),
-    new ObjectConfigHuman({ id: 18, type: "human14", image: human14 }),
-    new ObjectConfigHuman({ id: 19, type: "human15", image: human15 }),
-    new ObjectConfigHuman({ id: 20, type: "human16", image: human16 }),
-  );
+  TREE_DEFS.forEach((def) => {
+    dataObjectsSub.push(new ObjectConfigTree(def));
+  });
+  HUMAN_DEFS.forEach((def) => {
+    dataObjectsSub.push(new ObjectConfigHuman(def));
+  });
 };
 
 export { getDataSubObects, dataObjectsSub };

@@ -1,0 +1,52 @@
+/* TASK-018: единая цветовая система UI */
+:root {
+  --ui-accent: #00c6ff;
+  --ui-accent-glow: rgba(0, 198, 255, 0.5);
+  --ui-warning: #ff9900;
+  --ui-warning-glow: rgba(255, 153, 0, 0.5);
+  --ui-danger: #ff0055;
+  --ui-danger-glow: rgba(255, 0, 85, 0.5);
+
+  --ui-glass-bg: rgba(20, 25, 35, 0.65);
+  --ui-glass-border: rgba(255, 255, 255, 0.1);
+  --ui-glass-radius: 18px;
+  --ui-glass-blur: 12px;
+  --ui-text-primary: rgba(255, 255, 255, 0.95);
+  --ui-text-muted: rgba(255, 255, 255, 0.55);
+
+  /* Мягкая палитра HUD (без неонового cyan) */
+  --ui-hud-fg: rgba(230, 240, 245, 0.92);
+  --ui-hud-accent: #9ebfd4;
+  --ui-hud-accent-dim: rgba(158, 191, 212, 0.55);
+
+  /* Центр дороги — разметка (пунктир между полосами).
+     Mobile overrides: src/style/media.css */
+  --road-lane-y: 53%;
+  /* Нижняя полоса — квестовый / AI трафик */
+  --car-lane-y: 58%;
+  /* Ещё ниже — полицейская машина игрока (отдельная полоса, без наложения) */
+  --player-car-lane-y: 63%;
+  /* Колёса — компенсация для посадки на асфальт (контейнер) */
+  --car-wheel-offset: 11%;
+
+  /* --- Машина игрока (police/body.png) --- */
+  --player-car-width: 250px;
+  --player-car-wheel-offset: 11%;
+  --player-car-body-lift: 0%;
+  --player-car-wheel-bottom: -11%;
+  --player-car-wheel-size: 21%;
+  --player-car-wheel-left: 9%;
+  --player-car-wheel-right: 69%;
+
+  /* --- Квестовый трафик (other/*.png) --- */
+  --traffic-car-width: 250px;
+  --traffic-car-wheel-offset: 11%;
+  --traffic-car-body-lift: 0%;
+  --traffic-car-wheel-bottom: -11%;
+  --traffic-car-wheel-size: 19%;
+  --traffic-car-wheel-left: 8%;
+  --traffic-car-wheel-right: 69%;
+
+  /* Вертикальный сдвиг всего слоя карты (mobile: media.css) */
+  --map-shift-y: 0;
+}

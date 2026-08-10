@@ -42,7 +42,7 @@
 /* Общий контейнер - Эффект футуристичной панели */
 .controllers_container {
   position: absolute;
-  z-index: 10;
+  z-index: 110;
   bottom: 15px;
   right: 5%;
   display: flex;
@@ -50,10 +50,10 @@
   align-items: center; /* Центрируем по вертикали для лучшего хвата */
   padding: 15px 25px;
   background: rgba(20, 25, 35, 0.65); /* Стеклянный темный фон */
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
+  backdrop-filter: blur(var(--ui-glass-blur, 12px));
+  -webkit-backdrop-filter: blur(var(--ui-glass-blur, 12px));
+  border: 1px solid var(--ui-glass-border, rgba(255, 255, 255, 0.1));
+  border-radius: var(--ui-glass-radius, 20px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 
               inset 0 1px 2px rgba(255, 255, 255, 0.15);
 }
@@ -189,21 +189,44 @@
 
 /* Неоновый Активный статус (Передача включена) */
 .gear-btn.active {
-  background: linear-gradient(135deg, #0072ff 0%, #00c6ff 100%);
+  background: linear-gradient(135deg, #0072ff 0%, var(--ui-accent) 100%);
   color: #ffffff;
-  border-color: #00c6ff;
-  box-shadow: 0 0 15px rgba(0, 198, 255, 0.5), 
+  border-color: var(--ui-accent);
+  box-shadow: 0 0 15px var(--ui-accent-glow),
               inset 0 1px 2px rgba(255, 255, 255, 0.4);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  animation: gear-pulse-once 0.35s ease 1;
 }
 
 /* Активная нейтралка (делаем оранжевой/желтой для предупреждения) */
 .gear-btn.neutral.active {
-  background: linear-gradient(135deg, #ff9900 0%, #ff5500 100%);
-  border-color: #ff9900;
-  box-shadow: 0 0 15px rgba(255, 85, 0, 0.5);
+  background: linear-gradient(135deg, var(--ui-warning) 0%, #ff5500 100%);
+  border-color: var(--ui-warning);
+  box-shadow: 0 0 15px var(--ui-warning-glow);
 }
 
 .gear-btn:active {
   transform: scale(0.92);
+}
+
+@keyframes gear-pulse-once {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gear-btn.active {
+    animation: none;
+  }
+
+  .ignition-sirena-on {
+    animation: none;
+  }
 }

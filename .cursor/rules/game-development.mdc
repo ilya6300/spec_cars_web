@@ -1,0 +1,153 @@
+---
+description: Стандарты разработки spec_cars_web — React 19, MobX, Vite, игровой цикл, квесты, слои.
+globs:
+- "src/**/*.{js,jsx}"
+- "src/**/*.css"
+alwaysApply: false
+---
+
+# Стандарты разработки spec_cars_web
+
+## Обязательный источник
+
+Перед любой реализацией читай **`.cursor/planner/PROJECT_PRINCIPLES.md`**.
+
+---
+
+## Назначение
+
+Браузерная 2D-симуляция вождения полицейского автомобиля:
+
+- React 19 SPA на Vite;
+- MobX для игрового состояния;
+- `requestAnimationFrame` game loop с `deltaTime`;
+- квесты, AI-трафик, светофоры, заправки;
+- деплой на GitHub Pages (`/spec_cars_web/`).
+
+---
+
+## Когда применять
+
+- `src/components/` — UI, game loop, модалки квестов
+- `src/state/` — MobX-сторы (`carStore`, `mapStore`, `questCarStore`)
+- `src/style/` — CSS слоёв и UI
+- `tests/e2e/` — Playwright E2E
+- `src/**/*.test.{js,jsx}` — Vitest
+
+---
+
+## Перед началом работы
+
+1. Прочитай `.cursor/planner/PROJECT_PRINCIPLES.md`, `.cursor/planner/SPEC.md` и активную задачу в `.cursor/planner/TASKS.md`.
+2. **Фаза анализа** — см. `evidence-based-work.mdc` (чтение файлов, grep, таблица влияния, gate).
+3. **Только после gate** — приступай к коду.
+
+**Строго запрещено додумывать.** Нет данных → **`Needs Clarification`**.
+
+---
+
+## Архитектурные ограничения (строго)
+
+### MobX
+
+- UI-компоненты, читающие store → `observer` из `mobx-react-lite`.
+- Мутации observable → только через методы класса-стора.
+- Внутри методов → `runInAction(() => { … })` где нужно.
+- Сторы создавать через `useState(() => new Store())`, не в render.
+
+### Game loop
+
+- Единственный цикл — `requestAnimationFrame` в `Game.jsx`.
+- Все движения и физика — через `deltaTime` (секунды), **не** через счётчик кадров.
+- Cleanup: `cancelAnimationFrame`, `clearInterval` в `useEffect` return / `mapStore.dispose()`.
+
+### Координаты
+
+- Мировые: `obj.worldX`; экранные: `screenX = worldX - offsetX`.
+- Полицейская машина фиксирована на экране; мир движется через `offsetX`.
+- Quest-машины — экранные координаты (`positionX`).
+
+### Z-index
+
+Соблюдать иерархию из PROJECT_PRINCIPLES §3.6. Новые элементы — в правильный слой.
+
+### Адаптивная разработка (обязательно)
+
+Игра — на **ПК и мобильных** с разным экраном. Разработка **исключительно адаптивная**:
+
+- viewport: `100dvh`, `100vw`; не ломать fullscreen-обёртку `App.jsx`;
+- размеры и позиции UI — относительные (`vw`/`vh`, `%`, `clamp()`), не хардкод под один разрешение;
+- game loop / спавн — `viewportWidth` (`Game.jsx` → `mapStore.spawnObjects`);
+- media queries — `src/style/media.css` или рядом с компонентом по образцу проекта;
+- touch targets — достаточные для пальца (PROJECT_PRINCIPLES §12);
+- запрещено: desktop-only layout без мобильного сценария.
+
+### Vite / деплой
+
+- `base: "/spec_cars_web/"` — не менять без согласования.
+- Импорт ассетов через Vite: `import img from "../assets/..."`.
+- Новые npm-пакеты — только по `SPEC.md`.
+
+---
+
+## Модули и ответственность
+
+| Модуль | Ответственность |
+|---|---|
+| `Game.jsx` | Game loop, связка сторов, рендер слоёв |
+| `carStore.jsx` | Физика, топливо, КПП, аудио, светофор |
+| `mapStore.jsx` | Спавн, квесты, offsetX, светофор-таймер |
+| `questCarStore.jsx` | AI-машины на дороге |
+| `objects.jsx` | Конфиги объектов окружения |
+| `Maps.jsx` | Рендер дороги, разметки, объектов |
+| `*QuestModal.jsx` | UI квестов |
+
+Бизнес-логика — в сторах. Рендер — в компонентах. Не дублировать физику в UI.
+
+---
+
+## E2E и тестирование
+
+- Новые интерактивные элементы → атрибут `data-type`.
+- Unit-тесты → `src/**/*.test.{js,jsx}` (Vitest).
+- E2E → `tests/e2e/*.spec.js` (Playwright).
+- Playwright hook: `window.__PLAYWRIGHT__`, `window.__TEST_STATE__`.
+
+---
+
+## Обработка ошибок
+
+```javascript
+try {
+  // ...
+} catch (error) {
+  console.error("Описание контекста:", error);
+}
+```
+
+Не оставлять пустые catch. Не использовать `console.log` в production.
+
+---
+
+## Запрещено
+
+- Прямая мутация observable из JSX/компонентов.
+- Движение без `deltaTime`.
+- Утечки rAF/setInterval.
+- npm-пакеты без указания в SPEC.
+- Изменение `base` path без согласования.
+- `console.log` (кроме временной отладки, которую нужно убрать).
+- Рефакторинг кода вне scope задачи.
+
+---
+
+## Перед завершением задачи
+
+- [ ] Прочитан и соблюдён `PROJECT_PRINCIPLES.md`
+- [ ] MobX-контракт соблюдён
+- [ ] Game loop использует `deltaTime`, cleanup на месте
+- [ ] Z-index и координаты корректны
+- [ ] Адаптивность: размеры/позиции работают на ПК и мобильных
+- [ ] `data-type` добавлен для новых UI-элементов
+- [ ] Минимальный diff, поведение вне scope не изменено
+- [ ] Тесты проходят или добавлены

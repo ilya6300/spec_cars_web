@@ -1,0 +1,85 @@
+---
+description: Глобальные правила workflow агентов spec_cars_web. Разделение ролей, переключение агентов, статусы задач.
+alwaysApply: true
+---
+
+# Workflow агентов spec_cars_web
+
+**Источник правды по архитектуре:** `.cursor/planner/PROJECT_PRINCIPLES.md` — читать перед любой задачей.
+
+**Запрет догадок:** `evidence-based-work.mdc` — анализ и gate до любого изменения кода.
+
+## Разделение ролей (строго)
+
+| Действие | Кто может |
+|---|---|
+| Писать production-код | Developer |
+| Code Review | Reviewer |
+| Менять TASKS.md, SPEC.md, DONE.md и статусы | **только Orchestrator** |
+| Писать план в PLAN.md | **пользователь** (Planner прорабатывает) |
+| Переключать на другого агента | **только Orchestrator** |
+
+Ни один агент, кроме Orchestrator, не передаёт задачу другому агенту самостоятельно.
+Агент завершает свою часть и возвращает результат Orchestrator.
+
+## Файлы планирования
+
+Все файлы — в `.cursor/planner/`. В агентах допустимы короткие имена (`TASKS.md`), но путь всегда `.cursor/planner/TASKS.md`.
+
+| Файл | Назначение | Кто заполняет |
+|---|---|---|
+| `PROJECT_PRINCIPLES.md` | Архитектура: React, MobX, game loop, квесты | Planner / Architect (дополняют через Orchestrator) |
+| `PLAN.md` | План пользователя | Пользователь + Planner |
+| `TASKS.md` | Список задач с чекпоинтами (шаблон — в начале файла) | Orchestrator (текст от Planner) |
+| `SPEC.md` | Спецификация **активной** задачи (перезаписывается при смене задачи) | Orchestrator (текст от Architect + UI/UX + Art Director) |
+| `SOURCES.md` | Реестр документации и внешних источников | Orchestrator (дополняют Planner/Architect) |
+| `PROJECT_DOCS.md` | Постоянная техдокументация проекта | Technical Documentation Writer **после** завершения задачи |
+| `DONE.md` | Архив завершённых задач | Orchestrator |
+| `GAME_DESIGN_DRAFT.md` | Черновик идей геймдизайна (**вне** цепочки задач) | Orchestrator (текст от Game Design Director) |
+
+## Жизненный цикл задачи
+
+```
+Пользователь (PLAN.md) → Planner → TASKS.md [Контекст]
+  → [UI/UX Designer]           ← если ui-ux | mixed
+  → Architect → SPEC.md
+  → [Game Art Director]        ← если assets | mixed
+  → Developer → Reviewer
+  → [UI/UX приёмка]            ← если ui-ux | mixed
+  → [Art приёмка]              ← если assets | mixed
+  → [документация] → DONE
+```
+
+**Game Design Director** — только режим идей: `GAME_DESIGN_DRAFT.md`, **не** входит в TASK-XXX.
+
+Поле **«Контекст»** в задаче: `logic` | `ui-ux` | `assets` | `mixed`. Без контекста задача не активируется.
+
+Подробная маршрутизация: `.cursor/agents/orchestrator.md` § «Маршрутизация по контексту».
+
+При замечаниях Reviewer цикл: Developer → Reviewer (макс. 5 раз).
+
+Если агент не может продолжить из-за нехватки данных — **`Needs Clarification`** (формат в `evidence-based-work.mdc`).
+
+Developer **не пишет код** до завершения фазы анализа (чтение файлов, grep, таблица влияния, gate).
+
+## Зацикливание
+
+При 3-м цикле Developer→Reviewer Orchestrator запрашивает анализ причины у Architect.
+При 5-м цикле — остановка, отчёт пользователю с анализом и рекомендациями.
+
+## Документация и внешние источники
+
+Перед реализацией разработчик **обязан** читать:
+
+1. `.cursor/planner/PROJECT_PRINCIPLES.md` — архитектурные ограничения (MobX, game loop, слои);
+2. `.cursor/planner/SPEC.md` — спецификация активной задачи;
+3. поле «Документация» в задаче (`.cursor/planner/TASKS.md`) и `.cursor/planner/SOURCES.md`.
+
+`.cursor/planner/PROJECT_DOCS.md` обновляется **только после** завершения задачи (Technical Documentation Writer).
+Не выдумывать игровую логику и API.
+Подробности: `documentation-sources.mdc`.
+
+## Orchestrator
+
+Единственная точка входа для пользователя. Координирует всех агентов.
+Описание: `.cursor/agents/orchestrator.md`

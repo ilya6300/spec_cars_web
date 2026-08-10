@@ -1,15 +1,17 @@
 .quest-car-other {
   position: absolute;
-  width: 250px;
+  top: var(--car-lane-y);
+  left: 0;
+  width: var(--traffic-car-width);
   height: auto;
-  top: 65%;
+  transform: translateY(calc(-100% + var(--car-wheel-offset)));
   z-index: 50;
   transition: none;
 }
 /* 
 .quest-car-enemy {
   position: absolute;
-  width: 250px;
+  width: var(--traffic-car-width);
   height: auto;
   top: 58%;
   z-index: 50;
@@ -18,7 +20,7 @@
 
 .quest-car-civilian {
   position: absolute;
-  width: 250px;
+  width: var(--traffic-car-width);
   height: auto;
   top: 58%;
   z-index: 50;
@@ -42,7 +44,7 @@
 }
 
 .speed-display.critical {
-  color: red;
+  color: var(--ui-danger);
   animation: speed-pulse 0.5s ease-in-out infinite alternate;
 }
 .arrest-button-quest-car-map {

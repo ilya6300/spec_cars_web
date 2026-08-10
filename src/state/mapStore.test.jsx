@@ -1,35 +1,110 @@
 import { expect, test } from 'vitest';
 import MapStore from './mapStore';
+import { buildInitialNextSpawnDistances } from './objects';
+test('buildInitialNextSpawnDistances includes all object types', () => {
+  const distances = buildInitialNextSpawnDistances();
+  expect(distances.building).toBe(0);
+  expect(distances.gas_station).toBe(30000);
+  expect(distances.human_aggr1).toBe(17700);
+  expect(distances.human1).toBe(150);
+});
 
-test('MapStore: startPedestrianCrossingQuest', () => {
+test('MapStore: nextSpawnDistances initialized from objectConfigs', () => {
   const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
-  
+  expect(store.nextSpawnDistances.human_aggr2).toBe(25000);
+  expect(store.nextSpawnDistances.traffic_light).toBe(8000);
+});
+
+test('MapStore: initQuestCrossing', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.offsetX = 5000;
+
   expect(store.isPedestrianCrossingQuestActive).toBe(false);
   expect(store.pedestrianCrossingTargetObject).toBeNull();
-  expect(store.pedestrianCarPosition).toBe(-150);
-  expect(store.pedestrianState).toBe('waiting');
-  
-  const targetObj = { uid: 'test_uid', typeId: 'human1' };
-  store.startPedestrianCrossingQuest(targetObj);
-  
+
+  const obj = {
+    uid: 'crossing_uid',
+    typeId: 'traffic_light_quest_crossing',
+    worldX: 5500,
+    appeared: false,
+  };
+  store.activeObjects = [obj];
+
+  window.__PLAYWRIGHT__ = true;
+  store.__forcePedestrianCrossOnRed = true;
+  store.initQuestCrossing(obj);
+  delete window.__PLAYWRIGHT__;
+
   expect(store.isPedestrianCrossingQuestActive).toBe(true);
-  expect(store.pedestrianCrossingTargetObject).toEqual(targetObj);
-  expect(store.pedestrianCarPosition).toBe(-150);
-  expect(store.pedestrianState).toBe('waiting');
+  expect(store.pedestrianCrossingTargetObject?.uid).toBe(obj.uid);
+  expect(store.pedestrianCrossingTargetObject?.questCrossing).toBeTruthy();
+  expect(store.pedestrianCrossingTargetObject?.questCrossing.crossesOnRed).toBe(true);
+  expect(store.pedestrianCrossingTargetObject?.questCrossing.phase).toBe('waiting_red');
+  expect(store.pedestrianCrossingTargetObject?.questCrossing.humanWorldX).toBe(
+    5500 + 230 * 0.78,
+  );
+  expect(store.pedestrianCrossingTargetObject?.questCrossing.stopWorldX).toBe(
+    5500 + 230 * 0.78 - 230 * 0.84,
+  );
+  expect(store.pedestrianCrossingTargetObject?.questCrossing.redWalkTimer).toBeNull();
+  expect(store.pedestrianCrossingTargetObject?.questCrossing.greenSwitchTimer).toBeNull();
 });
 
 test('MapStore: finishPedestrianCrossingQuest', () => {
   const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
-  
-  store.startPedestrianCrossingQuest({ uid: 'test_uid', typeId: 'human1' });
-  expect(store.isPedestrianCrossingQuestActive).toBe(true);
-  
+  const obj = {
+    uid: 'crossing_uid',
+    typeId: 'traffic_light_quest_crossing',
+    worldX: 5500,
+    appeared: true,
+    questCrossing: {
+      humanType: 'human1',
+      crossesOnRed: true,
+      phase: 'stopped',
+      humanWorldX: 5400,
+      trafficLightGreen: false,
+      greenSwitchTimer: 0,
+      stopWorldX: 5400,
+      showFinishOverlay: true,
+    },
+  };
+  store.activeObjects = [obj];
+  store.isPedestrianCrossingQuestActive = true;
+  store.pedestrianCrossingTargetObject = obj;
+
+  const target = store.pedestrianCrossingTargetObject;
   store.finishPedestrianCrossingQuest();
-  
+
   expect(store.isPedestrianCrossingQuestActive).toBe(false);
   expect(store.pedestrianCrossingTargetObject).toBeNull();
-  expect(store.pedestrianCarPosition).toBe(-150);
-  expect(store.pedestrianState).toBe('waiting');
+  expect(target?.questCrossing.phase).toBe('finished');
+  expect(target?.questCrossing.showFinishOverlay).toBe(false);
+});
+
+test('MapStore: handlePedestrianCrossingClick shows finish overlay', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  const obj = {
+    uid: 'crossing_uid',
+    typeId: 'traffic_light_quest_crossing',
+    worldX: 5500,
+    appeared: true,
+    questCrossing: {
+      humanType: 'human1',
+      crossesOnRed: true,
+      phase: 'walking',
+      humanWorldX: 5400,
+      trafficLightGreen: false,
+      greenSwitchTimer: 0,
+      stopWorldX: 5400,
+      showFinishOverlay: false,
+    },
+  };
+
+  store.handlePedestrianCrossingClick(obj);
+
+  expect(obj.questCrossing.phase).toBe('stopped');
+  expect(obj.questCrossing.showFinishOverlay).toBe(true);
 });
 
 test('MapStore: questCarSpawnTimer initialized to 10', () => {
@@ -116,7 +191,7 @@ test('MapStore: checkQuestCarDistance sets questCarForArrest for enemy in [30, 2
   const enemyOutOfRange = { enemy: true, positionX: 400 };
   const civilian = { enemy: false, positionX: 100 };
 
-  store.checkQuestCarDistance([enemyInRange, enemyOutOfRange, civilian], 1024);
+  store.checkQuestCarDistance([enemyInRange, enemyOutOfRange, civilian]);
 
   expect(store.questCarForArrest).not.toBeNull();
   expect(store.questCarForArrest.positionX).toBe(150);
@@ -127,7 +202,7 @@ test('MapStore: checkQuestCarDistance clears questCarForArrest when no enemy in 
   store.questCarForArrest = { enemy: true, positionX: 150 };
 
   const enemyOutOfRange = { enemy: true, positionX: 300 };
-  store.checkQuestCarDistance([enemyOutOfRange], 1024);
+  store.checkQuestCarDistance([enemyOutOfRange]);
 
   expect(store.questCarForArrest).toBeNull();
 });
@@ -136,7 +211,28 @@ test('MapStore: checkQuestCarDistance ignores non-enemy cars', () => {
   const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
 
   const civilian = { enemy: false, positionX: 100 };
-  store.checkQuestCarDistance([civilian], 1024);
+  store.checkQuestCarDistance([civilian]);
 
   expect(store.questCarForArrest).toBeNull();
+});
+
+test('MapStore: spawnEnvironmentObjects skips peaceful humans in chase', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.gameMode = 'chase';
+  store.offsetX = 10000;
+  store.nextSpawnDistances.human1 = 0;
+
+  store.spawnEnvironmentObjects(1024);
+
+  const peacefulHumans = store.activeObjects.filter((obj) =>
+    /^human\d+$/.test(obj.typeId),
+  );
+  expect(peacefulHumans.length).toBe(0);
+});
+
+test('MapStore: startTrafficLightTimer no-op in chase', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.gameMode = 'chase';
+  store.startTrafficLightTimer();
+  expect(store.trafficLightTimer).toBeNull();
 });

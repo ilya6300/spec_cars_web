@@ -1,88 +1,243 @@
-/* Контейнер для центрирования и адаптивности */
-/* .bensin-container {
+.bensin-container {
+  flex-shrink: 0;
+}
+
+.canister {
+  position: relative;
+  width: 44px;
+  height: 58px;
+  border: 2px solid var(--ui-hud-accent-dim);
+  border-radius: 10px 10px 7px 7px;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 10px;
-  width: 100%;
-} */
-.header_interface {
-    display: flex;
-    flex-direction: row;
-    margin: 2vh 10px;
-    gap: 10px;
-}
-/* Контур и форма канистры */
-.canister {
-    position: relative;
-    width: 45px;
-    height: 60px;
-    border: 2px solid #737373bd;
-    border-radius: 12px 12px 6px 6px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: background 0.3s ease, border-color 0.3s ease;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  background: linear-gradient(
+    to top,
+    #22c55e 0%,
+    #84cc16 calc(var(--fuel-percent, 50%) * 0.5),
+    #eab308 var(--fuel-percent, 50%),
+    rgba(40, 40, 45, 0.9) var(--fuel-percent, 50%),
+    rgba(40, 40, 45, 0.9) 100%
+  );
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
-/* Горлышко канистры сверху */
 .canister::before {
-content: "";
-    position: absolute;
-    top: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 20px;
-    height: 3px;
-    background-color: inherit;
-    border: 3px solid #737373bd;
-    border-bottom: none;
-    border-radius: 4px 4px 0 0;
-    background: #737373bd;
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 5px;
+  border: 2px solid var(--ui-hud-accent-dim);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  background: rgba(60, 60, 65, 0.9);
 }
 
-/* Текст по центру */
+.canister--warning {
+  border-color: var(--ui-warning);
+  box-shadow: 0 0 10px var(--ui-warning-glow);
+}
+
+.canister--low {
+  border-color: var(--ui-danger);
+  animation: fuel-pulse 0.8s infinite alternate;
+  box-shadow: 0 0 12px var(--ui-danger-glow);
+}
+
+.canister-warning-icon {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ui-danger);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 18px;
+  text-align: center;
+  z-index: 2;
+}
+
 .fuel-text {
-  color: #ffffff;
+  color: var(--ui-hud-fg);
   font-family: sans-serif;
-  font-size: 20px;
+  font-size: 13px;
   font-weight: bold;
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
-  z-index: 10;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  z-index: 1;
   pointer-events: none;
 }
 
-/* Анимация мигания красным */
-.blink-red {
-  animation: blink 1s infinite alternate;
-}
-
-@keyframes blink {
+@keyframes fuel-pulse {
   0% {
-    border-color: #ef4444;
-    box-shadow: 0 0 5px #ef4444;
+    box-shadow: 0 0 8px var(--ui-danger-glow);
   }
   100% {
-    border-color: #374151;
-    box-shadow: 0 0 0px transparent;
+    box-shadow: 0 0 16px var(--ui-danger);
   }
 }
 
-/* Адаптивность под мобильные устройства (уменьшаем размер) */
-@media (max-width: 480px) {
-  /* .canister {
-    width: 80px;
-    height: 130px;
-    border-width: 3px;
+.help-badges {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.help-stars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: #ffd700;
+  font-size: 14px;
+  font-weight: 800;
+  flex-shrink: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.help-badges-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.help-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--ui-hud-accent-dim);
+  border-radius: 8px;
+  padding: 1px 2px;
+  min-width: auto;
+}
+
+.help-badge-meta {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.help-badge-label {
+  display: none;
+}
+
+.help-badge-icon {
+  display: block;
+  width: 64px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.help-badge-count {
+  font-weight: bold;
+  font-size: 14px;
+  min-width: 1ch;
+  color: var(--ui-hud-fg);
+  animation: badge-bounce 0.3s ease;
+}
+
+@keyframes badge-bounce {
+  0% {
+    transform: scale(1);
   }
+  50% {
+    transform: scale(1.35);
+    color: var(--ui-accent);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* TASK-020: ignition flash */
+@keyframes ignition-flash {
+  0% {
+    box-shadow: 0 0 0 0 var(--ui-accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
+.ignition-key--flash-on {
+  animation: ignition-flash 0.4s ease;
+  border-color: #22c55e !important;
+}
+
+.ignition-key--flash-off {
+  animation: ignition-flash 0.4s ease;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .help-badge-count,
+  .canister--low,
+  .ignition-key--flash-on,
+  .ignition-key--flash-off {
+    animation: none;
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape), (max-height: 500px) {
+  .canister {
+    width: 36px;
+    height: 46px;
+    border-radius: 8px 8px 6px 6px;
+  }
+
   .canister::before {
-    width: 20px;
-    height: 8px;
-    top: -11px;
-    border-width: 3px;
+    width: 16px;
+    height: 4px;
+    top: -6px;
   }
+
   .fuel-text {
-    font-size: 16px;
-  } */
+    font-size: 11px;
+  }
+
+  .canister-warning-icon {
+    width: 14px;
+    height: 14px;
+    font-size: 10px;
+    line-height: 14px;
+  }
+
+  .help-badges {
+    gap: 4px;
+  }
+
+  .help-badges-row {
+    gap: 4px;
+  }
+
+  .help-badge {
+    padding: 2px 4px;
+    border-radius: 6px;
+  }
+
+  .help-badge-icon {
+    width: 62px;
+    height: 32px;
+  }
+
+  .help-badge-count {
+    font-size: 12px;
+  }
 }

@@ -1,98 +1,213 @@
 import React from "react";
-import { observer } from "mobx-react-lite";
-import Objects from "../../state/objects";
-import { objectConfigs } from "../../state/objects";
 
-export const Maps = observer(({ map, distance, carStore, onClickObject }) => {
+import { observer } from "mobx-react-lite";
+
+import Objects, { objectConfigByType } from "../../state/objects";
+
+import { isNightChaseContext } from "../../state/modeScoring";
+
+import { isQuestCrossingType } from "../../state/questCrossingConstants";
+
+import "../../style/quest_crossing_object.css";
+
+
+
+export const Maps = observer(({ map, carStore, onClickObject }) => {
+
   const activeObjects = map.activeObjects || [];
-  const configMap = {};
-  objectConfigs.forEach((c) => {
-    configMap[c.type] = c;
-  });
+
+  const scrollX = map.offsetX;
+
+
 
   return (
+
     <div
+
       className="game-map"
+
       style={{
+
         backgroundImage: `url(${map.url})`,
+
       }}
+
     >
-      {/* Слой с прерывистой разметкой */}
+
       <div
+
         className="road-line"
+
         style={{
+
           backgroundImage: `url(${Objects.white_line})`,
-          backgroundPositionX: `-${distance}px`,
+
+          backgroundPositionX: `-${scrollX}px`,
+
         }}
+
       />
 
-      {/* Слой с объектами окружения */}
+
+
       {activeObjects.map((obj) => {
-        const config = configMap[obj.typeId];
+
+        const config = objectConfigByType[obj.typeId];
+
         if (!config) return null;
 
-        // Вычисляем экранную координату из мировой (аналог backgroundPositionX: -distance)
-        const screenX = obj.worldX - distance;
 
-        // Для светофора выбираем изображение по цвету
+
+        const screenX = obj.worldX - scrollX;
+
+
+
         const image =
+
           obj.typeId === "traffic_light"
-            ? map.trafficLightColor === "red"
-              ? Objects.trafficLightRed
-              : Objects.trafficLightGreen
-            : config.image;
+
+            ? isNightChaseContext(map)
+
+              ? Objects.trafficLightYellow
+
+              : map.trafficLightColor === "red"
+
+                ? Objects.trafficLightRed
+
+                : Objects.trafficLightGreen
+
+            : isQuestCrossingType(obj.typeId)
+
+              ? obj.questCrossing?.trafficLightGreen
+
+                ? Objects.trafficLightGreenQuestHuman
+
+                : Objects.trafficLightRedQuestHuman
+
+              : config.image;
+
+
+
+        const isCollectibleStar = obj.typeId === "collectible_star";
+
+        if (isCollectibleStar) return null;
+
+
+
+        const isQuestCrossing = isQuestCrossingType(obj.typeId);
+
+
 
         return (
+
           <div
+
             key={obj.uid}
-            className="game-object"
+
+            className={`game-object${isQuestCrossing ? " game-object--quest-crossing" : ""}`}
+
             data-type={obj.typeId}
+
+            data-uid={obj.uid}
+
             style={{
+
               backgroundImage: `url(${image})`,
+
               left: `${screenX}px`,
-              bottom: "65%",
-              zIndex: config.zIndex,
-              width: `${config.width}px`,
-              height: `${config.height}px`,
+
+              ...(isQuestCrossing
+
+                ? {}
+
+                : {
+
+                    bottom: "65%",
+
+                    zIndex: config.zIndex,
+
+                    width: `${config.width}px`,
+
+                    height: `${config.height}px`,
+
+                  }),
+
               backgroundSize: "contain",
+
               backgroundRepeat: "no-repeat",
+
             }}
+
             onClick={(e) => {
+
               e.stopPropagation();
+
               onClickObject(obj, config, map, carStore);
+
             }}
+
             onPointerDown={(e) => {
+
               e.stopPropagation();
-              const timeout = setTimeout(() => {
-                if (config.onLongPress) {
-                  config.onLongPress(obj, map, carStore);
-                }
+
+              if (obj.longPressTimeout) {
+
+                clearTimeout(obj.longPressTimeout);
+
+              }
+
+              obj.longPressTimeout = setTimeout(() => {
+
+                config.onLongPress?.(obj, map, carStore);
+
               }, 500);
-              e.currentTarget.longPressTimeout = timeout;
+
             }}
+
             onPointerUp={(e) => {
+
               e.stopPropagation();
-              const el = e.currentTarget;
-              if (el.longPressTimeout) {
-                clearTimeout(el.longPressTimeout);
-                el.longPressTimeout = null;
+
+              if (obj.longPressTimeout) {
+
+                clearTimeout(obj.longPressTimeout);
+
+                obj.longPressTimeout = null;
+
               }
-              // Останавливаем заправку при отпускании
+
               if (map.isRefueling) {
+
                 map.stopRefueling();
+
               }
+
             }}
+
             onPointerLeave={(e) => {
+
               e.stopPropagation();
-              const el = e.currentTarget;
-              if (el.longPressTimeout) {
-                clearTimeout(el.longPressTimeout);
-                el.longPressTimeout = null;
+
+              if (obj.longPressTimeout) {
+
+                clearTimeout(obj.longPressTimeout);
+
+                obj.longPressTimeout = null;
+
               }
+
             }}
+
           />
+
         );
+
       })}
+
     </div>
+
   );
+
 });
+
+

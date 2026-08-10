@@ -1,7 +1,7 @@
 import { observer } from "mobx-react-lite";
 import { CarModel } from "../car/CarModel";
 
-export const QuestCar = observer(({ questCarStore, mapStore }) => {
+export const QuestCar = observer(({ questCarStore, showHeadlights = false }) => {
   const screenX = questCarStore.positionX;
 
   return (
@@ -13,7 +13,12 @@ export const QuestCar = observer(({ questCarStore, mapStore }) => {
         left: `${screenX}px`,
       }}
     >
-      <CarModel carStore={questCarStore} typeBody={1}/>
+      <CarModel
+        carStore={questCarStore}
+        variant="traffic"
+        nested
+        showHeadlights={showHeadlights}
+      />
     </div>
   );
 });

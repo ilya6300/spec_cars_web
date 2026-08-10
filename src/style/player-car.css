@@ -1,0 +1,20 @@
+/* Машина игрока — police/body.png, shell_1.png */
+
+.car_container--player {
+  --car-wheel-offset: var(--player-car-wheel-offset);
+  --car-body-lift: var(--player-car-body-lift);
+  --car-wheel-bottom: var(--player-car-wheel-bottom);
+  --car-wheel-size: var(--player-car-wheel-size);
+  --car-wheel-left: var(--player-car-wheel-left);
+  --car-wheel-right: var(--player-car-wheel-right);
+
+  width: var(--player-car-width);
+}
+
+.car_container--player.car_container--standalone {
+  top: var(--player-car-lane-y);
+}
+
+.car_container--player .sirena-car-on {
+  transform: translateY(var(--player-car-body-lift));
+}

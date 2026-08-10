@@ -5,80 +5,118 @@
   left: 0;
   width: 100vw;
   height: 100dvh;
-  /* Запрещаем выделение элементов и скролл */
   overflow: hidden;
   pointer-events: none;
 }
 
-/* Контейнер машины — меняем только его, всё внутри подстроится автоматически */
+/* Общая разметка модели — геометрия задаётся модификаторами --player / --traffic */
 .car_container {
-  position: absolute;
-  top: 58%;
-  left: 30px;
-  transform: translateY(-45%); /* Стандартное центрирование */
-  /* Задаем размер через ширину, высота подстроится сама благодаря свойству картинок */
-  width: 250px;
   height: auto;
-  /* Для адаптивности на очень маленьких экранах (мобилках) можно использовать max-width: */
-  /* width: 25%; */
 }
 
-/* Кузов занимает 100% ширины контейнера и задает его реальную высоту */
+.car_container--standalone {
+  position: absolute;
+  left: 30px;
+  transform: translateY(calc(-100% + var(--car-wheel-offset)));
+}
+
+.car_container--nested {
+  position: relative;
+  top: auto;
+  left: auto;
+  width: 100%;
+  transform: none;
+}
+
 .car-body {
   display: block;
   width: 100%;
   height: auto;
+  position: relative;
+  z-index: 1;
+  transform: translateY(var(--car-body-lift));
 }
 
-/* Общие стили для колес — размеры и позиции строго в процентах от кузова! */
 .left-shell,
 .right-shell {
   position: absolute;
-  /* Ширина колеса в процентах от ширины всей машины */
-  width: 20%;
+  width: var(--car-wheel-size);
   height: auto;
-  /* Опускаем колеса к нижней кромке кузова */
-  /* bottom: -11%; */
+  bottom: var(--car-wheel-bottom);
+  z-index: 0;
 }
 
-/* Точное позиционирование по осям колес (подобрать под ваш спрайт кузова) */
 .left-shell {
-  left: 9%; /* Переднее или заднее колесо слева */
+  left: var(--car-wheel-left);
 }
 
 .right-shell {
-  left: 69%; /* Второе колесо справа */
+  left: var(--car-wheel-right);
 }
 
 .sirena-car-on {
   position: absolute;
   width: 35px;
-  /* height: 6px; */
   top: 2px;
   left: 38%;
   background-color: transparent;
   border: none;
-  /* border-radius: 50%; */
   animation: anim_siren_in_car 1.5s infinite ease-in-out;
 }
 
 @keyframes anim_siren_in_car {
   0% {
-    /* Синее неоновое свечение. Первое число — плотное, второе — рассеянное */
     box-shadow:
       0px 0px 10px 4px #0055ff,
       0px 0px 25px 8px #0022aa;
   }
   50% {
-    /* Красное неоновое свечение */
     box-shadow:
       0px 0px 10px 4px #ff0000,
       0px 0px 25px 8px #aa0000;
   }
   100% {
-    /* Возврат к синему */
     box-shadow:
       0px 0px 10px 4px #0055ff,
       0px 0px 25px 8px #0022aa;
+  }
+}
+
+.car_container--headlights {
+  isolation: isolate;
+}
+
+.car_container--headlights .car-body {
+  filter: drop-shadow(0 0 6px rgba(255, 248, 200, 0.35));
+}
+
+.car_container--headlights .left-shell,
+.car_container--headlights .right-shell {
+  z-index: 2;
+}
+
+.car-headlight-beam {
+  position: absolute;
+  bottom: 4%;
+  left: 84%;
+  width: min(340px, 58vw);
+  height: 32%;
+  transform-origin: left center;
+  transform: skewX(10deg);
+  background: linear-gradient(
+    to right,
+    rgba(255, 248, 210, 0.72) 0%,
+    rgba(255, 248, 210, 0.28) 38%,
+    rgba(255, 248, 210, 0.08) 62%,
+    transparent 100%
+  );
+  border-radius: 0 50% 50% 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .car_container--headlights .car-body {
+    filter: drop-shadow(0 0 4px rgba(255, 248, 200, 0.3));
   }
 }

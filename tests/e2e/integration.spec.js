@@ -1,41 +1,50 @@
 import { test, expect } from "@playwright/test";
-import { enablePlaywrightTestState, getHelpCounts, navigateToFreeMode } from "./helpers.js";
+import {
+  enablePlaywrightTestState,
+  getHelpCounts,
+  navigateToFreeMode,
+  startDriving,
+} from "./helpers.js";
 
 test.describe("Integration: Full Quest Flow", () => {
-  test.skip("Full flow: stop on red -> 30% chance -> pedestrian quest -> fine -> helpCounts increases", async ({
+  test.skip("Full flow: quest crossing spawn -> pedestrian fine -> helpCounts increases", async ({
     page,
   }) => {
     await enablePlaywrightTestState(page);
     await page.goto("/");
     await navigateToFreeMode(page);
 
-    let questStarted = false;
-    try {
-      await page.waitForSelector(".pedestrian-crossing-modal", {
-        state: "visible",
-        timeout: 30000,
-      });
-      questStarted = true;
-    } catch (e) {
-      console.log("Pedestrian quest did not start (30% chance)");
-    }
+    await startDriving(page, { gear: "1", gasMs: 2000 });
 
-    if (questStarted) {
-      const initialCounts = await getHelpCounts(page);
+    await page.evaluate(() => {
+      const mapStore = window.__TEST_STATE__?.activeMapStore;
+      if (!mapStore) return;
+      mapStore.__forcePedestrianCrossOnRed = true;
+      mapStore.nextSpawnDistances.traffic_light_quest_crossing = 0;
+      mapStore.offsetX = 15000;
+    });
 
-      await page.click(".quest-pedestrian");
-      await page.waitForSelector(".fine-button", { state: "visible" });
+    await page.waitForSelector('[data-type="traffic_light_quest_crossing"]', {
+      timeout: 30000,
+    });
+    await page.waitForSelector('[data-type="quest-crossing-human"]', {
+      timeout: 10000,
+    });
 
-      await page.click(".fine-button");
-      await page.waitForSelector(".pedestrian-crossing-modal", {
-        state: "hidden",
-      });
+    const initialCounts = await getHelpCounts(page);
 
-      const finalCounts = await getHelpCounts(page);
+    await page.click('[data-type="quest-crossing-human"]');
+    await page.waitForSelector('[data-type="pedestrian-fine-button"]', {
+      state: "visible",
+    });
+    await page.click('[data-type="pedestrian-fine-button"]');
+    await page.waitForSelector('[data-type="quest-finish-overlay"]');
+    await page.click('[data-type="quest-finish-continue"]');
 
-      expect(finalCounts.pedestrianFine).toBeGreaterThan(
-        initialCounts.pedestrianFine,
-      );
-    }
+    const finalCounts = await getHelpCounts(page);
+
+    expect(finalCounts.pedestrianFine).toBeGreaterThan(
+      initialCounts.pedestrianFine,
+    );
   });
 });

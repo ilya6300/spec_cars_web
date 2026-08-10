@@ -4,7 +4,7 @@ import { Car } from "../car/Car";
 import { Maps } from "../map/Maps";
 import { Controllers } from "../controllers/Controllers";
 import { PoliceQuestModal } from "./PoliceQuestModal";
-import { PedestrianCrossingModal } from "./PedestrianCrossingModal";
+import { PedestrianCrossingLayer } from "./PedestrianCrossingLayer";
 import { QuestArrestModal } from "./QuestArrestModal";
 import { QuestCar } from "./QuestCar";
 import { SpeedDisplay } from "./SpeedDisplay";
@@ -221,10 +221,12 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
 
       <PoliceQuestModal mapStore={activeMapStore} carStore={activeCarStore} />
 
-      <PedestrianCrossingModal
-        mapStore={activeMapStore}
-        carStore={activeCarStore}
-      />
+      {gameMode === "free" && (
+        <PedestrianCrossingLayer
+          mapStore={activeMapStore}
+          carStore={activeCarStore}
+        />
+      )}
 
       {activeMapStore.isQuestArrestActive && (
         <QuestArrestModal mapStore={activeMapStore} carStore={activeCarStore} />

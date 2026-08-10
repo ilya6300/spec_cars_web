@@ -20,7 +20,9 @@ test("tickGameFrame: вызывает физику, advance мира и tickWorl
   });
 
   expect(calls).toEqual(["physics", "advance", "traffic", "tickWorld"]);
-  expect(carStore.updatePhysics).toHaveBeenCalledWith(0.016);
+  expect(carStore.updatePhysics).toHaveBeenCalledWith(0.016, {
+    suppressDrivingBlocks: false,
+  });
   expect(mapStore.advance).toHaveBeenCalledWith(carStore.currentSpeed, 0.016);
   expect(carStore.checkTrafficLight).toHaveBeenCalledWith(mapStore);
   expect(mapStore.tickWorld).toHaveBeenCalledWith(carStore, 0.016, 800);

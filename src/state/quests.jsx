@@ -9,7 +9,8 @@ export const questsByService = {
     },
     {
       id: "pedestrian-fine",
-      trigger: "trafficLight",
+      trigger: "onAppear",
+      objectTypes: ["traffic_light_quest_crossing"],
       helpType: "pedestrianFine",
     },
     {

@@ -39,6 +39,7 @@ const createMapStore = () => ({
 const carStore = {
   addHelp: vi.fn(),
   toggleSirena: vi.fn(),
+  releaseGas: vi.fn(),
   sirena: false,
 };
 

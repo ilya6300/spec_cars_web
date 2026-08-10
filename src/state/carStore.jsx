@@ -71,8 +71,7 @@ class CarStore {
   // Состояние светофора
   isTrafficLightOnScreen = false;
   trafficLightColor = null; // 'red' | 'green' | null
-  pedestrianQuestTriggered = false;
-  trafficLightRedChecked = false; // Флаг: проверяли ли шанс квеста в текущем цикле красного света
+  trafficLightStopReleased = false;
 
   // Передача (МКПП)
   gear = "N"; // 'N' | '1' | '2' | '3' | '4'
@@ -366,8 +365,6 @@ class CarStore {
       runInAction(() => {
         this.isTrafficLightOnScreen = false;
         this.trafficLightColor = null;
-        this.pedestrianQuestTriggered = false;
-        this.trafficLightRedChecked = false;
       });
       return;
     }
@@ -381,58 +378,8 @@ class CarStore {
       } else {
         this.isTrafficLightOnScreen = false;
         this.trafficLightColor = null;
-        this.pedestrianQuestTriggered = false;
-        this.trafficLightRedChecked = false;
       }
     });
-
-    if (isNightChaseContext(mapStore)) {
-      return;
-    }
-
-    // Запуск квеста пешеходного перехода при остановке на красном светофоре (30% шанс)
-    // Срабатывает только при выключенной сирене и отсутствии других активных квестов
-    // Проверка происходит ТОЛЬКО ОДИН РАЗ за каждый цикл красного света
-    if (
-      this.isTrafficLightOnScreen &&
-      this.trafficLightColor === "red" &&
-      !this.pedestrianQuestTriggered &&
-      !mapStore.isPedestrianCrossingQuestActive &&
-      !mapStore.isPoliceQuestActive &&
-      !this.sirena &&
-      !this.trafficLightRedChecked
-    ) {
-      this.trafficLightRedChecked = true; // Помечаем, что проверили — больше не проверять в этом цикле
-
-      if (Math.random() < 0.3) {
-        const humanTypes = [
-          "human1",
-          "human2",
-          "human3",
-          "human4",
-          "human5",
-          "human6",
-          "human7",
-          "human8",
-          "human9",
-          "human10",
-          "human11",
-          "human12",
-          "human13",
-          "human14",
-          "human15",
-          "human16",
-        ];
-        const randomType =
-          humanTypes[Math.floor(Math.random() * humanTypes.length)];
-        const targetObj = {
-          uid: `pedestrian_quest_${Date.now()}_${Math.random()}`,
-          typeId: randomType,
-        };
-        mapStore.startPedestrianCrossingQuest(targetObj);
-        this.pedestrianQuestTriggered = true;
-      }
-    }
   }
 
   // Готовый признак: нужно ли останавливаться из-за светофора
@@ -442,7 +389,9 @@ class CarStore {
   }
 
   // ОДИН МЕТОД ДЛЯ ВНЕШНЕГО ОБЩИТЫВАНИЯ ФИЗИКИ
-  updatePhysics(deltaTime) {
+  updatePhysics(deltaTime, options = {}) {
+    const { suppressDrivingBlocks = false } = options;
+
     runInAction(() => {
       // 1. Логика расхода топлива
       if (this.isIgnitionOn && this.fuel > 0) {
@@ -455,9 +404,17 @@ class CarStore {
         this.persistFuel();
       }
 
-      // 1.5. Остановка на красном светофоре (только в зоне торможения)
-      if (this.shouldStopForLight) {
-        this.forceStop();
+      // 1.5. Красный светофор: однократный программный отпуск газа (без блокировки)
+      const shouldStopForRedLight =
+        this.shouldStopForLight && !suppressDrivingBlocks;
+
+      if (shouldStopForRedLight) {
+        if (!this.sirena && !this.trafficLightStopReleased) {
+          this.releaseGas();
+          this.trafficLightStopReleased = true;
+        }
+      } else {
+        this.trafficLightStopReleased = false;
       }
 
       // 2. Логика разгона и торможения с учётом передачи

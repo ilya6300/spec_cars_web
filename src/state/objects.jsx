@@ -3,6 +3,14 @@ import gasStation from "../assets/objects/gas_station.png";
 import trafficLightRed from "../assets/objects/traffic_light_red.png";
 import trafficLightGreen from "../assets/objects/traffic_light_green.png";
 import trafficLightYellow from "../assets/objects/traffic_light_yellow.png";
+import trafficLightRedQuestHuman from "../assets/objects/traffic_light_red_quest_human.png";
+import trafficLightGreenQuestHuman from "../assets/objects/traffic_light_green_quest_human.png";
+import {
+  QUEST_CROSSING_HEIGHT_DESKTOP,
+  QUEST_CROSSING_TYPE,
+  QUEST_CROSSING_WIDTH_DESKTOP,
+  QUEST_CROSSING_Z_INDEX,
+} from "./questCrossingConstants";
 import whiteLine from "../assets/objects/road_white_line.png";
 import { getDataSubObects, dataObjectsSub } from "./subobject";
 import humanAggr1Img from "../assets/objects/\police_quest/human_aggr1.png";
@@ -15,6 +23,8 @@ class ObjectsClass {
   trafficLightRed = trafficLightRed;
   trafficLightGreen = trafficLightGreen;
   trafficLightYellow = trafficLightYellow;
+  trafficLightRedQuestHuman = trafficLightRedQuestHuman;
+  trafficLightGreenQuestHuman = trafficLightGreenQuestHuman;
 }
 
 export class ObjectConfig {
@@ -54,6 +64,7 @@ function createPoliceAggroConfig({ type, image, initialSpawnDistance }) {
     maxDistance: 40000,
     initialSpawnDistance,
     onClick: (obj, mapStore, carStore) => {
+      carStore.releaseGas();
       mapStore.startQuest(obj);
       carStore.toggleSirena();
     },
@@ -139,7 +150,36 @@ const createDataObjects = () => {
       },
     });
 
-    objectConfigs.push(buildings, gasStationObj, trafficLightObj);
+    const trafficLightQuestCrossingObj = new ObjectConfig({
+      id: QUEST_CROSSING_TYPE,
+      type: QUEST_CROSSING_TYPE,
+      image: null,
+      zIndex: QUEST_CROSSING_Z_INDEX,
+      width: QUEST_CROSSING_WIDTH_DESKTOP,
+      height: QUEST_CROSSING_HEIGHT_DESKTOP,
+      minDistance: 3500,
+      maxDistance: 8000,
+      initialSpawnDistance: 12000,
+      onClick: () => {
+        /* ничего */
+      },
+      onLongPress: () => {
+        /* ничего */
+      },
+      onAppear: (objData, mapStore) => {
+        const obj = mapStore.activeObjects.find((entry) => entry.uid === objData.uid);
+        if (obj) {
+          mapStore.initQuestCrossing(obj);
+        }
+      },
+    });
+
+    objectConfigs.push(
+      buildings,
+      gasStationObj,
+      trafficLightObj,
+      trafficLightQuestCrossingObj,
+    );
 
     const collectibleStarObj = new ObjectConfig({
       id: "collectible_star",

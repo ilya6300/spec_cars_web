@@ -8,7 +8,15 @@ const STEP_SELECTORS = {
   "gas-pedal": '[data-type="gas-pedal"]',
   siren: '[data-type="siren"]',
   "gear-4": '[data-type="gear-4"]',
+  "gas-station": '[data-type="gas_station"]',
+  "pedestrian-human": '[data-type="quest-crossing-human"]',
 };
+
+const WORLD_STEPS = new Set([
+  "gas-station",
+  "roadside-bandit",
+  "pedestrian-human",
+]);
 
 function getFingerPosition(selector) {
   const el = document.querySelector(selector);
@@ -31,7 +39,11 @@ export const TutorialOverlay = observer(({ tutorialStore }) => {
       return undefined;
     }
 
-    const selector = STEP_SELECTORS[step];
+    const selector =
+      step === "roadside-bandit"
+        ? tutorialStore.banditTargetSelector
+        : STEP_SELECTORS[step];
+
     if (!selector) {
       setFingerPos(null);
       return undefined;
@@ -52,7 +64,22 @@ export const TutorialOverlay = observer(({ tutorialStore }) => {
       });
     };
 
-    // Кнопки UI статичны — обновляем только при смене шага и resize
+    if (WORLD_STEPS.has(step)) {
+      let frameId;
+      const loop = () => {
+        updatePosition();
+        frameId = requestAnimationFrame(loop);
+      };
+      frameId = requestAnimationFrame(loop);
+      window.addEventListener("resize", updatePosition);
+
+      return () => {
+        cancelAnimationFrame(frameId);
+        window.removeEventListener("resize", updatePosition);
+        setFingerPos(null);
+      };
+    }
+
     const frameId = requestAnimationFrame(updatePosition);
     window.addEventListener("resize", updatePosition);
 
@@ -61,7 +88,7 @@ export const TutorialOverlay = observer(({ tutorialStore }) => {
       window.removeEventListener("resize", updatePosition);
       setFingerPos(null);
     };
-  }, [step]);
+  }, [step, tutorialStore.banditTargetSelector]);
 
   if (!step || !fingerPos) return null;
 

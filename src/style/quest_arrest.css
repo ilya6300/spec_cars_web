@@ -1,3 +1,15 @@
+﻿@property --quest-lane-lift {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+
+@property --quest-car-tilt {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
 .quest-arrest-modal {
   position: fixed;
   top: 0;
@@ -26,33 +38,39 @@
   position: absolute;
   width: 200px;
   height: 100px;
+  --quest-lane-lift: 0%;
+  --quest-car-tilt: 0deg;
+  transform: translateY(calc(-100% + var(--car-wheel-offset)))
+    rotate(var(--quest-car-tilt));
 }
 
 .quest-arrest-target-car {
   z-index: 1201;
   animation: targetCarDrive 3s linear forwards;
-  top: 48%;
+  top: calc(var(--car-lane-y) - var(--quest-lane-lift));
 }
 
 .quest-arrest-police-car {
   z-index: 1202;
   animation: policeCarDrive 2.5s linear forwards;
-  top: 52%;
+  top: calc(var(--player-car-lane-y) - var(--quest-lane-lift));
 }
 
 @keyframes targetCarDrive {
   0% {
     left: -250px;
   }
+
   50% {
     left: 40%;
-     }
-  80% {
-    transform: rotate(-2deg);
   }
-  /* transform: rotate(-15deg); */
+
+  80% {
+    --quest-car-tilt: -2deg;
+  }
+
   100% {
-    top: 35%;
+    --quest-lane-lift: 13%;
     left: 57%;
   }
 }
@@ -61,17 +79,18 @@
   0% {
     left: -300px;
   }
+
   70% {
-    top: 42%;
+    --quest-lane-lift: 10%;
     left: 55%;
-    transform: rotate(0deg);
   }
+
   90% {
-    transform: rotate(-2deg);
+    --quest-car-tilt: -2deg;
   }
-  /* transform: rotate(-15deg); */
+
   100% {
-    top: 35%;
+    --quest-lane-lift: 17%;
     left: 70%;
   }
 }

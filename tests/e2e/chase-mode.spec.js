@@ -21,7 +21,7 @@ test.describe("Chase mode night fixes", () => {
     await startDriving(page, { gear: "2", gasMs: 3000 });
     await page.waitForTimeout(15000);
 
-    await expect(page.locator(".pedestrian-crossing-modal")).toHaveCount(0);
+    await expect(page.locator(".pedestrian-crossing-layer")).toHaveCount(0);
 
     const trafficLight = page.locator('[data-type="traffic_light"]').first();
     if ((await trafficLight.count()) > 0) {

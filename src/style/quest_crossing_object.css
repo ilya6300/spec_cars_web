@@ -1,0 +1,15 @@
+.game-object--quest-crossing {
+  bottom: 53%;
+  z-index: 2;
+  width: 230px;
+  height: 445px;
+}
+
+@media (max-width: 900px) and (orientation: landscape), (max-height: 500px) {
+  .game-object--quest-crossing {
+    bottom: 53%;
+    z-index: 2;
+    width: 200px;
+    height: 255px;
+  }
+}

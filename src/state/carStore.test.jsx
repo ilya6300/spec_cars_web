@@ -1,4 +1,4 @@
-import { expect, test, vi } from "vitest";
+import { expect, test } from "vitest";
 import CarStore from "./carStore";
 
 test("CarStore: addHelp increments helpCounts and sessionScore", () => {
@@ -59,29 +59,48 @@ test("CarStore: shouldStopForLight false in chase", () => {
   expect(store.shouldStopForLight).toBe(false);
 });
 
-test("CarStore: checkTrafficLight does not start pedestrian quest in chase", () => {
-  const startPedestrianCrossingQuest = vi.fn();
+test("CarStore: red light releases gas once without blocking re-press", () => {
+  const store = new CarStore({ id: "red-light-once", maxFuel: 100, fuel: 100 });
+  store.isIgnitionOn = true;
+  store.isTrafficLightOnScreen = true;
+  store.trafficLightColor = "red";
+  store.pressGas();
+
+  store.updatePhysics(0.016);
+  expect(store.isGasPressed).toBe(false);
+
+  store.pressGas();
+  store.updatePhysics(0.016);
+  expect(store.isGasPressed).toBe(true);
+});
+
+test("CarStore: red light does not release gas with siren", () => {
+  const store = new CarStore({ id: "red-light-siren", maxFuel: 100, fuel: 100 });
+  store.isIgnitionOn = true;
+  store.isTrafficLightOnScreen = true;
+  store.trafficLightColor = "red";
+  store.sirena = true;
+  store.pressGas();
+
+  store.updatePhysics(0.016);
+  expect(store.isGasPressed).toBe(true);
+});
+
+test("CarStore: checkTrafficLight tracks only regular traffic lights", () => {
   const mapStore = {
-    gameMode: "chase",
     offsetX: 500,
     trafficLightColor: "red",
-    isPedestrianCrossingQuestActive: false,
-    isPoliceQuestActive: false,
-    startPedestrianCrossingQuest,
     activeObjects: [
       {
-        typeId: "traffic_light",
+        typeId: "traffic_light_quest_crossing",
         worldX: 900,
       },
     ],
   };
-  const store = new CarStore({ id: "ped-chase", maxFuel: 100, fuel: 100 });
-  store.sirena = false;
-
-  const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+  const store = new CarStore({ id: "quest-crossing-light", maxFuel: 100, fuel: 100 });
 
   store.checkTrafficLight(mapStore);
 
-  expect(startPedestrianCrossingQuest).not.toHaveBeenCalled();
-  randomSpy.mockRestore();
+  expect(store.isTrafficLightOnScreen).toBe(false);
+  expect(store.trafficLightColor).toBeNull();
 });

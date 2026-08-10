@@ -30,6 +30,24 @@ export const Controllers = observer(
     return undefined;
   }, [activeCarStore.isIgnitionOn]);
 
+  useEffect(() => {
+    const releaseGasIfPressed = () => {
+      if (activeCarStore.isGasPressed) {
+        activeCarStore.releaseGas();
+      }
+    };
+
+    window.addEventListener("pointerup", releaseGasIfPressed);
+    window.addEventListener("pointercancel", releaseGasIfPressed);
+    window.addEventListener("blur", releaseGasIfPressed);
+
+    return () => {
+      window.removeEventListener("pointerup", releaseGasIfPressed);
+      window.removeEventListener("pointercancel", releaseGasIfPressed);
+      window.removeEventListener("blur", releaseGasIfPressed);
+    };
+  }, [activeCarStore]);
+
   const ignitionClass = [
     "ignition-key",
     ignitionFlash,

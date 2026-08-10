@@ -20,6 +20,8 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
   const lastTimeRef = useRef(performance.now());
   const finishTimerRef = useRef(null);
   const dismissCalledRef = useRef(false);
+  const carRef = useRef(null);
+  const targetRef = useRef(null);
   const [carArrived, setCarArrived] = useState(false);
   const [finishPhase, setFinishPhase] = useState("idle");
 
@@ -28,6 +30,7 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
       return;
     }
     dismissCalledRef.current = true;
+    carStore.releaseGas();
 
     const target = mapStore.questTargetObject;
     if (!target) {
@@ -48,6 +51,8 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
   }, [mapStore, carStore]);
 
   const handleArrest = useCallback(() => {
+    carStore.releaseGas();
+
     const target = mapStore.questTargetObject;
     if (target) {
       setFinishPhase("waiting");
@@ -76,15 +81,34 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
       return;
     }
 
+    carStore.releaseGas();
     setCarArrived(false);
     setFinishPhase("idle");
     dismissCalledRef.current = false;
 
-    const modalWidth = window.innerWidth;
-    const carWidth = 250;
-    const targetWidth = 150;
-    const gap = 100;
-    const endPosition = modalWidth - targetWidth - carWidth - gap;
+    let endPosition = 0;
+    let cancelled = false;
+
+    const measureEndPosition = () => {
+      const targetEl = targetRef.current;
+      const carEl = carRef.current;
+      if (!targetEl || !carEl) {
+        return null;
+      }
+
+      const targetRect = targetEl.getBoundingClientRect();
+      const carWidth = carEl.getBoundingClientRect().width;
+      if (carWidth <= 0) {
+        return null;
+      }
+
+      const isMobile = window.matchMedia(
+        "(max-width: 900px) and (orientation: landscape), (max-height: 500px)",
+      ).matches;
+      const gap = isMobile ? 20 : 60;
+
+      return Math.max(-150, targetRect.left - carWidth - gap);
+    };
 
     const animate = (currentTime) => {
       const deltaTime = (currentTime - lastTimeRef.current) / 1000;
@@ -109,16 +133,32 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
       }
     };
 
-    lastTimeRef.current = performance.now();
-    animationRef.current = requestAnimationFrame(animate);
+    const startWhenReady = () => {
+      if (cancelled) {
+        return;
+      }
+
+      const measured = measureEndPosition();
+      if (measured === null) {
+        animationRef.current = requestAnimationFrame(startWhenReady);
+        return;
+      }
+
+      endPosition = measured;
+      lastTimeRef.current = performance.now();
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animationRef.current = requestAnimationFrame(startWhenReady);
 
     return () => {
+      cancelled = true;
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
       policeCarStore.current?.dispose();
     };
-  }, [mapStore.isPoliceQuestActive, mapStore.questTargetObject]);
+  }, [mapStore.isPoliceQuestActive, mapStore.questTargetObject, carStore]);
 
   useEffect(() => {
     if (finishPhase !== "waiting") {
@@ -168,6 +208,7 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
 
       {/* Машина подъезжает слева */}
       <div
+        ref={carRef}
         className="quest-car"
         style={{ left: `${mapStore.questCarPosition}px` }}
       >
@@ -175,7 +216,7 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
       </div>
 
       {/* Целевой объект справа */}
-      <div className="quest-target">
+      <div ref={targetRef} className="quest-target">
         <img src={targetImage} alt="Target" className="target-image" />
       </div>
 

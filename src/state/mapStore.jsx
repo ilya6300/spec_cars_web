@@ -4,6 +4,20 @@ import {
   objectConfigByType,
   buildInitialNextSpawnDistances,
 } from "./objects";
+import { dataObjectsSub } from "./subobject";
+import {
+  CROSS_ON_RED_CHANCE,
+  getCrosswalkStartX,
+  getCrosswalkStopX,
+  getQuestCrossingLayout,
+  isQuestCrossingEngaged,
+  isQuestCrossingType,
+  QUEST_CROSSING_HUMAN_WIDTH,
+  QUEST_CROSSING_WIDTH_DESKTOP,
+  randomGreenSwitchDelay,
+  randomRedWalkDelay,
+  WALK_SPEED,
+} from "./questCrossingConstants";
 import QuestCarStore from "./questCarStore";
 import Cars from "./cars";
 import {
@@ -77,9 +91,8 @@ class MapStore {
   // Pedestrian Crossing Quest state
   isPedestrianCrossingQuestActive = false;
   pedestrianCrossingTargetObject = null;
-  pedestrianCarPosition = -150;
-  pedestrianState = "waiting"; // "waiting" | "walking" | "stopped"
-  pedestrianIsCarArrived = false;
+  lastViewportWidth = 1024;
+  __forcePedestrianCrossOnRed = false;
 
   // Quest Cars state
   questCars = [];
@@ -111,6 +124,7 @@ class MapStore {
 
   /** Один тик мира после advance: спавн, деспавн, quest-cars, зона ареста */
   tickWorld(carStore, deltaTime, viewportWidth) {
+    this.lastViewportWidth = viewportWidth;
     this.updateQuestCarSpawner(deltaTime);
     this.spawnEnvironmentObjects(viewportWidth);
     this.despawnObjects(viewportWidth);
@@ -118,6 +132,7 @@ class MapStore {
     this.updateCollectibleStarSpawner(deltaTime, viewportWidth);
     this.checkCollectibleStarPickup();
     this.updateQuestCars(deltaTime);
+    this.updateQuestCrossings(deltaTime, viewportWidth);
     this.checkQuestCarDistance();
   }
 
@@ -329,6 +344,10 @@ class MapStore {
         return;
       }
 
+      if (isQuestCrossingType(config.type) && isNightChaseContext(this)) {
+        return;
+      }
+
       const nextSpawn = this.nextSpawnDistances[config.type];
 
       if (this.offsetX >= nextSpawn) {
@@ -376,6 +395,27 @@ class MapStore {
         if (obj.typeId === "traffic_light") {
           this.trafficLightOnTheMap =
             screenX < viewportWidth && screenX + config.width > 0;
+        }
+
+        if (isQuestCrossingType(obj.typeId)) {
+          const objectVisible = screenX > -config.width;
+          let humanVisible = false;
+          if (obj.questCrossing) {
+            const humanScreenX =
+              obj.questCrossing.humanWorldX - this.offsetX;
+            humanVisible =
+              humanScreenX > -QUEST_CROSSING_HUMAN_WIDTH;
+          }
+          const visible = objectVisible || humanVisible;
+          if (!visible) {
+            if (obj.longPressTimeout) {
+              clearTimeout(obj.longPressTimeout);
+              obj.longPressTimeout = null;
+            }
+            this.clearPedestrianQuestTargetIfMatches(obj);
+            return false;
+          }
+          return true;
         }
 
         const visible = screenX > -config.width;
@@ -543,9 +583,145 @@ class MapStore {
     });
   }
 
-  updatePedestrianCarPosition(newPosition) {
+  clearPedestrianQuestTargetIfMatches(obj) {
+    if (this.pedestrianCrossingTargetObject?.uid === obj.uid) {
+      this.isPedestrianCrossingQuestActive = false;
+      this.pedestrianCrossingTargetObject = null;
+    }
+  }
+
+  initQuestCrossing(obj) {
+    if (isNightChaseContext(this)) return;
+    if (
+      this.isPedestrianCrossingQuestActive ||
+      this.isPoliceQuestActive ||
+      this.isQuestArrestActive
+    ) {
+      return;
+    }
+    if (this.carStore?.sirena) return;
+    if (obj.questCrossing) return;
+
+    const humanTypes = dataObjectsSub.filter((entry) =>
+      /^human\d+$/.test(entry.type),
+    );
+    if (humanTypes.length === 0) return;
+
+    const randomHuman =
+      humanTypes[Math.floor(Math.random() * humanTypes.length)];
+    const crossesOnRed =
+      typeof window !== "undefined" &&
+      window.__PLAYWRIGHT__ &&
+      this.__forcePedestrianCrossOnRed
+        ? true
+        : Math.random() < CROSS_ON_RED_CHANCE;
+
+    const forceInstantWalk =
+      typeof window !== "undefined" &&
+      window.__PLAYWRIGHT__ &&
+      this.__forcePedestrianCrossOnRed;
+
+    const layout = getQuestCrossingLayout(this.lastViewportWidth);
+
     runInAction(() => {
-      this.pedestrianCarPosition = newPosition;
+      obj.questCrossing = {
+        humanType: randomHuman.type,
+        crossesOnRed,
+        phase: crossesOnRed ? "waiting_red" : "waiting_green",
+        crossingWidth: layout.width,
+        humanWorldX: getCrosswalkStartX(obj.worldX, layout.width),
+        trafficLightGreen: false,
+        greenSwitchTimer: null,
+        redWalkTimer: null,
+        forceInstantWalk,
+        stopWorldX: getCrosswalkStopX(obj.worldX, layout.width),
+        showFinishOverlay: false,
+      };
+      this.isPedestrianCrossingQuestActive = true;
+      this.pedestrianCrossingTargetObject = obj;
+    });
+  }
+
+  updateQuestCrossings(deltaTime, viewportWidth) {
+    runInAction(() => {
+      for (const obj of this.activeObjects) {
+        if (!isQuestCrossingType(obj.typeId) || !obj.questCrossing) continue;
+
+        const qc = obj.questCrossing;
+        if (qc.phase === "finished") continue;
+
+        const config = objectConfigByType[obj.typeId];
+        const crossingWidth =
+          qc.crossingWidth ?? config?.width ?? QUEST_CROSSING_WIDTH_DESKTOP;
+        const screenX = obj.worldX - this.offsetX;
+        const engaged = isQuestCrossingEngaged(
+          screenX,
+          crossingWidth,
+          viewportWidth,
+        );
+
+        if (qc.phase === "waiting_green") {
+          if (engaged) {
+            if (qc.greenSwitchTimer === null) {
+              qc.greenSwitchTimer = qc.forceInstantWalk
+                ? 0.05
+                : randomGreenSwitchDelay();
+            }
+            qc.greenSwitchTimer -= deltaTime;
+            if (qc.greenSwitchTimer <= 0) {
+              qc.trafficLightGreen = true;
+              qc.phase = "walking";
+            }
+          }
+        }
+
+        if (qc.phase === "waiting_red") {
+          if (engaged) {
+            if (qc.redWalkTimer === null) {
+              qc.redWalkTimer = qc.forceInstantWalk
+                ? 0.05
+                : randomRedWalkDelay();
+            }
+            qc.redWalkTimer -= deltaTime;
+            if (qc.redWalkTimer <= 0) {
+              qc.phase = "walking";
+            }
+          }
+        }
+
+        if (qc.phase === "walking") {
+          qc.humanWorldX -= WALK_SPEED * deltaTime;
+
+          if (qc.humanWorldX <= qc.stopWorldX) {
+            qc.phase = "stopped";
+            qc.humanWorldX = qc.stopWorldX;
+          }
+        }
+      }
+    });
+  }
+
+  handlePedestrianCrossingClick(obj) {
+    const qc = obj.questCrossing;
+    if (!qc || !qc.crossesOnRed) return;
+    if (qc.phase !== "walking" && qc.phase !== "stopped") return;
+    if (qc.showFinishOverlay) return;
+
+    runInAction(() => {
+      qc.phase = "stopped";
+      qc.showFinishOverlay = true;
+    });
+  }
+
+  finishPedestrianCrossingQuest() {
+    runInAction(() => {
+      const obj = this.pedestrianCrossingTargetObject;
+      if (obj?.questCrossing) {
+        obj.questCrossing.phase = "finished";
+        obj.questCrossing.showFinishOverlay = false;
+      }
+      this.isPedestrianCrossingQuestActive = false;
+      this.pedestrianCrossingTargetObject = null;
     });
   }
 
@@ -657,41 +833,6 @@ class MapStore {
     });
   }
 
-  // Pedestrian Crossing Quest methods
-  startPedestrianCrossingQuest(targetObj) {
-    runInAction(() => {
-      this.isPedestrianCrossingQuestActive = true;
-      this.pedestrianCrossingTargetObject = targetObj;
-      this.pedestrianCarPosition = -150;
-      this.pedestrianState = "waiting";
-      this.pedestrianIsCarArrived = false;
-    });
-  }
-
-  finishPedestrianCrossingQuest() {
-    runInAction(() => {
-      this.isPedestrianCrossingQuestActive = false;
-      this.pedestrianCrossingTargetObject = null;
-      this.pedestrianCarPosition = -150;
-      this.pedestrianState = "waiting";
-      this.pedestrianIsCarArrived = false;
-
-      // После квеста — зелёный, чтобы не зависать на красном
-      this.trafficLightColor = "green";
-
-      if (this.carStore) {
-        this.carStore.pedestrianQuestTriggered = false;
-        this.carStore.trafficLightRedChecked = true;
-        if (this.carStore.isTrafficLightOnScreen) {
-          this.carStore.trafficLightColor = "green";
-        }
-      }
-
-      if (!this.trafficLightTimer) {
-        this.startTrafficLightTimer();
-      }
-    });
-  }
 }
 
 export default MapStore;

@@ -105,7 +105,7 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
       const isMobile = window.matchMedia(
         "(max-width: 900px) and (orientation: landscape), (max-height: 500px)",
       ).matches;
-      const gap = isMobile ? 20 : 60;
+      const gap = isMobile ? 20 : 18;
 
       return Math.max(-150, targetRect.left - carWidth - gap);
     };
@@ -116,6 +116,11 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
 
       const speed = 450;
       const delta = speed * deltaTime;
+
+      const remeasured = measureEndPosition();
+      if (remeasured !== null) {
+        endPosition = remeasured;
+      }
 
       if (mapStore.questCarPosition < endPosition) {
         const newPos = Math.min(mapStore.questCarPosition + delta, endPosition);

@@ -10,6 +10,13 @@ import {
   GAME_MODES,
   isNightChaseContext,
 } from "./modeScoring";
+import { getPlayerCarRightEdgePx } from "./mapStore";
+import {
+  TRAFFIC_LIGHT_DETECT_GAP_PX,
+  TRAFFIC_LIGHT_MAX_BRAKE,
+  TRAFFIC_LIGHT_STOP_GAP_PX,
+  TRAFFIC_LIGHT_STOP_TOLERANCE_PX,
+} from "./trafficLightConstants";
 
 class CarStore {
   id = 0;
@@ -71,6 +78,8 @@ class CarStore {
   // Состояние светофора
   isTrafficLightOnScreen = false;
   trafficLightColor = null; // 'red' | 'green' | null
+  trafficLightDistance = null; // screen px левого края traffic_light
+  trafficLightGap = null; // зазор: traffic_light left − правый край машины
   trafficLightStopReleased = false;
 
   // Передача (МКПП)
@@ -288,6 +297,9 @@ class CarStore {
   }
 
   pressGas() {
+    if (this.shouldStopForLight && !this.sirena) {
+      return;
+    }
     if (this.fuel > 0) {
       this.fuelConsumption = 1.5;
       this.isGasPressed = true;
@@ -346,7 +358,7 @@ class CarStore {
   }
 
   // Обновление состояния светофора из mapStore
-  // Срабатывает только когда расстояние до ближайшего светофора в зоне 300–700 px
+  // Отслеживает ближайший traffic_light впереди (зазор от правого края машины)
   checkTrafficLight(mapStore) {
     let nearestLight = null;
     let nearestDistance = Infinity;
@@ -365,21 +377,42 @@ class CarStore {
       runInAction(() => {
         this.isTrafficLightOnScreen = false;
         this.trafficLightColor = null;
+        this.trafficLightDistance = null;
+        this.trafficLightGap = null;
       });
       return;
     }
 
-    const distance = nearestDistance;
+    const lightScreenX = nearestDistance;
+    const carRight = getPlayerCarRightEdgePx(mapStore.lastViewportWidth);
+    const gapToLight = lightScreenX - carRight;
 
     runInAction(() => {
-      if (distance <= 700 && distance > 300) {
+      if (gapToLight > -80 && gapToLight <= TRAFFIC_LIGHT_DETECT_GAP_PX) {
         this.isTrafficLightOnScreen = true;
         this.trafficLightColor = mapStore.trafficLightColor;
+        this.trafficLightDistance = lightScreenX;
+        this.trafficLightGap = gapToLight;
       } else {
         this.isTrafficLightOnScreen = false;
         this.trafficLightColor = null;
+        this.trafficLightDistance = null;
+        this.trafficLightGap = null;
       }
     });
+  }
+
+  getTrafficLightGapToStop() {
+    if (this.trafficLightGap !== null) {
+      return this.trafficLightGap;
+    }
+    if (this.trafficLightDistance === null || !this.mapStore) {
+      return null;
+    }
+    return (
+      this.trafficLightDistance -
+      getPlayerCarRightEdgePx(this.mapStore.lastViewportWidth)
+    );
   }
 
   // Готовый признак: нужно ли останавливаться из-за светофора
@@ -404,16 +437,13 @@ class CarStore {
         this.persistFuel();
       }
 
-      // 1.5. Красный светофор: однократный программный отпуск газа (без блокировки)
+      // 1.5. Красный светофор: блок газа и плавное торможение до 50–80 px (сирена — без блокировки)
       const shouldStopForRedLight =
         this.shouldStopForLight && !suppressDrivingBlocks;
 
-      if (shouldStopForRedLight) {
-        if (!this.sirena && !this.trafficLightStopReleased) {
-          this.releaseGas();
-          this.trafficLightStopReleased = true;
-        }
-      } else {
+      if (shouldStopForRedLight && !this.sirena) {
+        this.isGasPressed = false;
+      } else if (!shouldStopForRedLight) {
         this.trafficLightStopReleased = false;
       }
 
@@ -431,15 +461,42 @@ class CarStore {
           this.currentSpeed + this.acceleration * deltaTime,
         );
       } else {
-        if (!this.mapStore?.questCarForArrest) {
+        let deceleration = this.mapStore?.questCarForArrest
+          ? this.friction / 4
+          : this.friction;
+        let holdSpeed = false;
+
+        if (
+          shouldStopForRedLight &&
+          !this.sirena &&
+          this.trafficLightDistance !== null
+        ) {
+          const gapToLight = this.getTrafficLightGapToStop();
+          if (gapToLight === null) {
+            // fallback
+          } else if (gapToLight <= TRAFFIC_LIGHT_STOP_GAP_PX + TRAFFIC_LIGHT_STOP_TOLERANCE_PX) {
+            this.currentSpeed = 0;
+            holdSpeed = true;
+          } else if (this.currentSpeed > 0) {
+            const remaining = gapToLight - TRAFFIC_LIGHT_STOP_GAP_PX;
+            const brakingDistance =
+              (this.currentSpeed * this.currentSpeed) /
+              (2 * TRAFFIC_LIGHT_MAX_BRAKE);
+            const brakeMargin = 35;
+            if (remaining > brakingDistance + brakeMargin) {
+              holdSpeed = true;
+            } else {
+              const requiredDecel =
+                (this.currentSpeed * this.currentSpeed) / (2 * remaining);
+              deceleration = Math.min(requiredDecel, TRAFFIC_LIGHT_MAX_BRAKE);
+            }
+          }
+        }
+
+        if (!holdSpeed) {
           this.currentSpeed = Math.max(
             0,
-            this.currentSpeed - this.friction * deltaTime,
-          );
-        } else {
-          this.currentSpeed = Math.max(
-            0,
-            this.currentSpeed - (this.friction / 4) * deltaTime,
+            this.currentSpeed - deceleration * deltaTime,
           );
         }
       }

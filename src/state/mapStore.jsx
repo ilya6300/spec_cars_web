@@ -51,6 +51,18 @@ const starDebugLog = (location, message, data, hypothesisId) => {
 
 export const STAR_PICKUP_MIN_X = 30;
 export const STAR_PICKUP_MAX_X = 280;
+export const PLAYER_CAR_LEFT_PX = 30;
+export const PLAYER_CAR_WIDTH_DESKTOP_PX = 250;
+export const PLAYER_CAR_WIDTH_MOBILE_PX = 220;
+
+/** Правый край машины игрока на экране (совпадает с CSS left + width) */
+export function getPlayerCarRightEdgePx(viewportWidth = 1024) {
+  const isMobileLandscape = viewportWidth <= 900;
+  const width = isMobileLandscape
+    ? PLAYER_CAR_WIDTH_MOBILE_PX
+    : PLAYER_CAR_WIDTH_DESKTOP_PX;
+  return PLAYER_CAR_LEFT_PX + width;
+}
 export const STAR_SPAWN_RIGHT_INSET = 16;
 
 class MapStore {
@@ -97,6 +109,7 @@ class MapStore {
   // Quest Cars state
   questCars = [];
   questCarSpawnTimer = 10;
+  civilianQuestCarSpawnTimer = 5;
   questCarForArrest = null;
 
   // Quest Arrest modal state
@@ -104,6 +117,8 @@ class MapStore {
   arrestAnimFinished = false;
 
   gameMode = "free";
+
+  sessionElapsedSec = 0;
 
   questsAtLastStarEvent = 0;
   collectibleStarSpawnTimer = null;
@@ -125,6 +140,9 @@ class MapStore {
   /** Один тик мира после advance: спавн, деспавн, quest-cars, зона ареста */
   tickWorld(carStore, deltaTime, viewportWidth) {
     this.lastViewportWidth = viewportWidth;
+    runInAction(() => {
+      this.sessionElapsedSec += deltaTime;
+    });
     this.updateQuestCarSpawner(deltaTime);
     this.spawnEnvironmentObjects(viewportWidth);
     this.despawnObjects(viewportWidth);
@@ -319,10 +337,66 @@ class MapStore {
   }
 
   updateQuestCarSpawner(deltaTime) {
+    if (!isNightChaseContext(this)) {
+      this.civilianQuestCarSpawnTimer -= deltaTime;
+      if (this.civilianQuestCarSpawnTimer <= 0) {
+        this.spawnCivilianQuestCar();
+      }
+    }
+
     this.questCarSpawnTimer -= deltaTime;
     if (this.questCarSpawnTimer <= 0) {
-      this.spawnQuestCar();
+      this.spawnEnemyQuestCar();
     }
+  }
+
+  randomCivilianQuestCarSpawnDelay() {
+    return 5 + Math.random() * 10;
+  }
+
+  randomEnemyQuestCarSpawnDelay() {
+    if (this.gameMode === "chase") {
+      return 8 + Math.random() * 7;
+    }
+    return 10 + Math.random() * 20;
+  }
+
+  spawnCivilianQuestCar() {
+    const pool = Cars.otherCars.filter((car) => !car.enemy);
+    if (pool.length === 0) return;
+
+    const randomCarData = pool[Math.floor(Math.random() * pool.length)];
+    const questCar = new QuestCarStore(randomCarData);
+    const viewportWidth = window.innerWidth;
+
+    questCar.spawn(viewportWidth + 200, questCar.currentSpeed);
+
+    runInAction(() => {
+      this.questCars.push(questCar);
+      this.civilianQuestCarSpawnTimer = this.randomCivilianQuestCarSpawnDelay();
+    });
+  }
+
+  spawnEnemyQuestCar() {
+    const pool = Cars.otherCars.filter((car) => car.enemy);
+    if (pool.length === 0) return;
+
+    const randomCarData = pool[Math.floor(Math.random() * pool.length)];
+
+    if (this.isEnemyQuestCarSpawnBlocked()) {
+      runInAction(() => {
+        this.questCarSpawnTimer = this.randomEnemyQuestCarSpawnDelay();
+      });
+      return;
+    }
+
+    const questCar = new QuestCarStore(randomCarData);
+    questCar.spawn(-200, questCar.currentSpeed);
+
+    runInAction(() => {
+      this.questCars.push(questCar);
+      this.questCarSpawnTimer = this.randomEnemyQuestCarSpawnDelay();
+    });
   }
 
   getVisibleQuestCars(viewportWidth, margin = QUEST_CAR_VISIBLE_MARGIN) {
@@ -333,10 +407,33 @@ class MapStore {
     );
   }
 
+  hasVisiblePoliceAggroOnScreen(viewportWidth = this.lastViewportWidth) {
+    return this.activeObjects.some((obj) => {
+      if (!/^human_aggr\d+$/.test(obj.typeId)) return false;
+      const config = objectConfigByType[obj.typeId];
+      if (!config) return false;
+      const screenX = obj.worldX - this.offsetX;
+      return screenX < viewportWidth && screenX + config.width > 0;
+    });
+  }
+
+  isEnemyQuestCarSpawnBlocked() {
+    return (
+      this.isPoliceQuestActive ||
+      this.isPedestrianCrossingQuestActive ||
+      this.isQuestArrestActive ||
+      this.sessionElapsedSec < 30
+    );
+  }
+
   // Спавн объектов окружения справа за экраном
   spawnEnvironmentObjects(viewportWidth) {
     objectConfigs.forEach((config) => {
       if (config.type === "collectible_star") {
+        return;
+      }
+
+      if (/^human_aggr\d+$/.test(config.type) && this.isPedestrianCrossingQuestActive) {
         return;
       }
 
@@ -543,6 +640,10 @@ class MapStore {
   }
 
   startQuest(targetObj) {
+    if (this.isPedestrianCrossingQuestActive) {
+      return;
+    }
+
     runInAction(() => {
       this.isPoliceQuestActive = true;
       this.questTargetObject = targetObj;
@@ -595,7 +696,8 @@ class MapStore {
     if (
       this.isPedestrianCrossingQuestActive ||
       this.isPoliceQuestActive ||
-      this.isQuestArrestActive
+      this.isQuestArrestActive ||
+      this.hasVisiblePoliceAggroOnScreen()
     ) {
       return;
     }
@@ -725,40 +827,6 @@ class MapStore {
     });
   }
 
-  spawnQuestCar() {
-    let pool = Cars.otherCars;
-    if (this.gameMode === "chase") {
-      pool = Cars.otherCars.filter((car) => car.enemy);
-    }
-
-    if (pool.length === 0) return;
-
-    const randomCarData = pool[Math.floor(Math.random() * pool.length)];
-
-    const questCar = new QuestCarStore(randomCarData);
-
-    const viewportWidth = window.innerWidth;
-    let positionX;
-    let speed = questCar.currentSpeed;
-
-    if (questCar.enemy) {
-      positionX = -200;
-    } else {
-      positionX = viewportWidth + 200;
-    }
-
-    questCar.spawn(positionX, speed);
-
-    runInAction(() => {
-      this.questCars.push(questCar);
-      if (this.gameMode === "chase") {
-        this.questCarSpawnTimer = 8 + Math.random() * 7;
-      } else {
-        this.questCarSpawnTimer = 10 + Math.random() * 20;
-      }
-    });
-  }
-
   collectCollectibleStar(uid) {
     runInAction(() => {
       this.removeObjectByUid(uid);
@@ -772,10 +840,14 @@ class MapStore {
 
     runInAction(() => {
       for (const questCar of this.questCars) {
-        if (questCar.active) {
-          questCar.updatePosition(deltaTime, policeSpeed);
-          questCar.updateWheelRotation(deltaTime);
+        if (!questCar.active) continue;
+
+        if (!questCar.enemy && !isNightChaseContext(this)) {
+          questCar.updateCivilianTrafficLight(deltaTime, this);
         }
+
+        questCar.updatePosition(deltaTime, policeSpeed);
+        questCar.updateWheelRotation(deltaTime);
       }
     });
   }
@@ -785,7 +857,8 @@ class MapStore {
       if (index >= 0 && index < this.questCars.length) {
         this.questCars.splice(index, 1);
         if (this.questCars.length === 0) {
-          this.questCarSpawnTimer = 10 + Math.random() * 20;
+          this.questCarSpawnTimer = this.randomEnemyQuestCarSpawnDelay();
+          this.civilianQuestCarSpawnTimer = this.randomCivilianQuestCarSpawnDelay();
         }
       }
     });

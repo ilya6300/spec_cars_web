@@ -42,8 +42,8 @@ class ObjectConfigHuman {
     this.zIndex = 1;
     this.width = 60;
     this.height = 100;
-    this.minDistance = 50;
-    this.maxDistance = 6000;
+    this.minDistance = 100;
+    this.maxDistance = 12000;
     this.initialSpawnDistance = config.initialSpawnDistance ?? 0;
   }
 }

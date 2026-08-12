@@ -59,19 +59,74 @@ test("CarStore: shouldStopForLight false in chase", () => {
   expect(store.shouldStopForLight).toBe(false);
 });
 
-test("CarStore: red light releases gas once without blocking re-press", () => {
-  const store = new CarStore({ id: "red-light-once", maxFuel: 100, fuel: 100 });
+test("CarStore: red light blocks gas until green", () => {
+  const store = new CarStore({ id: "red-light-block", maxFuel: 100, fuel: 100 });
+  store.mapStore = { lastViewportWidth: 1024 };
   store.isIgnitionOn = true;
   store.isTrafficLightOnScreen = true;
   store.trafficLightColor = "red";
+  store.trafficLightDistance = 360;
+  store.trafficLightGap = 80;
   store.pressGas();
 
   store.updatePhysics(0.016);
   expect(store.isGasPressed).toBe(false);
+  expect(store.currentSpeed).toBe(0);
 
   store.pressGas();
-  store.updatePhysics(0.016);
+  expect(store.isGasPressed).toBe(false);
+
+  store.trafficLightColor = "green";
+  store.pressGas();
   expect(store.isGasPressed).toBe(true);
+});
+
+test("CarStore: red light smooth brake stops 80px after car right edge", () => {
+  const store = new CarStore({
+    id: "red-light-smooth",
+    maxFuel: 100,
+    fuel: 100,
+    friction: 160,
+    maxSpeed: 400,
+  });
+  store.mapStore = { lastViewportWidth: 1024 };
+  const carRight = 280;
+  store.isIgnitionOn = true;
+  store.gear = "2";
+  store.isTrafficLightOnScreen = true;
+  store.trafficLightColor = "red";
+  store.trafficLightDistance = carRight + 350;
+  store.trafficLightGap = 350;
+  store.currentSpeed = 80;
+
+  for (let i = 0; i < 800; i++) {
+    store.updatePhysics(0.016);
+    if (store.currentSpeed > 0) {
+      store.trafficLightDistance -= store.currentSpeed * 0.016;
+      store.trafficLightGap = store.trafficLightDistance - carRight;
+    }
+    if (store.currentSpeed === 0) break;
+  }
+
+  expect(store.currentSpeed).toBe(0);
+  expect(store.trafficLightGap).toBeGreaterThanOrEqual(72);
+  expect(store.trafficLightGap).toBeLessThanOrEqual(88);
+});
+
+test("CarStore: checkTrafficLight tracks gap below 300px ahead of car", () => {
+  const mapStore = {
+    offsetX: 1000,
+    lastViewportWidth: 1024,
+    trafficLightColor: "red",
+    activeObjects: [{ typeId: "traffic_light", worldX: 1380 }],
+  };
+  const store = new CarStore({ id: "light-near", maxFuel: 100, fuel: 100 });
+
+  store.checkTrafficLight(mapStore);
+
+  expect(store.isTrafficLightOnScreen).toBe(true);
+  expect(store.trafficLightDistance).toBe(380);
+  expect(store.trafficLightGap).toBe(100);
 });
 
 test("CarStore: red light does not release gas with siren", () => {

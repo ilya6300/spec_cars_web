@@ -1,7 +1,7 @@
 # Техническая документация spec_cars_web
 
 > Постоянная документация для разработчиков. Дополняет `.cursor/planner/PROJECT_PRINCIPLES.md`.
-> Обновляется **только после завершения задачи** (последнее: TASK-035, 7 авг. 2026).
+> Обновляется **только после завершения задачи** (последнее: TASK-045, 12 авг. 2026).
 
 ---
 
@@ -259,7 +259,7 @@ Pedestrian crossing: только Y-fix; `.modal-background` без измене
 
 После клика CTA в квест-модалке («Арестовать» / «Выписать штраф») кнопка скрывается, через **1 с** показывается `QuestFinishOverlay` (finish-badge в золотой рамке на glass-подложке, dimmer 60%). Tap по dimmer или «Продолжить» → **отложенные** побочные эффекты (`addHelp`, `removeObject*`, `finishQuest*`). MobX-флаги квеста (`isPoliceQuestActive` и др.) остаются `true` до dismiss — модалка не размонтируется раньше overlay.
 
-Состояние overlay — **локальный React state** (`finishPhase`) в каждой модалке; `mapStore` не менялся.
+Состояние overlay — `finishPhase` в `PoliceQuestModal` / `QuestArrestModal`; pedestrian — `questCrossing.showFinishOverlay` в `mapStore`, рендер в `Game.jsx` (TASK-040). `mapStore` для overlay state не менялся (кроме pedestrian flags).
 
 ### Finish flow (фазы)
 
@@ -291,7 +291,7 @@ Guard: `dismissCalledRef` предотвращает двойной вызов; 
 | Модалка | CTA | variant | Deferred `onDismiss` |
 |---------|-----|---------|----------------------|
 | `PoliceQuestModal` | `.arrest-button` | `criminal` | `removeObjectByUid`, `addHelp(criminalArrest)`, siren off, `finishQuest()` — только ветка `questTargetObject` |
-| `PedestrianCrossingModal` | `.fine-button` | `pedestrian` | `stopAnimations()` на клике; dismiss: `finishPedestrianCrossingQuest`, `addHelp("pedestrianFine")`, siren off |
+| Pedestrian crossing (`Game.jsx`, TASK-040) | click human on red | `pedestrian` | dismiss: `finishPedestrianCrossingQuest`, `addHelp("pedestrianFine")` |
 | `QuestArrestModal` | `.arrest-button-quest-car-map` | `enemy` | `addHelp("enemyChase")`, `toggleSirena`, `finishQuestArrest()` |
 
 Ветка `questCar` в `PoliceQuestModal.handleArrest` — без изменений (мгновенный finish, вне scope).
@@ -838,5 +838,176 @@ Touch targets (mobile, не ниже SPEC):
 - Finish flow (`finishPhase`, deferred `onDismiss`) — без изменений
 - Все `data-type` сохранены; E2E specs не менялись
 - z-index 1500/1501 — без изменений
+
+---
+
+## [TASK-040] Quest finish overlay — рендер в Game.jsx (PLAN §1)
+
+**Дата:** 2026-08-12
+
+### Описание
+
+Pedestrian `QuestFinishOverlay` вынесен из `.pedestrian-crossing-layer` в корень `Game.jsx` (после `Controllers`), чтобы overlay (z-index 1501) не ограничивался stacking context layer (55). Human остаётся в layer z-index 55 — не перекрывает панель управления (110).
+
+### Реализация
+
+- `PedestrianCrossingLayer.jsx` — только human sprite; overlay и `QuestFinishOverlay` import убраны
+- `Game.jsx` — overlay при `pedestrianCrossingTargetObject.questCrossing.showFinishOverlay`; guards: free mode, нет police/arrest quest
+- `onDismiss`: `finishPedestrianCrossingQuest()` + `addHelp("pedestrianFine")`
+- `PoliceQuestModal` / `QuestArrestModal` — finish overlay без изменений (внутри модалок)
+
+### Влияние
+
+- `data-type="quest-finish-continue"` кликабелен на mobile и desktop
+- E2E: `pedestrian-quest.spec.js`
+
+---
+
+## [TASK-041] Police quest — подъезд к human_aggr на desktop (PLAN §2)
+
+**Дата:** 2026-08-12
+
+### Описание
+
+В квесте ареста `human_aggr*` полицейская машина в модалке подъезжает вплотную к цели на desktop.
+
+### Реализация
+
+- `PoliceQuestModal.jsx` — `measureEndPosition()`: desktop gap **18px** (было 60), mobile landscape **20px**; remeasure каждый кадр анимации (`endPosition` обновляется в rAF)
+
+### Влияние
+
+- Скорость подъезда 450 px/s без изменений (TASK-025)
+- E2E: `police-quest.spec.js`
+
+---
+
+## [TASK-042] Красный `traffic_light` — стоп и блок газа без сирены (PLAN §3)
+
+**Дата:** 2026-08-12
+
+### Описание
+
+Только обычный `traffic_light`. Без сирены: полиция останавливается на красный; газ заблокирован до зелёного. **`traffic_light_quest_crossing` и pedestrian quest не затронуты.**
+
+### Реализация
+
+- `carStore.jsx`:
+  - `shouldStopForLight` — `isTrafficLightOnScreen && trafficLightColor === "red"` (night/chase — false)
+  - `pressGas()` — early return при `shouldStopForLight && !sirena`
+  - `updatePhysics` — при красном без сирены: блок газа + плавное торможение (TASK-046)
+  - `checkTrafficLight` — только `typeId === "traffic_light"` (quest crossing игнорируется)
+
+---
+
+## [TASK-046] Плавная остановка перед `traffic_light` на красный (PLAN §1)
+
+**Дата:** 2026-08-12
+
+### Описание
+
+На передачах 1/2 машина останавливалась ~250–350 px от светофора (зона детекта 300–700 px + мгновенный стоп). Цель: остановка в **50–80 px** с плавным торможением по скорости.
+
+### Реализация
+
+- `carStore.jsx`:
+  - `trafficLightDistance` — screen px до светофора
+  - `checkTrafficLight` — детект до 700 px (без нижней границы 300 px)
+  - `TRAFFIC_LIGHT_STOP_TARGET_PX = 65`, `STOP_MAX = 80`
+  - Далеко от цели: удержание скорости (без трения)
+  - В зоне торможения: `decel = v²/(2·remaining)`, cap `TRAFFIC_LIGHT_MAX_BRAKE`
+  - В зоне 50–80 px: `currentSpeed = 0`
+
+### Влияние
+
+- Pedestrian quest / quest crossing — без изменений
+- Сирена — без изменений
+- Vitest: `carStore.test.jsx` — smooth brake + distance &lt; 300 px
+
+---
+
+## [TASK-047] Civilian quest-cars — остановка на красный `traffic_light` (PLAN §1)
+
+**Дата:** 2026-08-12
+
+### Описание
+
+Гражданские AI-машины (`enemy=false`) останавливаются на красный обычный `traffic_light` с тем же зазором 80 px что полиция; после зелёного — отложенный старт 0.3–1.5 s. **Не затрагивает** `enemy=true`, chase mode, pedestrian quest и `traffic_light_quest_crossing`.
+
+### Реализация
+
+- `trafficLightConstants.js` — общие константы и `getNearestTrafficLightScreenX`
+- `questCarStore.jsx`:
+  - `updateCivilianTrafficLight` — brake/accel/delay для civilian
+  - `approachRemaining = positionX - lightScreenX + STOP_GAP` (подход сзади на экране)
+- `mapStore.updateQuestCars` — вызов только для `!enemy && !isNightChaseContext`
+- `carStore.jsx` — импорт констант (логика полиции без изменений)
+
+### Влияние
+
+- Police quest, arrest quest, pedestrian crossing — без изменений
+- Enemy quest-cars — без изменений
+
+---
+
+## [TASK-043] Peaceful human spawn ×0.5 (PLAN §4.1)
+
+**Дата:** 2026-08-12
+
+### Описание
+
+Частота спавна `human1`–`human16` снижена в 2×. `human_aggr*` без изменений.
+
+### Реализация
+
+- `subobject.jsx` — `ObjectConfigHuman`: `minDistance` 50→**100**, `maxDistance` 6000→**12000** (интервал в `spawnEnvironmentObjects` удваивается)
+
+### Влияние
+
+- Trees и quest objects — без изменений
+
+---
+
+## [TASK-044] Mutex human_aggr ↔ pedestrian crossing (PLAN §4.2)
+
+**Дата:** 2026-08-12
+
+### Описание
+
+Квесты `human_aggr*` и pedestrian crossing не должны быть на экране одновременно.
+
+### Реализация
+
+- `mapStore.jsx`:
+  - `startQuest` — return если `isPedestrianCrossingQuestActive`
+  - `spawnEnvironmentObjects` — skip `human_aggr*` при активном pedestrian quest
+  - `initQuestCrossing` — blocked при `isPoliceQuestActive`, `isQuestArrestActive`, `hasVisiblePoliceAggroOnScreen()`
+  - `hasVisiblePoliceAggroOnScreen(viewportWidth)` — on-screen `human_aggr*` в viewport
+
+### Влияние
+
+- Pedestrian quest logic (red walk, finish overlay) — без изменений
+
+---
+
+## [TASK-045] Enemy quest-car — 30 с + gate активного квеста (PLAN §4.3)
+
+**Дата:** 2026-08-12
+
+### Описание
+
+`enemy: true` quest-cars не спавнятся при активном квесте и не раньше **30 с** от начала сессии.
+
+### Реализация
+
+- `mapStore.jsx`:
+  - `sessionElapsedSec` — накопление в `tickWorld`
+  - `isEnemyQuestCarSpawnBlocked()` — `isPoliceQuestActive || isPedestrianCrossingQuestActive || isQuestArrestActive || sessionElapsedSec < 30`
+  - `spawnQuestCar` — при blocked enemy: перезапуск `questCarSpawnTimer`, без спавна; civilian cars без gate
+
+### Влияние
+
+- Chase mode timer логика spawn — без изменений для civilian pool
+- `checkQuestCarDistance` / arrest range — без изменений
 
 ---

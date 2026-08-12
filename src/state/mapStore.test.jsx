@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import MapStore from './mapStore';
 import { buildInitialNextSpawnDistances } from './objects';
 test('buildInitialNextSpawnDistances includes all object types', () => {
@@ -111,6 +111,7 @@ test('MapStore: questCarSpawnTimer initialized to 10', () => {
   const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
   
   expect(store.questCarSpawnTimer).toBe(10);
+  expect(store.civilianQuestCarSpawnTimer).toBe(5);
 });
 
 test('MapStore: removeQuestCarByIndex removes car and resets timer when array empty', () => {
@@ -124,6 +125,8 @@ test('MapStore: removeQuestCarByIndex removes car and resets timer when array em
   expect(store.questCars.length).toBe(0);
   expect(store.questCarSpawnTimer).toBeGreaterThanOrEqual(10);
   expect(store.questCarSpawnTimer).toBeLessThanOrEqual(30);
+  expect(store.civilianQuestCarSpawnTimer).toBeGreaterThanOrEqual(5);
+  expect(store.civilianQuestCarSpawnTimer).toBeLessThanOrEqual(15);
 });
 
 test('MapStore: questCarActive field does not exist', () => {
@@ -132,25 +135,146 @@ test('MapStore: questCarActive field does not exist', () => {
   expect(store.questCarActive).toBeUndefined();
 });
 
-test('MapStore: spawnQuestCar creates car without blocking checks', () => {
+test('MapStore: spawnCivilianQuestCar creates civilian car', () => {
   const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
   store.carStore = { gear: 'N', currentSpeed: 0 };
+  store.sessionElapsedSec = 30;
   
-  // Мокаем window.innerWidth
   const originalInnerWidth = window.innerWidth;
   window.innerWidth = 1024;
   
-  store.spawnQuestCar();
+  store.spawnCivilianQuestCar();
   
   expect(store.questCars.length).toBe(1);
-  expect(store.questCarSpawnTimer).toBeGreaterThanOrEqual(10);
-  expect(store.questCarSpawnTimer).toBeLessThanOrEqual(30);
+  expect(store.questCars[0].enemy).toBe(false);
+  expect(store.civilianQuestCarSpawnTimer).toBeGreaterThanOrEqual(5);
+  expect(store.civilianQuestCarSpawnTimer).toBeLessThanOrEqual(15);
   
-  // Второй спавн — тоже создаёт машину
-  store.spawnQuestCar();
+  store.spawnCivilianQuestCar();
   expect(store.questCars.length).toBe(2);
   
   window.innerWidth = originalInnerWidth;
+});
+
+test('MapStore: spawnEnemyQuestCar creates enemy when spawn gates pass', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.carStore = { gear: 'N', currentSpeed: 0 };
+  store.sessionElapsedSec = 30;
+  
+  store.spawnEnemyQuestCar();
+  
+  expect(store.questCars.length).toBe(1);
+  expect(store.questCars[0].enemy).toBe(true);
+  expect(store.questCarSpawnTimer).toBeGreaterThanOrEqual(10);
+  expect(store.questCarSpawnTimer).toBeLessThanOrEqual(30);
+});
+
+test('MapStore: spawnEnemyQuestCar blocks enemy during active police quest', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.carStore = { gear: 'N', currentSpeed: 0 };
+  store.sessionElapsedSec = 30;
+  store.isPoliceQuestActive = true;
+
+  store.spawnEnemyQuestCar();
+
+  expect(store.questCars.length).toBe(0);
+  expect(store.questCarSpawnTimer).toBeGreaterThanOrEqual(10);
+});
+
+test('MapStore: spawnEnemyQuestCar blocks enemy before 30s session', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.carStore = { gear: 'N', currentSpeed: 0 };
+  store.sessionElapsedSec = 5;
+
+  store.spawnEnemyQuestCar();
+
+  expect(store.questCars.length).toBe(0);
+  expect(store.questCarSpawnTimer).toBeGreaterThanOrEqual(10);
+});
+
+test('MapStore: spawnCivilianQuestCar allows civilian during active quest', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.carStore = { gear: 'N', currentSpeed: 0 };
+  store.isPoliceQuestActive = true;
+  store.sessionElapsedSec = 30;
+
+  store.spawnCivilianQuestCar();
+
+  expect(store.questCars.length).toBe(1);
+  expect(store.questCars[0].enemy).toBe(false);
+});
+
+test('MapStore: tickWorld accumulates sessionElapsedSec', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.carStore = {
+    currentSpeed: 0,
+    isStarCollectionUnlocked: false,
+    totalQuestCompletions: 0,
+  };
+
+  store.tickWorld(store.carStore, 0.5, 1024);
+
+  expect(store.sessionElapsedSec).toBe(0.5);
+});
+
+test('MapStore: spawnEnvironmentObjects skips human_aggr when pedestrian quest active', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.isPedestrianCrossingQuestActive = true;
+  store.offsetX = 20000;
+  store.nextSpawnDistances.human_aggr1 = 0;
+
+  store.spawnEnvironmentObjects(1024);
+
+  const policeAggro = store.activeObjects.filter((obj) =>
+    /^human_aggr\d+$/.test(obj.typeId),
+  );
+  expect(policeAggro.length).toBe(0);
+});
+
+test('MapStore: initQuestCrossing blocked when human_aggr visible on screen', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.offsetX = 1000;
+  const obj = {
+    uid: 'crossing_uid',
+    typeId: 'traffic_light_quest_crossing',
+    worldX: 5500,
+    appeared: false,
+  };
+  store.activeObjects = [
+    { uid: 'aggr', typeId: 'human_aggr1', worldX: 1100, appeared: true },
+    obj,
+  ];
+
+  store.initQuestCrossing(obj);
+
+  expect(store.isPedestrianCrossingQuestActive).toBe(false);
+  expect(store.pedestrianCrossingTargetObject).toBeNull();
+});
+
+test('MapStore: startQuest blocked when pedestrian quest active', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.isPedestrianCrossingQuestActive = true;
+  const target = { uid: 'aggr', typeId: 'human_aggr1', worldX: 1200 };
+
+  store.startQuest(target);
+
+  expect(store.isPoliceQuestActive).toBe(false);
+  expect(store.questTargetObject).toBeNull();
+});
+
+test('MapStore: hasVisiblePoliceAggroOnScreen detects on-screen human_aggr', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.offsetX = 1000;
+  store.activeObjects = [
+    { uid: 'aggr', typeId: 'human_aggr1', worldX: 1100, appeared: true },
+  ];
+
+  expect(store.hasVisiblePoliceAggroOnScreen()).toBe(true);
+
+  store.activeObjects[0].worldX = 3000;
+  expect(store.hasVisiblePoliceAggroOnScreen()).toBe(false);
 });
 
 test('MapStore: updateQuestCars does not filter or remove cars', () => {
@@ -159,6 +283,7 @@ test('MapStore: updateQuestCars does not filter or remove cars', () => {
   
   // Добавляем машины вручную
   const mockCar1 = {
+    enemy: true,
     active: true,
     updatePosition: (dt, speed) => { mockCar1.positionX = (mockCar1.positionX || 0) + (mockCar1.currentSpeed - speed) * dt; },
     updateWheelRotation: () => {},
@@ -166,6 +291,7 @@ test('MapStore: updateQuestCars does not filter or remove cars', () => {
     positionX: 100,
   };
   const mockCar2 = {
+    enemy: true,
     active: true,
     updatePosition: (dt, speed) => { mockCar2.positionX = (mockCar2.positionX || 0) + (mockCar2.currentSpeed - speed) * dt; },
     updateWheelRotation: () => {},

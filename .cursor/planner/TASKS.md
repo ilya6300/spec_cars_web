@@ -1,16 +1,9 @@
 # Задачи spec_cars_web
 
-> План: `.cursor/planner/PLAN.md` (Approved 7 авг. 2026)  
-> Исключено: PLAN §9 (баланс топлива) — `fuelConsumption` не менять
+> План: `.cursor/planner/PLAN.md` (Approved 12 авг. 2026)
 
 **Активная задача:** —  
-**Последнее закрытие:** TASK-039 → `DONE.md`
-
----
-
-## TASK-039: Map-based pedestrian crossing quest (закрыта)
-
-Перенос квеста пешеходного перехода на открытую карту + фиксы размера объекта и задержки human на красном. → `DONE.md`
+**Последнее закрытие:** TASK-047 → `DONE.md`
 
 ---
 

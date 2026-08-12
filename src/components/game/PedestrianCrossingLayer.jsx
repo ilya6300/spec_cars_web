@@ -1,7 +1,5 @@
 import { observer } from "mobx-react-lite";
-import { runInAction } from "mobx";
 import { dataObjectsSub } from "../../state/subobject";
-import { QuestFinishOverlay } from "./QuestFinishOverlay";
 import "../../style/pedestrian_crossing_layer.css";
 
 export const PedestrianCrossingLayer = observer(({ mapStore, carStore }) => {
@@ -32,13 +30,6 @@ export const PedestrianCrossingLayer = observer(({ mapStore, carStore }) => {
     mapStore.handlePedestrianCrossingClick(targetObj);
   };
 
-  const handleFinishDismiss = () => {
-    mapStore.finishPedestrianCrossingQuest();
-    runInAction(() => {
-      carStore.addHelp("pedestrianFine");
-    });
-  };
-
   return (
     <div
       className="pedestrian-crossing-layer"
@@ -57,10 +48,6 @@ export const PedestrianCrossingLayer = observer(({ mapStore, carStore }) => {
         }}
         onClick={handleHumanClick}
       />
-
-      {questCrossing.showFinishOverlay && (
-        <QuestFinishOverlay variant="pedestrian" onDismiss={handleFinishDismiss} />
-      )}
     </div>
   );
 });

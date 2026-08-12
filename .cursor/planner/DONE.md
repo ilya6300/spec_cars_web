@@ -7,8 +7,127 @@
 **UI wave (TASK-016…022) закрыта:** 5 авг. 2026  
 **PLAN wave (TASK-024+):** TASK-024…028 закрыты 7 авг. 2026  
 **Pedestrian quest rework:** TASK-039 закрыта 10 авг. 2026  
-**Проверка:** `npm test` 108/108  
+**Bug-fix iteration (TASK-040…045):** закрыта 12 авг. 2026  
+**Traffic light stop distance (TASK-046):** закрыта 12 авг. 2026  
+**Civilian traffic light stop (TASK-047):** закрыта 12 авг. 2026  
+**Проверка:** `npm test` 148/148  
 **Источник UI wave:** `UI_UX_DRAFT.md`
+
+---
+
+## TASK-047: Civilian quest-cars — остановка на красный светофор (PLAN §1)
+
+**Статус:** DONE  
+**Закрыто:** 12 авг. 2026  
+**Контекст:** logic
+
+| Критерий | Результат |
+|---|---|
+| Civilian стоп на красный `traffic_light` (80px) | ✅ |
+| Зелёный — delay 0.3–1.5 s после стопа | ✅ |
+| Плавный brake/accel (профиль gear 2) | ✅ |
+| `enemy=true` / chase / quest crossing не затронуты | ✅ |
+| Vitest | ✅ 148/148 |
+
+---
+
+## TASK-046: Плавная остановка перед светофором (PLAN §1)
+
+**Статус:** DONE  
+**Закрыто:** 12 авг. 2026  
+**Контекст:** logic
+
+| Критерий | Результат |
+|---|---|
+| Остановка 50–80 px от светофора | ✅ target 65 px |
+| Плавное торможение по скорости | ✅ coast + calculated decel |
+| Блок газа до зелёного | ✅ |
+| Vitest | ✅ 142/142 |
+
+---
+
+## TASK-040: Quest finish overlay z-index (PLAN §1)
+
+**Статус:** DONE  
+**Закрыто:** 12 авг. 2026  
+**Контекст:** mixed
+
+| Критерий | Результат |
+|---|---|
+| Overlay вне pedestrian layer | ✅ `Game.jsx` после `Controllers` |
+| Continue кликабелен на mobile | ✅ z-index 1501 > controls 110 |
+| Human не перекрывает controls | ✅ layer z-index 55 |
+| Vitest | ✅ 140/140 |
+
+---
+
+## TASK-041: Police quest подъезд к human_aggr на ПК (PLAN §2)
+
+**Статус:** DONE  
+**Закрыто:** 12 авг. 2026  
+**Контекст:** mixed
+
+| Критерий | Результат |
+|---|---|
+| Desktop gap 18px (было 60) | ✅ |
+| Per-frame remeasure endPosition | ✅ |
+| Vitest | ✅ |
+
+---
+
+## TASK-042: Красный светофор — стоп и блок газа (PLAN §3)
+
+**Статус:** DONE  
+**Закрыто:** 12 авг. 2026  
+**Контекст:** logic
+
+| Критерий | Результат |
+|---|---|
+| Только `traffic_light` | ✅ |
+| Блок газа до зелёного без сирены | ✅ |
+| Сирена обходит блок | ✅ |
+| Pedestrian quest не изменён | ✅ |
+
+---
+
+## TASK-043: Спавн peaceful human ÷2 (PLAN §4.1)
+
+**Статус:** DONE  
+**Закрыто:** 12 авг. 2026  
+**Контекст:** logic
+
+| Критерий | Результат |
+|---|---|
+| minDistance 100, maxDistance 12000 | ✅ |
+| human_aggr без изменений | ✅ |
+
+---
+
+## TASK-044: Mutex human_aggr ↔ pedestrian quest (PLAN §4.2)
+
+**Статус:** DONE  
+**Закрыто:** 12 авг. 2026  
+**Контекст:** logic
+
+| Критерий | Результат |
+|---|---|
+| Нет spawn aggr при pedestrian quest | ✅ |
+| initQuestCrossing blocked при aggr на экране | ✅ |
+| startQuest blocked при pedestrian quest | ✅ |
+
+---
+
+## TASK-045: Enemy quest-car spawn gates (PLAN §4.3)
+
+**Статус:** DONE  
+**Закрыто:** 12 авг. 2026  
+**Контекст:** logic
+
+| Критерий | Результат |
+|---|---|
+| Не раньше 30 с (`sessionElapsedSec`) | ✅ |
+| Блок при активном квесте | ✅ |
+| Civilian spawn без изменений | ✅ |
 
 ---
 

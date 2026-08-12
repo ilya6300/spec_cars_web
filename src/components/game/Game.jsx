@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { Car } from "../car/Car";
 import { Maps } from "../map/Maps";
 import { Controllers } from "../controllers/Controllers";
 import { PoliceQuestModal } from "./PoliceQuestModal";
 import { PedestrianCrossingLayer } from "./PedestrianCrossingLayer";
+import { QuestFinishOverlay } from "./QuestFinishOverlay";
 import { QuestArrestModal } from "./QuestArrestModal";
 import { QuestCar } from "./QuestCar";
 import { SpeedDisplay } from "./SpeedDisplay";
@@ -216,6 +218,23 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
         controlsBlocked={isRefuelModalOpen}
         onEmptyGasPress={handleEmptyGasPress}
       />
+
+      {gameMode === "free" &&
+        activeMapStore.isPedestrianCrossingQuestActive &&
+        !activeMapStore.isPoliceQuestActive &&
+        !activeMapStore.isQuestArrestActive &&
+        activeMapStore.pedestrianCrossingTargetObject?.questCrossing
+          ?.showFinishOverlay && (
+          <QuestFinishOverlay
+            variant="pedestrian"
+            onDismiss={() => {
+              activeMapStore.finishPedestrianCrossingQuest();
+              runInAction(() => {
+                activeCarStore.addHelp("pedestrianFine");
+              });
+            }}
+          />
+        )}
 
       {gameMode === "free" && <TutorialOverlay tutorialStore={tutorialStore} />}
 

@@ -1,5 +1,48 @@
 import { expect, test } from 'vitest';
 import QuestCarStore from './questCarStore';
+import {
+  TRAFFIC_LIGHT_GREEN_RESUME_MAX,
+  TRAFFIC_LIGHT_GREEN_RESUME_MIN,
+  TRAFFIC_CAR_WIDTH_DESKTOP_PX,
+} from './trafficLightConstants';
+
+const civilianCarData = {
+  id: 2,
+  type: 'car',
+  name: 'Красный автомобиль',
+  urlBody: '',
+  urlShell: '',
+  maxSpeed: 58,
+  minSpeed: 40,
+  enemy: false,
+};
+
+const enemyCarData = {
+  id: 0,
+  type: 'car',
+  name: 'Красный гоночный автомобиль',
+  urlBody: '',
+  urlShell: '',
+  maxSpeed: 130,
+  minSpeed: 105,
+  enemy: true,
+  speedMultiplier: 6.43,
+};
+
+function makeTrafficMapStore({
+  offsetX = 1000,
+  trafficLightColor = 'red',
+  lightWorldX = 1380,
+  trafficLightOnTheMap = true,
+  activeObjects = [{ typeId: 'traffic_light', worldX: lightWorldX }],
+} = {}) {
+  return {
+    offsetX,
+    trafficLightColor,
+    trafficLightOnTheMap,
+    activeObjects,
+  };
+}
 
 test('QuestCarStore: initialization with enemy=false', () => {
   const carData = { id: 2, type: 'car', name: 'Красный автомобиль', urlBody: '', urlShell: '', maxSpeed: 58, minSpeed: 40, enemy: false };
@@ -206,4 +249,114 @@ test('QuestCarStore: updatePosition works identically for all cars', () => {
   // relativeSpeed = 80 - 60 = 20
   expect(car1.positionX).toBe(120);
   expect(car2.positionX).toBe(220);
+});
+
+test('QuestCarStore: civilian smooth brake stops 80px before traffic light', () => {
+  const store = new QuestCarStore(civilianCarData);
+  store.spawn(50, 80);
+  store.targetSpeed = 80;
+
+  const mapStore = makeTrafficMapStore({
+    lightWorldX: 1380,
+    offsetX: 1000,
+  });
+  const lightScreenX = 380;
+  const carWidth = TRAFFIC_CAR_WIDTH_DESKTOP_PX;
+  let gapToLight = 350;
+
+  for (let i = 0; i < 800; i++) {
+    store.positionX = lightScreenX - carWidth - gapToLight;
+    store.updateCivilianTrafficLight(0.016, mapStore);
+    if (store.currentSpeed > 0) {
+      gapToLight -= store.currentSpeed * 0.016;
+    }
+    if (store.currentSpeed === 0) break;
+  }
+
+  expect(store.currentSpeed).toBe(0);
+  expect(gapToLight).toBeGreaterThanOrEqual(72);
+  expect(gapToLight).toBeLessThanOrEqual(88);
+  expect(store.stoppedAtRedLight).toBe(true);
+});
+
+test('QuestCarStore: enemy=true ignores traffic light braking', () => {
+  const store = new QuestCarStore(enemyCarData);
+  store.spawn(900, 200);
+
+  const mapStore = makeTrafficMapStore();
+  const speedBefore = store.currentSpeed;
+
+  store.updateCivilianTrafficLight(0.016, mapStore);
+
+  expect(store.currentSpeed).toBe(speedBefore);
+});
+
+test('QuestCarStore: civilian ignores quest crossing traffic light', () => {
+  const store = new QuestCarStore(civilianCarData);
+  store.spawn(900, 80);
+
+  const mapStore = makeTrafficMapStore({
+    activeObjects: [{ typeId: 'traffic_light_quest_crossing', worldX: 1380 }],
+  });
+
+  store.updateCivilianTrafficLight(0.016, mapStore);
+
+  expect(store.currentSpeed).toBe(80);
+  expect(store.stoppedAtRedLight).toBe(false);
+});
+
+test('QuestCarStore: civilian waits random delay after green before moving', () => {
+  const store = new QuestCarStore(civilianCarData);
+  store.spawn(50, 0);
+  store.stoppedAtRedLight = true;
+  store.targetSpeed = 80;
+
+  const mapStore = makeTrafficMapStore({
+    trafficLightColor: 'green',
+    lightWorldX: 1380,
+    offsetX: 1000,
+    lastViewportWidth: 1024,
+  });
+  mapStore.lastViewportWidth = 1024;
+
+  store.updateCivilianTrafficLight(0.016, mapStore);
+
+  expect(typeof store.greenResumeDelay).toBe('number');
+  expect(store.greenResumeDelay).toBeGreaterThanOrEqual(TRAFFIC_LIGHT_GREEN_RESUME_MIN);
+  expect(store.greenResumeDelay).toBeLessThanOrEqual(TRAFFIC_LIGHT_GREEN_RESUME_MAX);
+  expect(store.currentSpeed).toBe(0);
+});
+
+test('QuestCarStore: civilian accelerates after green resume delay', () => {
+  const store = new QuestCarStore(civilianCarData);
+  store.spawn(50, 0);
+  store.stoppedAtRedLight = true;
+  store.targetSpeed = 80;
+  store.greenResumeDelay = 0;
+
+  const mapStore = makeTrafficMapStore({
+    trafficLightColor: 'green',
+    lightWorldX: 1380,
+    offsetX: 1000,
+  });
+  mapStore.lastViewportWidth = 1024;
+
+  store.updateCivilianTrafficLight(0.016, mapStore);
+
+  expect(store.stoppedAtRedLight).toBe(false);
+  expect(store.trafficLightResuming).toBe(true);
+  expect(store.currentSpeed).toBeGreaterThan(0);
+});
+
+test('QuestCarStore: green without prior stop has no resume delay', () => {
+  const store = new QuestCarStore(civilianCarData);
+  store.spawn(900, 80);
+  store.stoppedAtRedLight = false;
+
+  const mapStore = makeTrafficMapStore({ trafficLightColor: 'green' });
+
+  store.updateCivilianTrafficLight(0.016, mapStore);
+
+  expect(store.greenResumeDelay).toBeNull();
+  expect(store.currentSpeed).toBe(80);
 });

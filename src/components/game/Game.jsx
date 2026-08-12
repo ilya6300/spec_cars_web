@@ -289,7 +289,7 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
               }
             }}
           >
-            Блокировать
+            ╨С╨╗╨╛╨║╨╕╤А╨╛╨▓╨░╤В╤М
           </button>
         )}
 

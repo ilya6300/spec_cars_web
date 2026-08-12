@@ -1,4 +1,4 @@
-import { observer } from "mobx-react-lite";
+﻿import { observer } from "mobx-react-lite";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { CarModel } from "../car/CarModel";
 import CarStore from "../../state/carStore";
@@ -98,7 +98,7 @@ export const QuestArrestModal = observer(({ mapStore, carStore }) => {
 
       {mapStore.arrestAnimFinished && finishPhase === "idle" && (
         <button className="arrest-button-quest-car-map" onClick={handleArrest}>
-          Арестовать
+          ╨Р╤А╨╡╤Б╤В╨╛╨▓╨░╤В╤М
         </button>
       )}
 

@@ -18,7 +18,16 @@ export const Car = observer(({ carStore, showHeadlights = false }) => {
   const angleRange = maxAngle - minAngle;
   const targetAngle = minAngle + (boundedSpeed / maxSpeedForGauge) * angleRange;
 
-  const speedTicks = [0, 20, 40, 60, 80, 100, 120, 140];
+  const speedTicks = [
+    0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140,
+  ];
+
+  const speedColor =
+    displaySpeed <= 80
+      ? "#ffffff"
+      : displaySpeed <= 120
+        ? "#ffb400"
+        : "#ff3a3a";
 
   return (
     <div className="car-ui" data-type="car">
@@ -31,21 +40,32 @@ export const Car = observer(({ carStore, showHeadlights = false }) => {
               const tickAngle =
                 minAngle + (tickValue / maxSpeedForGauge) * angleRange;
 
+              const isLong = tickValue % 20 === 0;
+              const isRed = tickValue >= 120;
+              const tickClassName = [
+                "gauge-tick-line",
+                !isLong && "gauge-tick-line--short",
+                isRed && "gauge-tick-line--red",
+              ]
+                .filter(Boolean)
+                .join(" ");
+
               return (
                 <React.Fragment key={tickValue}>
                   <div
                     className="gauge-tick-wrapper"
                     style={{ transform: `rotate(${tickAngle}deg)` }}
                   >
-                    <div className="gauge-tick-line" />
+                    <div className={tickClassName} />
                   </div>
                   <div
                     className="gauge-label-wrapper"
                     style={{ transform: `rotate(${tickAngle}deg)` }}
                   >
                     <div
-                      className={`gauge-label-text${tickValue % 40 === 0 ? " gauge-label-text--major" : ""}`}
+                      className={`gauge-label-text${isLong ? " gauge-label-text--major" : ""}`}
                       style={{
+                        color: speedColor,
                         transform: `translateX(-50%) rotate(${-tickAngle}deg)`,
                       }}
                     >
@@ -57,7 +77,10 @@ export const Car = observer(({ carStore, showHeadlights = false }) => {
             })}
 
             <div className="speedometer-gauge">
-              <div className="speedometer-digital-display">
+              <div
+                className="speedometer-digital-display"
+                style={{ color: speedColor }}
+              >
                 {displaySpeed}
                 <div className="speedometer-unit">км/ч</div>
               </div>

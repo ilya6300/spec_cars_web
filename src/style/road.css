@@ -40,6 +40,56 @@
   z-index: 2;
 }
 
+.road-wet {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  top: calc(var(--road-lane-y) - 12%);
+  height: calc(var(--player-car-lane-y) - var(--road-lane-y) + 22%);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  background-image:
+    radial-gradient(
+      ellipse 85% 22% at 18% 38%,
+      rgba(210, 230, 255, 0.12) 0%,
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 70% 18% at 62% 52%,
+      rgba(200, 222, 255, 0.1) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 90% 16% at 40% 72%,
+      rgba(210, 230, 255, 0.08) 0%,
+      transparent 74%
+    );
+  background-repeat: no-repeat;
+  background-size: 140% 100%;
+  filter: blur(10px);
+  animation: road-wet-shimmer 16s linear infinite;
+}
+
+.game-viewport--rain .road-wet {
+  opacity: 1;
+}
+
+@keyframes road-wet-shimmer {
+  from {
+    background-position: 0% 0%, 8% 0%, -4% 0%;
+  }
+  to {
+    background-position: 18% 0%, -10% 0%, 12% 0%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .road-wet {
+    animation: none;
+  }
+}
+
 /* Стили для объектов окружения */
 .game-object {
   position: absolute;

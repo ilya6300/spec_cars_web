@@ -133,12 +133,12 @@ test.describe("Quest Cars E2E", () => {
       timeout: 30000,
     });
 
-    await page.waitForSelector(".quest-arrest-modal .arrest-button-quest-car-map", {
+    await page.waitForSelector('[data-type="arrest-modal-button"]', {
       state: "visible",
       timeout: 5000,
     });
 
-    await page.click(".quest-arrest-modal .arrest-button-quest-car-map");
+    await page.click('[data-type="arrest-modal-button"]');
     await page.waitForSelector('[data-type="quest-finish-overlay"]', {
       timeout: 5000,
     });

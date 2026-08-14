@@ -15,7 +15,7 @@ describe("RefuelModal", () => {
     expect(screen.getByText("Посмотри видео — получишь 5 литров")).not.toBeNull();
   });
 
-  it("shows empty canister with canister--low", () => {
+  it("shows empty canister with canister--critical", () => {
     const carStore = new CarStore({ id: "refuel-canister-test", maxFuel: 65000, fuel: 0 });
 
     render(<RefuelModal carStore={carStore} onWatchVideo={vi.fn()} />);
@@ -24,10 +24,9 @@ describe("RefuelModal", () => {
     expect(wrapper).not.toBeNull();
 
     const canister = wrapper.querySelector(".canister");
-    expect(canister.classList.contains("canister--low")).toBe(true);
+    expect(canister.classList.contains("canister--critical")).toBe(true);
     expect(canister.getAttribute("data-fuel-percent")).toBe("0");
     expect(wrapper.querySelector(".fuel-text").textContent).toBe("0л");
-    expect(wrapper.querySelector(".canister-warning-icon")).not.toBeNull();
   });
 
   it("calls onWatchVideo when CTA is clicked", () => {

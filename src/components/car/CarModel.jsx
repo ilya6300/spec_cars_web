@@ -2,8 +2,8 @@
 import React from "react";
 
 /**
- * @param {"player" | "traffic"} variant тАФ ╤Б╨┐╤А╨░╨╣╤В ╨╕ ╨│╨╡╨╛╨╝╨╡╤В╤А╨╕╤П (╨║╤Г╨╖╨╛╨▓, ╨║╨╛╨╗╤С╤Б╨░)
- * @param {boolean} nested тАФ ╨▓╨╜╤Г╤В╤А╨╕ ╨╛╨▒╤С╤А╤В╨║╨╕ (.quest-car-other / .quest-car), ╨▒╨╡╨╖ ╨░╨▒╤Б╨╛╨╗╤О╤В╨╜╨╛╨│╨╛ ╨┐╨╛╨╖╨╕╤Ж╨╕╨╛╨╜╨╕╤А╨╛╨▓╨░╨╜╨╕╤П
+ * @param {"player" | "traffic"} variant — спрайт и геометрия (кузов, колёса)
+ * @param {boolean} nested — внутри обёртки (.quest-car-other / .quest-car), без абсолютного позиционирования
  */
 export const CarModel = observer(
   ({ carStore, variant = "traffic", nested = false, showHeadlights = false }) => {

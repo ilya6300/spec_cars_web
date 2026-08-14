@@ -31,6 +31,8 @@
   position: absolute;
   top: 0;
   left: 0;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .quest-arrest-target-car,
@@ -45,13 +47,15 @@
 }
 
 .quest-arrest-target-car {
-  z-index: 1201;
+  z-index: 1204;
+  pointer-events: none;
   animation: targetCarDrive 3s linear forwards;
   top: calc(var(--car-lane-y) - var(--quest-lane-lift));
 }
 
 .quest-arrest-police-car {
-  z-index: 1202;
+  z-index: 1205;
+  pointer-events: none;
   animation: policeCarDrive 2.5s linear forwards;
   top: calc(var(--player-car-lane-y) - var(--quest-lane-lift));
 }
@@ -95,25 +99,9 @@
   }
 }
 
-.arrest-button-final {
-  position: absolute;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 12px 32px;
-  font-size: 18px;
-  font-weight: bold;
-  background: #e74c3c;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  z-index: 1203;
-  transition: background 0.2s;
-}
-
-.arrest-button-final:hover {
-  background: #c0392b;
+.quest-cta--arrest-modal {
+  z-index: 1210;
+  pointer-events: auto;
 }
 
 .quest-arrest-modal--night .quest-arrest-background {
@@ -125,6 +113,30 @@
   inset: 0;
   z-index: 1201;
   pointer-events: none;
+}
+
+.quest-arrest-modal .game-rain-container {
+  position: absolute;
+  inset: 0;
+  z-index: 1203;
+  pointer-events: none;
+}
+
+.quest-arrest-modal--night .car_container--headlights .car-headlight-beam {
+  background: linear-gradient(
+    to right,
+    rgba(220, 235, 255, 0.78) 0%,
+    rgba(200, 225, 255, 0.32) 38%,
+    rgba(180, 210, 255, 0.1) 62%,
+    transparent 100%
+  );
+}
+
+@media (max-width: 900px) and (orientation: landscape), (max-height: 500px) {
+  .quest-arrest-target-car,
+  .quest-arrest-police-car {
+    top: 58%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

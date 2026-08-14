@@ -14,10 +14,12 @@ import FullscreenButton from "./FullscreenButton";
 import BackToMenuButton from "./BackToMenuButton";
 import { TutorialOverlay } from "./TutorialOverlay";
 import { AtmosphereOverlay } from "./AtmosphereOverlay";
+import { RainLayer } from "./RainLayer";
 import { ModeTimer, ModeChaseProgress } from "./ModeTimer";
 import { ModeResultModal } from "./ModeResultModal";
 import { RefuelModal } from "./RefuelModal";
 import { GlobalStarsDisplay } from "../ui/GlobalStarsDisplay";
+import { QuestCtaButton } from "../ui/QuestCtaButton";
 import { StarFlyOverlay } from "./StarFlyOverlay";
 import { CollectibleStarLayer } from "./CollectibleStarLayer";
 import { useGameLoop } from "../../hooks/useGameLoop";
@@ -164,6 +166,19 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
       window.__TEST_STATE__ = {
         activeMapStore,
         activeCarStore,
+        setAtmosphere: (opts) => atmosphereStore.setAtmosphere(opts),
+        stopFreeWeather: () => atmosphereStore.stopFreeWeather(),
+        getAtmosphere: () => ({
+          timeOfDay: atmosphereStore.timeOfDay,
+          weather: atmosphereStore.weather,
+        }),
+        reinitFreeWeather: () => atmosphereStore.reinitFreeWeather(),
+        advanceFreeWeather: (sec) =>
+          atmosphereStore.tick(sec, modeStore.gameMode),
+        setFreeWeatherRandomSequence: (values) =>
+          atmosphereStore.setFreeWeatherRandomSequence(values),
+        setFreeRainDurationSec: (sec) =>
+          atmosphereStore.setTestRainDurationSec(sec),
         get distance() {
           return activeMapStore.offsetX;
         },
@@ -190,7 +205,7 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
   return (
     <div
       ref={gameViewportRef}
-      className={`game-viewport${atmosphereStore.isNight ? " game-viewport--night" : ""}`}
+      className={`game-viewport${atmosphereStore.isNight ? " game-viewport--night" : ""}${atmosphereStore.isRainy ? " game-viewport--rain" : ""}`}
     >
       {!modeStore.isComplete && <BackToMenuButton />}
       {/* <FullscreenButton /> */}
@@ -209,10 +224,19 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
       {gameMode === "free" && (
         <CollectibleStarLayer mapStore={activeMapStore} />
       )}
+      {visibleQuestCars.map((questCar) => (
+        <QuestCar
+          key={questCar.uid}
+          questCarStore={questCar}
+          mapStore={activeMapStore}
+          showHeadlights={atmosphereStore.isNight}
+        />
+      ))}
       <Car
         carStore={activeCarStore}
         showHeadlights={showPlayerHeadlights}
       />
+      <RainLayer />
       <Controllers
         activeCarStore={activeCarStore}
         controlsBlocked={isRefuelModalOpen}
@@ -251,15 +275,6 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
         <QuestArrestModal mapStore={activeMapStore} carStore={activeCarStore} />
       )}
 
-      {visibleQuestCars.map((questCar) => (
-        <QuestCar
-          key={questCar.id}
-          questCarStore={questCar}
-          mapStore={activeMapStore}
-          showHeadlights={atmosphereStore.isNight}
-        />
-      ))}
-
       {visibleQuestCars.length > 0 && (
         <SpeedDisplay
           currentSpeed={Math.max(
@@ -273,8 +288,9 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
         !activeMapStore.isPoliceQuestActive &&
         !activeMapStore.isQuestArrestActive &&
         !modeStore.isPaused && (
-          <button
-            className="arrest-button-quest-car-map"
+          <QuestCtaButton
+            role="mission"
+            className="quest-cta--map"
             data-type="arrest-button"
             onClick={() => {
               if (activeMapStore.questCarForArrest) {
@@ -289,8 +305,8 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
               }
             }}
           >
-            ╨С╨╗╨╛╨║╨╕╤А╨╛╨▓╨░╤В╤М
-          </button>
+            Блокировать
+          </QuestCtaButton>
         )}
 
       {isRefuelModalOpen && (

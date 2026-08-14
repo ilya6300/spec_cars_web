@@ -46,6 +46,7 @@ spec_cars_web/
 │       ├── background/       # Полноэкранные фоны меню и атмосферы (день/ночь)
 │       ├── maps/             # Тайлинг фона дороги (repeat-x в Maps.jsx)
 │       ├── objects/          # Спрайты объектов окружения
+│       ├── effects/          # Overlay-текстуры (дождь SVG)
 │       ├── ui/               # HUD, меню, иконки режимов
 │       └── audio/            # Звуковые эффекты
 ├── tests/e2e/                # Playwright E2E
@@ -174,20 +175,29 @@ activeCarStore.mapStore = activeMapStore; // двусторонняя связь
 
 ### 3.6. Послойный рендеринг (Z-Index)
 
-Строгая иерархия слоёв (снизу вверх):
+Строгая иерархия слоёв (снизу вверх). Stacking context — `.game-viewport`.  
+`.car-ui` **не** имеет `z-index` (нет stacking context). Не вешать на `.car-ui` `transform` / `filter` / `opacity < 1` / `isolation`.
 
 ```
-z-index 1   — .game-map (фон дороги)
-z-index 2   — .road-line (разметка), объекты zIndex: 2 (светофор, заправка, human_aggr)
-z-index 1   — объекты zIndex: 1 (дома, деревья, пешеходы)
-z-index 50  — quest-car-other (AI-машины)
-z-index 51  — .speed-display
-z-index 10  — .controllers_container (управление)
-z-index 100 — .car-ui (полицейская машина + HUD)
-z-index 300 — FullscreenButton
-z-index 1000–1004 — квест-модалки (police, pedestrian)
-z-index 1200–1203 — QuestArrest modal
+z-index 1     — .game-map (фон дороги; ночной filter только здесь)
+z-index 0     — .road-wet (внутри .game-map; видим только night+rain)
+z-index 2     — .road-line (разметка), объекты zIndex: 2 (светофор, заправка, human_aggr)
+z-index 1     — объекты zIndex: 1 (дома, деревья, пешеходы)
+z-index 45    — AtmosphereOverlay (ночь)
+z-index 50    — .quest-car-other (AI-машины)
+z-index 55    — collectible-star / pedestrian layer (только free)
+z-index 60    — спрайт игрока (.car_container--player.car_container--standalone)
+z-index 100   — .game-rain-container (капли; только night+rain)
+z-index 105   — .hud-panel, .speed-display
+z-index 110   — .controllers_container
+z-index 120   — .mode-hud
+z-index 130   — .game-global-stars
+z-index 140   — .star-fly-overlay (только free)
+z-index 300   — BackToMenuButton
+z-index 1000+ — квест-модалки / arrest / finish / refuel / mode-result
 ```
+
+Дождь и мокрый асфальт — `pointer-events: none`. Капли поверх машин, под HUD. Детали chase-атмосферы — `PROJECT_DOCS.md` TASK-049.
 
 **Правило для агентов:** новые визуальные элементы вставлять в правильный слой. UI и модалки не должны перекрывать управление некорректно; игровые объекты не должны быть поверх HUD без явного требования.
 

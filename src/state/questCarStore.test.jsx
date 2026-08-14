@@ -87,10 +87,10 @@ test('QuestCarStore: updatePosition for enemy=false (civilian, relative speed)',
   const store = new QuestCarStore(carData);
   store.spawn(100, 80);
 
-  store.updatePosition(1, 60);
+  store.updatePosition(1, 50);
 
-  // relativeSpeed = 80 - 60 = 20, positionX = 100 + 20 = 120
-  expect(store.positionX).toBe(120);
+  // relativeSpeed = 80 - 50 = 30, positionX = 100 + 30 = 130
+  expect(store.positionX).toBe(130);
 });
 
 test('QuestCarStore: updatePosition for enemy=true (enemy, relative speed)', () => {
@@ -147,10 +147,10 @@ test('QuestCarStore: direction logic for enemy=false (civilian, relative speed)'
   const store = new QuestCarStore(carData);
   store.spawn(100, 80);
 
-  // relativeSpeed = 80 - 60 = 20, positionX = 100 + 20 = 120
-  store.updatePosition(1, 60);
+  // relativeSpeed = 80 - 50 = 30, positionX = 100 + 30 = 130
+  store.updatePosition(1, 50);
 
-  expect(store.positionX).toBe(120);
+  expect(store.positionX).toBe(130);
 });
 
 test('QuestCarStore: direction logic for enemy=true (enemy, relative speed)', () => {
@@ -222,6 +222,46 @@ test('QuestCarStore: multiple cars can exist simultaneously', () => {
   expect(car3.positionX).toBe(300);
 });
 
+test('QuestCarStore: each instance has unique uid', () => {
+  const carData = { id: 2, type: 'car', name: 'Красный автомобиль', urlBody: '', urlShell: '', maxSpeed: 58, minSpeed: 40, enemy: false };
+  const store1 = new QuestCarStore(carData);
+  const store2 = new QuestCarStore(carData);
+
+  expect(store1.uid).toBeTruthy();
+  expect(store2.uid).toBeTruthy();
+  expect(store1.uid).not.toBe(store2.uid);
+});
+
+test('QuestCarStore: stopped civilian does not nudge backward at red light', () => {
+  const carData = { id: 2, type: 'car', name: 'Красный автомобиль', urlBody: '', urlShell: '', maxSpeed: 58, minSpeed: 40, enemy: false };
+  const store = new QuestCarStore(carData);
+  store.spawn(400, 0);
+  store.stoppedAtRedLight = true;
+
+  store.updatePosition(1, 0);
+
+  expect(store.positionX).toBe(400);
+});
+
+test('QuestCarStore: civilian nudges left when speeds nearly match', () => {
+  const carData = { id: 2, type: 'car', name: 'Красный автомобиль', urlBody: '', urlShell: '', maxSpeed: 58, minSpeed: 40, enemy: false };
+  const store = new QuestCarStore(carData);
+  store.spawn(400, 80);
+
+  store.updatePosition(1, 80);
+
+  expect(store.positionX).toBe(375);
+});
+
+test('QuestCarStore: enemy does not nudge when speeds match', () => {
+  const store = new QuestCarStore(enemyCarData);
+  store.spawn(100, 80);
+
+  store.updatePosition(1, 80);
+
+  expect(store.positionX).toBe(100);
+});
+
 test('QuestCarStore: cars are not removed after going off screen', () => {
   const carData = { id: 2, type: 'car', name: 'Красный автомобиль', urlBody: '', urlShell: '', maxSpeed: 58, minSpeed: 40, enemy: false };
   const store = new QuestCarStore(carData);
@@ -243,12 +283,12 @@ test('QuestCarStore: updatePosition works identically for all cars', () => {
   car1.spawn(100, 80);
   car2.spawn(200, 80);
 
-  car1.updatePosition(1, 60);
-  car2.updatePosition(1, 60);
+  car1.updatePosition(1, 50);
+  car2.updatePosition(1, 50);
 
-  // relativeSpeed = 80 - 60 = 20
-  expect(car1.positionX).toBe(120);
-  expect(car2.positionX).toBe(220);
+  // relativeSpeed = 80 - 50 = 30
+  expect(car1.positionX).toBe(130);
+  expect(car2.positionX).toBe(230);
 });
 
 test('QuestCarStore: civilian smooth brake stops 80px before traffic light', () => {

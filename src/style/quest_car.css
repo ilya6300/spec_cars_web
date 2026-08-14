@@ -29,7 +29,7 @@
 
 .speed-display {
   position: fixed;
-  z-index: 51;
+  z-index: 105;
   top: 20px;
   right: 20px;
   font-size: 32px;
@@ -47,22 +47,8 @@
   color: var(--ui-danger);
   animation: speed-pulse 0.5s ease-in-out infinite alternate;
 }
-.arrest-button-quest-car-map {
-  position: fixed;
-  bottom: 20px;
-  left: 50px;
-  padding: 20px 60px;
-  font-size: 24px;
-  font-weight: bold;
-  background: #ff4444;
-  color: white;
-  border: 2px solid #fff;
-  border-radius: 12px;
-  cursor: pointer;
+.quest-cta--map {
   z-index: 1003;
-}
-.arrest-button-quest-car-map:hover {
-  background: #cc0000;
 }
 @keyframes speed-pulse {
   0% {

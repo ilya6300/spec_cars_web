@@ -1,6 +1,8 @@
 /* TASK-016: HUD glass panel + speedometer */
 
 .hud-panel {
+  position: relative;
+  z-index: 105;
   display: flex;
   flex-direction: row;
   align-items: center;

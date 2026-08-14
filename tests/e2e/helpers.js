@@ -59,3 +59,34 @@ export async function holdGasFor(page, ms) {
   await page.waitForTimeout(ms);
   await page.mouse.up();
 }
+
+export async function stopFreeWeather(page) {
+  await page.evaluate(() => {
+    window.__TEST_STATE__?.stopFreeWeather?.();
+  });
+}
+
+export async function setAtmosphere(page, { timeOfDay = "day", weather = "clear" } = {}) {
+  await page.evaluate(
+    ({ timeOfDay, weather }) => {
+      window.__TEST_STATE__?.setAtmosphere?.({ timeOfDay, weather });
+    },
+    { timeOfDay, weather },
+  );
+}
+
+export async function setFreeWeatherTestConfig(page, config) {
+  await page.addInitScript((cfg) => {
+    window.__WEATHER_TEST__ = cfg;
+  }, config);
+}
+
+export async function advanceFreeWeather(page, sec) {
+  await page.evaluate((seconds) => {
+    window.__TEST_STATE__?.advanceFreeWeather?.(seconds);
+  }, sec);
+}
+
+export async function getAtmosphere(page) {
+  return page.evaluate(() => window.__TEST_STATE__?.getAtmosphere?.());
+}

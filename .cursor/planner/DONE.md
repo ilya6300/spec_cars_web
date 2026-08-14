@@ -10,8 +10,221 @@
 **Bug-fix iteration (TASK-040…045):** закрыта 12 авг. 2026  
 **Traffic light stop distance (TASK-046):** закрыта 12 авг. 2026  
 **Civilian traffic light stop (TASK-047):** закрыта 12 авг. 2026  
-**Проверка:** `npm test` 148/148  
+**Chase atmosphere rain (TASK-048):** закрыта 13 авг. 2026  
+**SVG rain rework (TASK-049):** закрыта 13 авг. 2026  
+**Headlights night glow (TASK-050):** закрыта 13 авг. 2026  
+**QuestArrestModal atmosphere (TASK-051):** закрыта 13 авг. 2026  
+**Free mode dynamic rain (TASK-052):** закрыта 13 авг. 2026  
+**PoliceQuestModal atmosphere (TASK-053):** закрыта 14 авг. 2026  
+**AI traffic bugs (TASK-054):** закрыта 14 авг. 2026  
+**Проверка:** Vitest questCarStore 27/27, mapStore 26/26  
 **Источник UI wave:** `UI_UX_DRAFT.md`
+
+---
+
+## TASK-054: Баги AI-трафика в свободном режиме (PLAN критические баги)
+
+**Статус:** DONE  
+**Закрыто:** 14 авг. 2026  
+**Контекст:** logic  
+**Циклы:** 1 (Reviewer APPROVED)
+
+| Критерий | Результат |
+|---|---|
+| Мирная машина не едет назад на красном | ✅ guard `currentSpeed > 0` в updatePosition |
+| Обогнанная civilian не удаляется слева | ✅ асимметричный despawn в removeOffScreenQuestCars |
+| Enemy despawn без изменений | ✅ |
+| Vitest questCarStore | ✅ 27/27 |
+| Vitest mapStore | ✅ 26/26 |
+
+### Изменённые файлы
+
+- `src/state/questCarStore.jsx`
+- `src/state/mapStore.jsx`
+- `src/state/questCarStore.test.jsx`
+- `src/state/mapStore.test.jsx`
+
+---
+
+## TASK-053: PoliceQuestModal — дождь и свечение фар (PLAN §1)
+
+**Статус:** DONE  
+**Закрыто:** 14 авг. 2026  
+**Контекст:** mixed  
+**Циклы:** 1 (Reviewer APPROVED)
+
+| Критерий | Результат |
+|---|---|
+| RainLayer внутри modal | ✅ `--rain` + scoped rain-layer |
+| Headlights на police car | ✅ `showHeadlights={atmosphereStore.isNight}` |
+| Z-index rain под машиной, CTA выше | ✅ police_quest.css 1003–1006 |
+| Паттерн TASK-051 (QuestArrestModal) | ✅ |
+| Vitest | ✅ 2/2 |
+| Playwright chase-mode | ✅ PoliceQuestModal test |
+
+### Изменённые файлы
+
+- `src/components/game/PoliceQuestModal.jsx`
+- `src/style/police_quest.css`
+- `src/components/game/PoliceQuestModal.test.jsx`
+- `tests/e2e/chase-mode.spec.js`
+
+---
+
+## TASK-052: Free mode — динамический дождь (PLAN §2)
+
+**Статус:** DONE  
+**Закрыто:** 13 авг. 2026  
+**Контекст:** logic  
+**Циклы:** 1 (Reviewer APPROVED)
+
+| Критерий | Результат |
+|---|---|
+| 10% rain at free start | ✅ `shouldStartFreeRain` + `initFreeWeather` |
+| Rain duration 2–6 min | ✅ `pickFreeRainDurationSec` 120–360 s |
+| Every 60 s clear → 10% roll | ✅ `tick` + `FREE_RAIN_CHECK_INTERVAL_SEC` |
+| timeOfDay always day in free | ✅ enforced in init + tick |
+| cleanup backToMenu | ✅ `stopFreeWeather` |
+| Chase/timed unchanged | ✅ `getAtmosphereForMode` + guard in tick |
+| E2E deterministic | ✅ `__WEATHER_TEST__` hook |
+| Vitest | ✅ 10/10 |
+| Playwright chase-mode | ✅ 11/11 |
+
+### Изменённые файлы
+
+- `src/state/atmosphereStore.jsx`
+- `src/state/atmosphereStore.test.js`
+- `src/state/gameSession.js`
+- `src/state/appStore.jsx`
+- `src/components/game/Game.jsx`
+- `tests/e2e/helpers.js`
+- `tests/e2e/chase-mode.spec.js`
+
+---
+
+## TASK-051: QuestArrestModal — дождь, фары, вращение колёс (PLAN §1)
+
+**Статус:** DONE  
+**Закрыто:** 13 авг. 2026  
+**Контекст:** mixed  
+**Циклы:** 2 (UI/UX P1 mobile landscape → fix → принято)
+
+| Критерий | Результат |
+|---|---|
+| RainLayer внутри modal | ✅ `--rain` + scoped rain-layer |
+| Headlights ×2 | ✅ `showHeadlights` на police + target |
+| rAF колёса до arrestAnimFinished | ✅ WHEEL_SPEED 450 × 0.75 |
+| CTA z-index 1210, touch 48px | ✅ `.quest-arrest-cta`, `arrest-modal-button` |
+| Mobile landscape CTA не перекрыт | ✅ `top: 58%` для машин |
+| Viewport rain/headlights без регрессии | ✅ TASK-050 |
+| Vitest | ✅ 3/3 |
+| Playwright chase-mode | ✅ 6/6 |
+
+### Изменённые файлы
+
+- `src/components/game/QuestArrestModal.jsx`
+- `src/style/quest_arrest.css`
+- `src/components/game/QuestArrestModal.test.jsx`
+- `tests/e2e/chase-mode.spec.js`
+
+---
+
+## TASK-050: Улучшение свечения фар в ночном режиме (PLAN headlights)
+
+**Статус:** DONE  
+**Закрыто:** 13 авг. 2026  
+**Контекст:** ui-ux  
+**Циклы:** 1 (Reviewer → fix night filter → APPROVED)
+
+| Критерий | Результат |
+|---|---|
+| NIGHT → headlights (независимо от rain) | ✅ gate `isNight` + ignition (игрок) |
+| RAIN → дождь (независимо от night) | ✅ `RainLayer` только `isRainy` |
+| WET → road-wet / reflection только при rain | ✅ `.game-viewport--rain` |
+| Два конуса left/right + road beam | ✅ `CarModel` + `HeadlightRoadLayer` z-index 48 |
+| Слои MAP → WET → BEAM → CAR → RAIN → UI | ✅ `Game.jsx` DOM-порядок |
+| Glow кузова без селектора `--rain` | ✅ `car.css` |
+| Ночной filter `.game-map` не изменён | ✅ после review fix |
+| E2E 4 атмосферных состояния | ✅ chase-mode 6/6 |
+| Vitest | ✅ 150/151 (RefuelModal pre-existing) |
+| UI/UX приёмка | ✅ принято |
+
+### Изменённые файлы
+
+- `src/components/game/HeadlightRoadLayer.jsx` — road beam + reflection
+- `src/components/game/Game.jsx` — DOM-порядок, HeadlightRoadLayer
+- `src/components/game/RainLayer.jsx` — gate только `isRainy`
+- `src/components/car/CarModel.jsx` — два конуса + data-type
+- `src/components/map/Maps.jsx` — `data-type="road-wet"`
+- `src/style/car.css` — конусы left/right, glow
+- `src/style/road.css` — wet gate `--rain`, reflection
+- `src/style/mode.css` — headlight-road-layer, rain селекторы `--rain`
+- `tests/e2e/chase-mode.spec.js`, `tests/e2e/helpers.js` — 4 состояния, `setAtmosphere`
+
+**Carry-over batch TASK-049:** `atmosphereStore.isRainy`, `modeScoring` chase rain, `RainLayer`/`rain.svg`/`AtmosphereOverlay`.
+
+---
+
+## TASK-049: Замена CSS-дождя на SVG-слои, мокрый асфальт и мягкая ночь (PLAN §1)
+
+**Статус:** DONE  
+**Закрыто:** 13 авг. 2026  
+**Контекст:** ui-ux  
+**Циклы:** 1 (Reviewer APPROVED с первого раза)
+
+| Критерий | Результат |
+|---|---|
+| `repeating-linear-gradient` дождя удалён | ✅ grep `src/` = 0 |
+| SVG-капли, 3 слоя FAR/MID/NEAR, угол ~12° | ✅ `rain.svg` + `RainLayer` |
+| Машины под дождём, HUD над дождём | ✅ sprite 60 / rain 100 / HUD 105 |
+| Мокрый асфальт под машинами, только night+rain | ✅ `.road-wet` внутри `.game-map` |
+| Ночь `brightness(0.78) saturate(0.82) hue-rotate(-8deg)` | ✅ только `.game-map` |
+| День без дождя и мокрой дороги | ✅ gate `isRainy && isNight` |
+| Reduced-motion: статика, не `opacity: 0` | ✅ |
+| E2E chase-mode | ✅ 4/4 |
+| Vitest modeScoring | ✅ 8/8 (регрессия 150/151, RefuelModal вне scope) |
+| Механика atmosphere/scoring | ✅ не менялась |
+
+### Изменённые файлы
+
+- `src/assets/effects/rain.svg` — новый SVG-тайл
+- `src/components/game/RainLayer.jsx` — far/mid/near, Vite import
+- `src/style/mode.css` — SVG-дождь, night filter, reduced-motion
+- `src/style/car.css` — снят `z-index` с `.car-ui`
+- `src/style/player-car.css` — спрайт `z-index: 60`
+- `src/style/hud.css` — `.hud-panel` `z-index: 105`
+- `src/style/quest_car.css` — `.speed-display` 105
+- `src/components/map/Maps.jsx` — `.road-wet`
+- `src/style/road.css` — мокрый асфальт
+- `tests/e2e/chase-mode.spec.js` — слои, z-index, день, reduced-motion
+
+---
+
+## TASK-048: Атмосфера погони — ночной эффект и дождь (PLAN §1)
+
+**Статус:** DONE  
+**Закрыто:** 13 авг. 2026  
+**Контекст:** ui-ux  
+**Циклы:** 1 (Reviewer → CSS reduced-motion fix)
+
+| Критерий | Результат |
+|---|---|
+| Chase → `{ night, rain }` через `getAtmosphereForMode` | ✅ |
+| Переиспользуемый `RainLayer` (far/near слои) | ✅ |
+| Дождь в `Game.jsx` при `isRainy`, z-index 100 | ✅ |
+| CSS дождя + reduced-motion (opacity 0) | ✅ |
+| Unit-тесты modeScoring | ✅ 8/8 |
+| E2E rain-layer в chase | ✅ |
+| Модалки квестов без дождя | ✅ |
+
+### Изменённые файлы
+
+- `src/state/atmosphereStore.jsx` — getter `isRainy`
+- `src/state/modeScoring.js` — chase weather rain
+- `src/components/game/RainLayer.jsx` — новый компонент
+- `src/components/game/Game.jsx` — интеграция
+- `src/style/mode.css` — CSS дождя
+- `src/state/modeScoring.test.js`, `tests/e2e/chase-mode.spec.js`
 
 ---
 

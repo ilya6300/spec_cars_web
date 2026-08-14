@@ -9,7 +9,9 @@ import { runInAction } from "mobx";
 import roadImage from "../../assets/maps/road_1.png";
 import { QuestFinishOverlay } from "./QuestFinishOverlay";
 import { AtmosphereOverlay } from "./AtmosphereOverlay";
+import { RainLayer } from "./RainLayer";
 import atmosphereStore from "../../state/atmosphereStore";
+import { QuestCtaButton } from "../ui/QuestCtaButton";
 
 export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
   const policeCarStore = useRef(null);
@@ -201,7 +203,7 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
 
   return (
     <div
-      className={`police-quest-modal${atmosphereStore.isNight ? " police-quest-modal--night" : ""}`}
+      className={`police-quest-modal${atmosphereStore.isNight ? " police-quest-modal--night" : ""}${atmosphereStore.isRainy ? " police-quest-modal--rain" : ""}`}
     >
       {/* Дорога на фоне */}
       <div
@@ -211,13 +213,20 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
 
       <AtmosphereOverlay />
 
+      <RainLayer />
+
       {/* Машина подъезжает слева */}
       <div
         ref={carRef}
         className="quest-car"
         style={{ left: `${mapStore.questCarPosition}px` }}
       >
-        <CarModel carStore={policeCarStore.current} variant="player" nested />
+        <CarModel
+          carStore={policeCarStore.current}
+          variant="player"
+          nested
+          showHeadlights={atmosphereStore.isNight}
+        />
       </div>
 
       {/* Целевой объект справа */}
@@ -226,9 +235,14 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
       </div>
 
       {carArrived && finishPhase === "idle" && (
-        <button className="arrest-button" onClick={handleArrest}>
+        <QuestCtaButton
+          role="mission"
+          className="quest-cta--police-modal"
+          data-type="police-quest-arrest"
+          onClick={handleArrest}
+        >
           Арестовать
-        </button>
+        </QuestCtaButton>
       )}
 
       {finishPhase === "overlay" && (

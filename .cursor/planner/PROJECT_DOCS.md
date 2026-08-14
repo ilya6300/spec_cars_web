@@ -1,7 +1,7 @@
 # Техническая документация spec_cars_web
 
 > Постоянная документация для разработчиков. Дополняет `.cursor/planner/PROJECT_PRINCIPLES.md`.
-> Обновляется **только после завершения задачи** (последнее: TASK-045, 12 авг. 2026).
+> Обновляется **только после завершения задачи** (последнее: TASK-052, 13 авг. 2026).
 
 ---
 
@@ -1009,5 +1009,428 @@ Pedestrian `QuestFinishOverlay` вынесен из `.pedestrian-crossing-layer`
 
 - Chase mode timer логика spawn — без изменений для civilian pool
 - `checkQuestCarDistance` / arrest range — без изменений
+
+---
+
+## [TASK-049] SVG-дождь, мокрый асфальт, мягкая ночь (chase)
+
+**Дата:** 2026-08-13  
+**Заменяет визуал TASK-048:** CSS `repeating-linear-gradient` (~105°) → SVG-тайл + три overlay FAR/MID/NEAR. Механика атмосферы (`atmosphereStore`, `getAtmosphereForMode`) без изменений.
+
+**Частично обновлено TASK-050:** независимость NIGHT / RAIN / WET, `HeadlightRoadLayer` (z-index 48), gate дождя только `isRainy`, `.road-wet` только `--rain`. Актуальная иерархия слоёв и `data-type` — в секции TASK-050.
+
+### Описание
+
+Ночная погоня (режим `chase`: `--night` + `--rain`) — отдельные капли поверх машин и под HUD, слабые блики мокрого асфальта **под** машинами, мягкий ночной `filter` только на карте. День (free/timed) без дождя и мокрой дороги.
+
+Чтобы капли крыли спрайт, но не спидометр, **снят stacking context с `.car-ui`**: у контейнера больше нет `z-index` (было 100). Спрайт игрока — 60, дождь — 100, HUD / speed-display — 105.
+
+### Причина
+
+При равном z-index 100 у `.game-rain-container` и `.car-ui` машина оказывалась поверх дождя (Car позже в DOM). `z-index` на `.car-ui` запирал HUD внутри stacking context — панель нельзя было поднять над соседним дождём, не намочив весь `.car-ui`.
+
+### Реализация
+
+| Файл | Что сделано |
+|------|-------------|
+| `src/assets/effects/rain.svg` | Тайл `viewBox="0 0 360 360"`: группы `rain-small` / `rain-medium` / `rain-large` (~70/25/5), `line` цвет `rgb(210,230,255)`, угол **~12°** от вертикали |
+| `src/components/game/RainLayer.jsx` | Vite `import` SVG → `--rain-texture`; слои `--far` / `--mid` / `--near`; gate `isRainy && isNight` → `return null`; `data-type="rain-layer"` |
+| `src/style/mode.css` | Удалены gradient-дождь и старые `@keyframes rain-*`; SVG `background-image: var(--rain-texture)`; night filter; reduced-motion = статика, не `opacity: 0` |
+| `src/style/car.css` | Удалён `z-index: 100` у `.car-ui` (`position` / `pointer-events: none` сохранены) |
+| `src/style/player-car.css` | `z-index: 60` на `.car_container--player.car_container--standalone` |
+| `src/style/hud.css` | `.hud-panel`: `position: relative; z-index: 105` |
+| `src/style/quest_car.css` | `.speed-display` 51 → **105** |
+| `src/components/map/Maps.jsx` | Первый ребёнок `.game-map` — `<div className="road-wet" aria-hidden="true" />` |
+| `src/style/road.css` | `.road-wet`: z-index **0** внутри map, токены полосы, radial-блики, gate night+rain |
+| `tests/e2e/chase-mode.spec.js` | Слои far/mid/near, нет gradient, z-index HUD > rain > player, free без дождя, reduced-motion, дождь не внутри arrest-модалки |
+
+`Game.jsx` (порядок Maps → AtmosphereOverlay → RainLayer → Car), `Car.jsx`, `atmosphereStore`, `modeScoring`, `gearbox.css` (controllers 110) — без изменений по задаче.
+
+### Слои дождя (`mode.css`)
+
+Видимость капель: только `.game-viewport--night.game-viewport--rain .game-rain`.
+
+| Слой | opacity | duration | delay | `background-size` desktop | mobile landscape |
+|------|---------|----------|-------|---------------------------|------------------|
+| `--far` | 0.12 | 7.0s | — | 280px | 336px |
+| `--mid` | 0.18 | 4.6s | −1.3s | 360px | 432px |
+| `--near` | 0.24 | 2.8s | −0.7s | 480px | 576px |
+
+Движение: `translate3d` вдоль угла капель (`rain-drift-*`), `linear infinite`, слои не синхронны.
+
+**Ночь (только `.game-map`):** `filter: brightness(0.78) saturate(0.82) hue-rotate(-8deg)`. Overlay 45 не усилен.
+
+**Reduced-motion:** `animation: none` на `.game-rain`; opacity 0.06 / 0.08 / 0.10 (капли видны, не скрыты); night filter `brightness(0.80) saturate(0.85) hue-rotate(-6deg)`. Wet: `animation: none`.
+
+### Мокрый асфальт (`.road-wet`)
+
+Внутри stacking context `.game-map` (z-index 1 + `transform: translateY(var(--map-shift-y))` + ночной filter) → едет с картой, **под** машинами (Car/QuestCar — siblings карты).
+
+- Геометрия: `top: calc(var(--road-lane-y) - 12%)`; `height: calc(var(--player-car-lane-y) - var(--road-lane-y) + 22%)`
+- 3 `radial-gradient` (не `repeating-linear-gradient`), `filter: blur(10px)`, shimmer 16s
+- `opacity: 0` по умолчанию; `.game-viewport--night.game-viewport--rain .road-wet { opacity: 1 }`
+- Без нового `data-type`
+
+### Влияние
+
+**Game loop / `deltaTime` / spawn / квесты / scoring — не затронуты.** Анимация — CSS overlay, не `worldX`.
+
+**Z-index chase ПОСЛЕ** (stacking context — `.game-viewport`):
+
+```
+.map(1) + .road-wet(0 внутри map) + .road-line/objects(1–2)
+→ AtmosphereOverlay(45)
+→ quest-car(50)
+→ player sprite(60)
+→ RAIN(100)
+→ hud-panel(105) + speed-display(105)
+→ controllers(110)
+→ mode-hud(120)
+→ stars(130)
+→ back(300)
+→ модалки (1000+) / arrest 1200+ / finish 1500+ / refuel 1800 / mode-result 2000
+```
+
+`.car-ui` **больше не имеет z-index 100** (нет stacking context). Nested `CarModel` в модалках (`--nested`) без z-index 60.
+
+Free-only слои без дождя: collectible-star 55, pedestrian layer 55, star-fly 140.
+
+**E2E:** `data-type="rain-layer"` сохранён. Новых кликовых `data-type` нет. Playwright: far/mid/near; `background-image` без `repeating-linear-gradient`; computed z-index HUD > rain > player; free — нет `rain-layer`, `.road-wet` opacity 0; arrest — `rain-layer` в viewport, не внутри `.quest-arrest-modal`; reduced-motion — `animation-name: none`, opacity > 0.
+
+### Ограничения
+
+- **Не** вешать на `.car-ui` `z-index` / `transform` / `filter` / `opacity < 1` / `isolation` — HUD снова окажется под дождём.
+- Дождь монтируется и виден **только** night+rain (`isRainy && isNight` + классы viewport).
+- `.game-rain-container`, `.game-rain`, `.road-wet` — `pointer-events: none` (клики по объектам карты и контролам не перехватываются).
+- Мокрый эффект **не** на `.road-line` и не sibling карты в `Game.jsx` (иначе потеряется `--map-shift-y`).
+- HUD, контролы, модалки, кузов вне `.game-map` — без ночного `filter`.
+- JSX `Car.jsx` не выносить HUD; AtmosphereOverlay z-index 45 не удалять и не затемнять.
+
+### Адаптивность
+
+| Элемент | ПК | Mobile landscape (`max-width: 900px` + landscape **или** `max-height: 500px`) |
+|---------|----|-------------------------------------------------------------------------------|
+| Дождь | `inset: 0` на `.game-viewport` (`100vw` × `100dvh`) | то же, без 4-го слоя |
+| Плотность капель | background-size 280 / 360 / 480 | **+20%** (336 / 432 / 576) — плотность не выше ПК |
+| Мокрый асфальт | токены `--road-lane-y` 53%, `--player-car-lane-y` 63%, `--map-shift-y: 0` | те же токены (media.css: 52% / 78%, `--map-shift-y: -10vh`) |
+| HUD / контролы | z-index 105 / 110 | размеры и touch targets из `hud.css` / `media.css` **не менялись** |
+| `pointer-events` | none на дожде и wet | none |
+
+Portrait `max-width: 500px` — только контролы; дождь по-прежнему fullscreen.
+
+---
+
+## [TASK-050] Улучшение свечения фар — независимость NIGHT / RAIN / WET
+
+**Дата:** 2026-08-13  
+**Контекст:** ui-ux  
+**Опирается на:** TASK-049 (SVG-дождь, `.road-wet`, ночной filter карты). MobX `atmosphereStore`, `modeScoring`, scoring, SVG/анимация дождя — **без изменений**.
+
+### Описание
+
+Разделены визуальные состояния **NIGHT** (фары), **RAIN** (дождь) и **WET** (мокрый асфальт / отражение). Убрана связка `night && rain` для дождя и мокрой дороги. Добавлены: два конуса фар на спрайте машины (left/right), слой освещения дороги `HeadlightRoadLayer` между атмосферой и машиной, glow кузова при ночных фарах.
+
+### Независимость состояний
+
+Классы viewport: `--night` от `atmosphereStore.isNight`, `--rain` от `atmosphereStore.isRainy` (`Game.jsx`).
+
+| Состояние | `--night` | `--rain` | Фары (игрок, зажигание on) | RainLayer | `.road-wet` | `headlight-reflection` |
+|-----------|-----------|----------|------------------------------|-----------|-------------|------------------------|
+| DAY + NO RAIN | нет | нет | нет | нет | opacity 0 | нет |
+| DAY + RAIN | нет | да | нет | да | opacity 1 | нет (road layer не рендерится) |
+| NIGHT + NO RAIN | да | нет | да (2 конуса + road beam) | нет | opacity 0 | нет |
+| NIGHT + RAIN | да | да | да | да | opacity 1 | да (внутри `HeadlightRoadLayer`) |
+
+Фары игрока: `showPlayerHeadlights = isNight && isIgnitionOn` (`Game.jsx`). Квест-машины: `showHeadlights={isNight}` (без зажигания). Chase по умолчанию = NIGHT + RAIN (`modeScoring`).
+
+### HeadlightRoadLayer
+
+**Файл:** `src/components/game/HeadlightRoadLayer.jsx`
+
+| Аспект | Значение |
+|--------|----------|
+| Назначение | Мягкое освещение полосы дороги перед игроком; отражение фар на мокром асфальте |
+| Gate рендера | `atmosphereStore.isNight && carStore.isIgnitionOn` (зеркало `showPlayerHeadlights`) |
+| DOM-порядок | После `AtmosphereOverlay`, до quest cars / `Car` (`Game.jsx`) |
+| Позиция | `left: 30px` (как player car); вертикаль — зона между `--road-lane-y` и `--player-car-lane-y` |
+| z-index | **48** (`mode.css`) — выше overlay (45), ниже quest-car (50) и player (60) |
+| MobX | `observer`; `carStore` через props из `Game.jsx` |
+
+Структура:
+
+```jsx
+<div className="headlight-road-layer">
+  <div className="headlight-road-beam" data-type="headlight-beam" />
+  {isRainy && <div className="headlight-road-reflection" data-type="headlight-reflection" />}
+</div>
+```
+
+`pointer-events: none`. При выключенном зажигании слой не монтируется.
+
+### Конусы фар на CarModel
+
+**Файл:** `src/components/car/CarModel.jsx`
+
+При `showHeadlights` — два элемента вместо одного `.car-headlight-beam`:
+
+| Элемент | Класс | `data-type` |
+|---------|-------|-------------|
+| Левый конус | `car-headlight-beam--left` | `headlight-beam-left` |
+| Правый конус | `car-headlight-beam--right` | `headlight-beam-right` |
+
+DOM-порядок (под кузовом, `z-index: 0`; `car-body` — `z-index: 1`): left → right → sirena → body → wheels.
+
+Стили (`car.css`): left `min(280px, 48vw)`, right `min(380px, 65vw)`; night override градиентов в `mode.css`. Glow кузова: `.game-viewport--night .car_container--headlights .car-body` — `brightness(1.4)` + `drop-shadow` (селектор **без** `--rain`).
+
+Квест-машины используют тот же `CarModel` с `nested`; масштаб через `--traffic-car-width`.
+
+### RainLayer — gate только `isRainy`
+
+**Файл:** `src/components/game/RainLayer.jsx`
+
+```javascript
+// Было: if (!isRainy || !isNight) return null;
+if (!atmosphereStore.isRainy) return null;
+```
+
+Дождь виден при любом времени суток, если `weather === "rain"`. CSS-анимация капель: селектор `.game-viewport--rain` (не `night && rain`) в `mode.css`.
+
+### `.road-wet` — gate только `--rain`
+
+**Файлы:** `src/components/map/Maps.jsx`, `src/style/road.css`
+
+```css
+/* Было: .game-viewport--night.game-viewport--rain .road-wet */
+.game-viewport--rain .road-wet { opacity: 1; }
+```
+
+Отражение фар на мокрой дороге: `.game-viewport--rain .headlight-road-reflection` (`opacity: 0.12`, `blur(10px)`). Геометрия `.road-wet`, shimmer, reduced-motion — без изменений (TASK-049).
+
+### Z-index (обновлённая иерархия chase)
+
+Stacking context — `.game-viewport`:
+
+```
+.game-map(1) + .road-wet(0 внутри map) + .road-line/objects(1–2)
+→ AtmosphereOverlay(45)
+→ .headlight-road-layer(48)          ← TASK-050
+→ quest-car(50)
+→ collectible-star / pedestrian(55)  [free only]
+→ player sprite(60)
+→ RAIN(100)
+→ hud-panel(105) + speed-display(105)
+→ controllers(110)
+→ mode-hud(120)
+→ stars(130)
+→ back(300)
+→ модалки (1000+) / arrest 1200+ / finish 1500+ / refuel 1800 / mode-result 2000
+```
+
+| Слой | z-index | Файл |
+|------|---------|------|
+| `.game-map` | 1 | `road.css` |
+| `.road-wet` (внутри map) | 0 | `road.css` |
+| `.atmosphere-overlay` | 45 | `mode.css` |
+| `.headlight-road-layer` | **48** | `mode.css` |
+| `.quest-car-other` | 50 | `quest_car.css` |
+| player `.car_container--standalone` | 60 | `player-car.css` |
+| `.game-rain-container` | 100 | `mode.css` |
+| `.hud-panel` | 105 | `hud.css` |
+
+E2E (chase): `zRoadBeam(48) < zPlayer(60) < zRain(100) < zHud(105)`.
+
+### data-type (E2E)
+
+| `data-type` | Элемент |
+|-------------|---------|
+| `headlight-beam` | Освещение дороги (`.headlight-road-beam` в `HeadlightRoadLayer`) |
+| `headlight-beam-left` | Левый конус на машине |
+| `headlight-beam-right` | Правый конус на машине |
+| `headlight-reflection` | Отражение на мокрой дороге (только night + rain + ignition) |
+| `road-wet` | Мокрый асфальт внутри `.game-map` |
+| `rain-layer` | Контейнер дождя (без изменений, TASK-049) |
+
+Playwright: `tests/e2e/chase-mode.spec.js` — 4 комбинации day/night × rain/clear через `setAtmosphere`; z-index road beam; reduced-motion rain.
+
+### Реализация
+
+| Файл | Действие |
+|------|----------|
+| `src/components/game/HeadlightRoadLayer.jsx` | **Создан** — road beam + reflection |
+| `src/components/game/Game.jsx` | DOM: Maps → Overlay → HeadlightRoadLayer → QuestCars → Car → RainLayer |
+| `src/components/game/RainLayer.jsx` | Gate: только `isRainy` |
+| `src/components/car/CarModel.jsx` | Два конуса left/right + `data-type` |
+| `src/components/map/Maps.jsx` | `data-type="road-wet"` на `.road-wet` |
+| `src/style/car.css` | Конусы `--left` / `--right`, glow кузова |
+| `src/style/road.css` | Wet/reflection gate по `--rain` |
+| `src/style/mode.css` | `.headlight-road-layer` z-index 48; rain селекторы `--rain` |
+| `tests/e2e/chase-mode.spec.js` | 4 состояния атмосферы, headlights, z-index |
+
+### Влияние
+
+- Game loop / `deltaTime` / spawn / квесты / scoring — **не затронуты**
+- Ночной `filter` только на `.game-map` — без изменений
+- `atmosphereStore`, `modeScoring`, SVG `rain.svg`, `@keyframes rain-drift-*` — без изменений
+- Quest cars (z-index 50) выше road beam (48) — glow не перекрывает AI-машины
+- `prefers-reduced-motion`: статичные фары; rain/wet reduced-motion из TASK-049 сохранён
+
+### Адаптивность
+
+Позиции через `--road-lane-y`, `--player-car-lane-y`, `--player-car-width`, `--map-shift-y` (`ui-tokens.css`, `media.css`). Road beam: `width: min(625px, calc(var(--player-car-width) * 2.5))`; конусы — `min(…, vw)` как в `car.css`.
+
+### Ограничения
+
+- **Не** возвращать связку `night && rain` для `RainLayer` или `.road-wet`
+- **Не** вешать на `.car-ui` `z-index` / `transform` / `filter` / `isolation` (TASK-049)
+- Headlight CSS для кузова и конусов — селектор `.game-viewport--night .car_container--headlights` **без** `--rain`
+- `HeadlightRoadLayer` не рендерится при выключенном зажигании
+
+---
+
+## [TASK-053] PoliceQuestModal — дождь и свечение фар
+
+**Дата:** 2026-08-14  
+**Контекст:** mixed  
+**Опирается на:** TASK-051 (`QuestArrestModal` — паттерн rain/headlights в модалке ареста).
+
+### Описание
+
+В `PoliceQuestModal` (квест `human_aggr*`, chase night+rain):
+
+1. SVG-дождь — `<RainLayer />` внутри модалки (`police-quest-modal--rain`).
+2. Фары — `showHeadlights={atmosphereStore.isNight}` на полицейской машине.
+3. Z-index: road 1001 → overlay 1002 → rain 1003 → target 1004 → quest-car 1005 → CTA 1006.
+
+Отличие от TASK-051: одна машина (полиция подъезжает к human_aggr), не две.
+
+### data-type (E2E)
+
+| data-type | Элемент |
+|-----------|---------|
+| `rain-layer` | Дождь внутри модалки |
+| `atmosphere-overlay` | Ночной overlay |
+| `human_aggr1`…`human_aggr3` | Кликабельный объект на карте |
+
+Триггер: клик на `human_aggr*` → `mapStore.startQuest`.
+
+### Реализация
+
+| Файл | Действие |
+|------|----------|
+| `PoliceQuestModal.jsx` | RainLayer, `--rain`, showHeadlights |
+| `police_quest.css` | rain z-index, headlight gradient, z-index cars/CTA |
+| `PoliceQuestModal.test.jsx` | Vitest night+rain / day |
+| `chase-mode.spec.js` | E2E `startQuest` hook + rain/headlights |
+
+---
+
+## [TASK-051] QuestArrestModal — дождь, фары и вращение колёс
+
+**Дата:** 2026-08-13  
+**Контекст:** mixed  
+**Опирается на:** TASK-050 (`RainLayer`, `CarModel` + `showHeadlights`). Viewport rain/headlights — без изменений.
+
+### Описание
+
+В `QuestArrestModal` (chase, night+rain) во время CSS-подъезда (3 s / 2.5 s):
+
+1. SVG-дождь — отдельный `<RainLayer />` внутри модалки (`--rain`).
+2. Фары — `showHeadlights={atmosphereStore.isNight}` на обеих машинах.
+3. Колёса — rAF + `deltaTime`, `WHEEL_SPEED=450`, `×0.75` до `arrestAnimFinished`.
+4. CTA — `.quest-arrest-cta`, `data-type="arrest-modal-button"`, z-index 1210, touch ≥48 px.
+
+### Z-index внутри `.quest-arrest-modal`
+
+| Слой | z-index | pointer-events |
+|------|---------|------------------|
+| Фон | 0 | none |
+| Root | 1200 | — |
+| Overlay | 1201 | none |
+| Дождь | 1203 | none |
+| Target car | 1204 | none |
+| Police car | 1205 | none |
+| CTA | 1210 | auto |
+| Finish overlay | 1501 | auto |
+
+### data-type (E2E)
+
+| data-type | Элемент |
+|-----------|---------|
+| `rain-layer` | Дождь внутри модалки |
+| `arrest-modal-button` | CTA «Арестовать» |
+| `atmosphere-overlay` | Ночной overlay |
+
+Триггер: `[data-type="arrest-button"]` («Блокировать») в viewport.
+
+### Реализация
+
+| Файл | Действие |
+|------|----------|
+| `QuestArrestModal.jsx` | RainLayer, showHeadlights, rAF wheels, CTA |
+| `quest_arrest.css` | z-index, rain override, headlight gradient, CTA, mobile landscape `top: 58%` |
+| `QuestArrestModal.test.jsx` | Vitest 3 кейса |
+| `chase-mode.spec.js` | rain/headlights/CTA в modal |
+
+### Тесты
+
+Vitest 3/3; Playwright chase-mode 6/6. Полный `npm test`: 151/152 (RefuelModal pre-existing).
+
+---
+
+## [TASK-052] Free mode — динамический дождь
+
+**Дата:** 2026-08-13  
+**Контекст:** logic  
+**Опирается на:** TASK-049 (`RainLayer`, wet road, `game-viewport--rain`)
+
+### Описание
+
+В свободном режиме (`GAME_MODES.FREE`) погода управляется планировщиком в `atmosphereStore`:
+
+| Правило | Значение |
+|---|---|
+| Старт free | 10% шанс дождя сразу |
+| Длительность дождя | 2–6 мин (случайно) |
+| Без дождя | каждые 60 с — roll 10% на новый дождь |
+| Время суток | всегда `day` в free |
+
+Chase/timed — фиксированная атмосфера через `getAtmosphereForMode` без изменений.
+
+### Константы
+
+- `FREE_RAIN_START_CHANCE = 0.1`
+- `FREE_RAIN_CHECK_INTERVAL_SEC = 60`
+- `FREE_RAIN_DURATION_MIN_SEC = 120`
+- `FREE_RAIN_DURATION_MAX_SEC = 360`
+
+### API
+
+| Метод | Назначение |
+|---|---|
+| `initFreeWeather()` | Старт планировщика (из `appStore.startGame(FREE)`) |
+| `stopFreeWeather()` | Остановка (backToMenu / chase/timed start) |
+| `tick(deltaTime, gameMode)` | Тик из `tickGameFrame` |
+| `shouldStartFreeRain`, `pickFreeRainDurationSec` | Pure helpers для Vitest |
+
+### Test hooks
+
+- `window.__WEATHER_TEST__` — `{ randomValues, rainDurationSec }` (Playwright `addInitScript`)
+- `__TEST_STATE__`: `getAtmosphere`, `reinitFreeWeather`, `advanceFreeWeather`, `setFreeWeatherRandomSequence`, `setFreeRainDurationSec`, `stopFreeWeather`
+
+### Реализация
+
+| Файл | Действие |
+|------|----------|
+| `atmosphereStore.jsx` | Планировщик free weather |
+| `atmosphereStore.test.js` | Vitest 10 кейсов |
+| `gameSession.js` | `atmosphereStore.tick` |
+| `appStore.jsx` | Ветвление free vs chase/timed |
+| `Game.jsx` | Расширен `__TEST_STATE__` |
+| `helpers.js` | Weather E2E helpers |
+| `chase-mode.spec.js` | Fix flaky + 5 free weather cases |
+
+### Тесты
+
+Vitest 10/10; Playwright chase-mode 11/11.
 
 ---

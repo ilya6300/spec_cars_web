@@ -1,4 +1,5 @@
 ﻿import { observer } from "mobx-react-lite";
+import { runInAction } from "mobx";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { CarModel } from "../car/CarModel";
 import CarStore from "../../state/carStore";
@@ -7,7 +8,11 @@ import arrestBgImage from "../../assets/quest_location/police_arrest_modal.png";
 import QuestCarStore from "../../state/questCarStore";
 import { QuestFinishOverlay } from "./QuestFinishOverlay";
 import { AtmosphereOverlay } from "./AtmosphereOverlay";
+import { RainLayer } from "./RainLayer";
 import atmosphereStore from "../../state/atmosphereStore";
+import { QuestCtaButton } from "../ui/QuestCtaButton";
+
+const WHEEL_SPEED = 450;
 
 export const QuestArrestModal = observer(({ mapStore, carStore }) => {
   const [policeCarStore] = useState(() => new CarStore(getDefaultCar()));
@@ -52,13 +57,45 @@ export const QuestArrestModal = observer(({ mapStore, carStore }) => {
     };
   }, [finishPhase]);
 
-  useEffect(() => () => {
-    if (finishTimerRef.current) {
-      clearTimeout(finishTimerRef.current);
-    }
-  }, []);
+  useEffect(
+    () => () => {
+      if (finishTimerRef.current) {
+        clearTimeout(finishTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => () => policeCarStore.dispose(), [policeCarStore]);
+
+  useEffect(() => {
+    if (mapStore.arrestAnimFinished) return undefined;
+
+    let rafId;
+    let lastTime = performance.now();
+
+    const tick = (now) => {
+      const deltaTime = (now - lastTime) / 1000;
+      lastTime = now;
+
+      runInAction(() => {
+        policeCarStore.wheelRotation =
+          (policeCarStore.wheelRotation + WHEEL_SPEED * deltaTime * 0.75) % 360;
+        if (targetCarStore) {
+          targetCarStore.wheelRotation =
+            (targetCarStore.wheelRotation + WHEEL_SPEED * deltaTime * 0.75) %
+            360;
+        }
+      });
+
+      if (!mapStore.arrestAnimFinished) {
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [mapStore, mapStore.arrestAnimFinished, policeCarStore, targetCarStore]);
 
   const handleFinishDismiss = useCallback(() => {
     if (dismissCalledRef.current) {
@@ -77,7 +114,7 @@ export const QuestArrestModal = observer(({ mapStore, carStore }) => {
 
   return (
     <div
-      className={`quest-arrest-modal${atmosphereStore.isNight ? " quest-arrest-modal--night" : ""}`}
+      className={`quest-arrest-modal${atmosphereStore.isNight ? " quest-arrest-modal--night" : ""}${atmosphereStore.isRainy ? " quest-arrest-modal--rain" : ""}`}
     >
       <div
         className="quest-arrest-background"
@@ -86,20 +123,37 @@ export const QuestArrestModal = observer(({ mapStore, carStore }) => {
 
       <AtmosphereOverlay />
 
+      <RainLayer />
+
       <div className="quest-arrest-target-car">
         {targetCarStore && (
-          <CarModel carStore={targetCarStore} variant="traffic" nested />
+          <CarModel
+            carStore={targetCarStore}
+            variant="traffic"
+            nested
+            showHeadlights={atmosphereStore.isNight}
+          />
         )}
       </div>
 
       <div className="quest-arrest-police-car">
-        <CarModel carStore={policeCarStore} variant="player" nested />
+        <CarModel
+          carStore={policeCarStore}
+          variant="player"
+          nested
+          showHeadlights={atmosphereStore.isNight}
+        />
       </div>
 
       {mapStore.arrestAnimFinished && finishPhase === "idle" && (
-        <button className="arrest-button-quest-car-map" onClick={handleArrest}>
-          ╨Р╤А╨╡╤Б╤В╨╛╨▓╨░╤В╤М
-        </button>
+        <QuestCtaButton
+          role="mission"
+          className="quest-cta--arrest-modal"
+          data-type="arrest-modal-button"
+          onClick={handleArrest}
+        >
+          Арестовать
+        </QuestCtaButton>
       )}
 
       {finishPhase === "overlay" && (

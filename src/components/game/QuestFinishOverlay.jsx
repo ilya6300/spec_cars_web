@@ -1,4 +1,5 @@
 import React from "react";
+import { QuestCtaButton } from "../ui/QuestCtaButton";
 import pedestrianBadge from "../../assets/quest_img/finish-badge-pedestrian.jpeg";
 import criminalBadge from "../../assets/quest_img/finish-badge-criminal.jpeg";
 import enemyBadge from "../../assets/quest_img/finish-badge-enemy.jpeg";
@@ -55,9 +56,9 @@ export function QuestFinishOverlay({ variant, onDismiss }) {
             data-type={config.dataType}
           />
         </div>
-        <button
-          type="button"
-          className="quest-finish-continue"
+        <QuestCtaButton
+          role="nav"
+          className="quest-cta--finish"
           data-type="quest-finish-continue"
           onClick={(event) => {
             event.stopPropagation();
@@ -65,7 +66,7 @@ export function QuestFinishOverlay({ variant, onDismiss }) {
           }}
         >
           Продолжить
-        </button>
+        </QuestCtaButton>
       </div>
     </div>
   );

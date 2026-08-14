@@ -15,14 +15,24 @@ class AppStore {
   }
 
   startGame(mode = GAME_MODES.FREE) {
-    const atmosphere = getAtmosphereForMode(mode);
     runInAction(() => {
       this.selectedMode = mode;
       this.screen = "game";
       this.gameSessionKey += 1;
     });
-    atmosphereStore.setAtmosphere(atmosphere);
+    if (mode === GAME_MODES.FREE) {
+      atmosphereStore.initFreeWeather();
+    } else {
+      atmosphereStore.stopFreeWeather();
+      atmosphereStore.setAtmosphere(getAtmosphereForMode(mode));
+    }
     modeStore.init(mode);
+  }
+
+  openUiTest() {
+    runInAction(() => {
+      this.screen = "ui-test";
+    });
   }
 
   backToMenu() {
@@ -31,6 +41,7 @@ class AppStore {
     runInAction(() => {
       this.screen = "menu";
     });
+    atmosphereStore.stopFreeWeather();
     atmosphereStore.setAtmosphere({ timeOfDay: "day", weather: "clear" });
     modeStore.init(GAME_MODES.FREE);
   }

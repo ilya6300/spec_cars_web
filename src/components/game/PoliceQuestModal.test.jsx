@@ -4,7 +4,11 @@ import { render } from "@testing-library/react";
 import atmosphereStore from "../../state/atmosphereStore";
 
 vi.mock("../car/CarModel", () => ({
-  CarModel: () => <div data-type="car-model-mock" />,
+  CarModel: ({ showHeadlights }) => (
+    <div data-type="car-model-mock">
+      {showHeadlights && <div className="car-headlight-beam" />}
+    </div>
+  ),
 }));
 
 vi.mock("../../state/carStore", () => ({
@@ -53,22 +57,32 @@ describe("PoliceQuestModal", () => {
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
   });
 
-  it("renders night class and atmosphere overlay at night", () => {
-    atmosphereStore.setAtmosphere({ timeOfDay: "night" });
+  it("renders night class, atmosphere overlay, rain and headlights at night+rain", () => {
+    atmosphereStore.setAtmosphere({ timeOfDay: "night", weather: "rain" });
     render(<PoliceQuestModal mapStore={createMapStore()} carStore={carStore} />);
 
     expect(document.querySelector(".police-quest-modal--night")).toBeTruthy();
+    expect(document.querySelector(".police-quest-modal--rain")).toBeTruthy();
     expect(
       document.querySelector('[data-type="atmosphere-overlay"]'),
     ).toBeTruthy();
+    expect(
+      document.querySelector('.police-quest-modal [data-type="rain-layer"]'),
+    ).toBeTruthy();
+    expect(document.querySelector(".car-headlight-beam")).toBeTruthy();
   });
 
   it("renders without night class and overlay during day", () => {
     render(<PoliceQuestModal mapStore={createMapStore()} carStore={carStore} />);
 
     expect(document.querySelector(".police-quest-modal--night")).toBeNull();
+    expect(document.querySelector(".police-quest-modal--rain")).toBeNull();
     expect(
       document.querySelector('[data-type="atmosphere-overlay"]'),
     ).toBeNull();
+    expect(
+      document.querySelector('.police-quest-modal [data-type="rain-layer"]'),
+    ).toBeNull();
+    expect(document.querySelector(".car-headlight-beam")).toBeNull();
   });
 });

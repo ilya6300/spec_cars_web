@@ -15,7 +15,10 @@
 | AI-трафик | `src/state/questCarStore.jsx` | Quest-машины |
 | Объекты окружения | `src/state/objects.jsx` | Конфиги спавна |
 | Данные машин | `src/state/cars.jsx` | Полиция + otherCars |
-| Рендер карты | `src/components/map/Maps.jsx` | Дорога, объекты, разметка |
+| Рендер карты | `src/components/map/Maps.jsx` | Дорога, объекты, разметка, `.road-wet` |
+| Атмосфера | `src/state/atmosphereStore.jsx` | `isNight` / `isRainy` |
+| Слой дождя | `src/components/game/RainLayer.jsx` | SVG-капли FAR/MID/NEAR, `data-type="rain-layer"` |
+| Текстура дождя | `src/assets/effects/rain.svg` | Тайл капель ~12° |
 | Управление | `src/components/controllers/Controllers.jsx` | Зажигание, газ, КПП, сирена |
 | Vite config | `vite.config.js` | base path, сборка |
 | Playwright config | `playwright.config.js` | E2E, baseURL |

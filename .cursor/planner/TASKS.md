@@ -1,9 +1,9 @@
 # Задачи spec_cars_web
 
-> План: `.cursor/planner/PLAN.md` (Approved 12 авг. 2026)
+> План: `.cursor/planner/PLAN.md` (Approved 14 авг. 2026) — **все пункты закрыты**
 
 **Активная задача:** —  
-**Последнее закрытие:** TASK-047 → `DONE.md`
+**Последнее закрытие:** TASK-054 → `DONE.md`
 
 ---
 

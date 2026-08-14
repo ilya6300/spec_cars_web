@@ -48,6 +48,14 @@ export const StartMenu = observer(() => {
       <div className="start-menu__content">
         <header className="start-menu__header">
           <h1 className="start-menu__title">Машины специального назначения</h1>
+          <button
+            type="button"
+            className="start-menu__ui-test-link"
+            data-type="open-quest-buttons-ui-test"
+            onClick={() => appStore.openUiTest()}
+          >
+            UI: квестовые кнопки
+          </button>
         </header>
         <div className="start-menu__modes">
           {MODES.map(({ id, dataType, title, icon }) => (

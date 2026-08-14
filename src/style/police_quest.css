@@ -27,7 +27,7 @@
   position: relative;
   width: 150px;
   height: 150px;
-  z-index: 1002;
+  z-index: 1004;
 }
 
 .target-image {
@@ -43,29 +43,19 @@
   height: auto;
   transform: translateY(calc(-100% + var(--car-wheel-offset)));
   transition: none;
-  z-index: 1003;
+  z-index: 1005;
   left: 0;
 }
 
-.arrest-button {
-  position: absolute;
-  bottom: 10%;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 20px 60px;
-  font-size: 24px;
-  font-weight: bold;
-  background: #ff4444;
-  color: white;
-  border: 2px solid #fff;
-  border-radius: 12px;
-  cursor: pointer;
-  z-index: 1005;
+.quest-cta--police-modal {
+  z-index: 1006;
   pointer-events: auto;
 }
 
-.arrest-button:hover {
-  background: #cc0000;
+@media (max-width: 900px) and (orientation: landscape), (max-height: 500px) {
+  .police-quest-modal .quest-car {
+    top: 58%;
+  }
 }
 
 /* Дорога на фоне модалки */
@@ -92,21 +82,25 @@
   pointer-events: none;
 }
 
+.police-quest-modal .game-rain-container {
+  position: absolute;
+  inset: 0;
+  z-index: 1003;
+  pointer-events: none;
+}
+
+.police-quest-modal--night .car_container--headlights .car-headlight-beam {
+  background: linear-gradient(
+    to right,
+    rgba(220, 235, 255, 0.78) 0%,
+    rgba(200, 225, 255, 0.32) 38%,
+    rgba(180, 210, 255, 0.1) 62%,
+    transparent 100%
+  );
+}
+
 @media (prefers-reduced-motion: reduce) {
   .police-quest-modal--night .modal-road-background {
     filter: brightness(0.73);
   }
 }
-
-@media (max-width: 900px) and (orientation: landscape), (max-height: 500px) {
-  .police-quest-modal .quest-car {
-    top: 58%;
-  }
-
-  .police-quest-modal .arrest-button {
-    bottom: 8px;
-    padding: 12px 36px;
-    font-size: 18px;
-  }
-}
-

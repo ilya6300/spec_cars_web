@@ -13,6 +13,7 @@
 
 .car_container--player.car_container--standalone {
   top: var(--player-car-lane-y);
+  z-index: 60;
 }
 
 .car_container--player .sirena-car-on {

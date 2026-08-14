@@ -1,5 +1,6 @@
 import React from "react";
 import { Bensin } from "../car/Bensin";
+import { QuestCtaButton } from "../ui/QuestCtaButton";
 
 const titleId = "refuel-modal-title";
 
@@ -22,14 +23,14 @@ export function RefuelModal({ carStore, onWatchVideo }) {
         <p className="refuel-modal-card__subtitle">
           Посмотри видео — получишь 5 литров
         </p>
-        <button
-          type="button"
-          className="refuel-modal-card__cta"
+        <QuestCtaButton
+          role="nav"
+          className="quest-cta--refuel"
           data-type="refuel-watch-video"
           onClick={onWatchVideo}
         >
           Смотреть видео
-        </button>
+        </QuestCtaButton>
       </div>
     </div>
   );

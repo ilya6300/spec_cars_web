@@ -36,6 +36,16 @@ export const Maps = observer(({ map, carStore, onClickObject }) => {
 
       <div
 
+        className="road-wet"
+
+        data-type="road-wet"
+
+        aria-hidden="true"
+
+      />
+
+      <div
+
         className="road-line"
 
         style={{

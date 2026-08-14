@@ -67,32 +67,6 @@
   line-height: 1.4;
 }
 
-.refuel-modal-card__cta {
-  width: 100%;
-  min-height: 44px;
-  margin-top: 8px;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 14px;
-  background: linear-gradient(180deg, #ffd86b, #f9b931);
-  color: #1a1a1a;
-  font-size: 1.05rem;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(249, 185, 49, 0.35);
-  transition:
-    transform 0.1s ease,
-    box-shadow 0.2s ease;
-}
-
-.refuel-modal-card__cta:hover {
-  box-shadow: 0 6px 18px rgba(249, 185, 49, 0.45);
-}
-
-.refuel-modal-card__cta:active {
-  transform: scale(0.98);
-}
-
 @media (max-width: 900px) and (orientation: landscape), (max-height: 500px) {
   .refuel-modal__canister .canister {
     width: 60px;

@@ -19,6 +19,25 @@
   --ui-hud-accent: #9ebfd4;
   --ui-hud-accent-dim: rgba(158, 191, 212, 0.55);
 
+  /* Siren Bloom — квестовые CTA */
+  --quest-cta-radius: 12px;
+  --quest-cta-min-height: 62px;
+  --quest-cta-padding-y: 17px;
+  --quest-cta-padding-x: 53px;
+  --quest-cta-font-size: 1.5rem;
+  --quest-cta-min-width: 264px;
+  --quest-cta-edge-x: 12px;
+  --quest-cta-edge-y: 16px;
+  --quest-cta-edge-y-mobile: 8px;
+  --quest-cta-mission-highlight: #ff7080;
+  --quest-cta-mission-core: #e82838;
+  --quest-cta-mission-deep: #a01020;
+  --quest-cta-mission-glow: rgba(255, 50, 70, 0.5);
+  --quest-cta-nav-highlight: #6db8ff;
+  --quest-cta-nav-core: #2a80e8;
+  --quest-cta-nav-deep: #0a50b0;
+  --quest-cta-nav-glow: rgba(0, 130, 255, 0.45);
+
   /* Центр дороги — разметка (пунктир между полосами).
      Mobile overrides: src/style/media.css */
   --road-lane-y: 53%;

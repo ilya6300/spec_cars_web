@@ -1,0 +1,519 @@
+/* ==========================================================================
+   Quest Buttons UI Test — borderless variants
+   Roles: mission | nav (unified)
+   Rule: border: none on all .ui-btn
+   ========================================================================== */
+
+@import url("./ui-quest-cta.css");
+
+.quest-buttons-ui-test {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  overflow: auto;
+  background: #080c14;
+  color: var(--ui-text-primary, #fff);
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* --- Header --- */
+
+.quest-buttons-ui-test__header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: rgba(8, 12, 20, 0.94);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
+}
+
+.quest-buttons-ui-test__title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.quest-buttons-ui-test__subtitle {
+  margin: 6px 0 0;
+  font-size: 0.88rem;
+  color: var(--ui-text-muted, rgba(255, 255, 255, 0.55));
+}
+
+.quest-buttons-ui-test__back {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.quest-buttons-ui-test__back:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* --- Intro --- */
+
+.quest-buttons-ui-test__intro {
+  margin: 20px 20px 0;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.quest-buttons-ui-test__intro-title {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.quest-buttons-ui-test__intro-text {
+  margin: 0 0 14px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.quest-buttons-ui-test__intro-text code {
+  font-size: 0.82rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.quest-buttons-ui-test__dna-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.quest-buttons-ui-test__dna-grid div {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.quest-buttons-ui-test__dna-grid dt {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 2px;
+}
+
+.quest-buttons-ui-test__dna-grid dd {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* --- Variant panels --- */
+
+.quest-buttons-ui-test__concepts {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 20px;
+}
+
+.quest-buttons-ui-test__concept {
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.quest-buttons-ui-test__concept-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.quest-buttons-ui-test__concept-name {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.quest-buttons-ui-test__concept-tagline {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.quest-buttons-ui-test__concept-desc {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.55);
+  max-width: 640px;
+}
+
+.quest-buttons-ui-test__concept-diff {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.quest-buttons-ui-test__concept-diff strong {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.quest-buttons-ui-test__contexts {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.quest-buttons-ui-test__panel {
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.quest-buttons-ui-test__panel--road {
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.35)),
+    repeating-linear-gradient(
+      90deg,
+      #4a4a4a 0,
+      #4a4a4a 40px,
+      #3a3a3a 40px,
+      #3a3a3a 80px
+    );
+}
+
+.quest-buttons-ui-test__panel--dark {
+  background: linear-gradient(180deg, #1a2230 0%, #0a0e14 100%);
+}
+
+.quest-buttons-ui-test__panel-title {
+  margin: 0 0 14px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.quest-buttons-ui-test__role-section {
+  margin-bottom: 16px;
+}
+
+.quest-buttons-ui-test__role-section:last-child {
+  margin-bottom: 0;
+}
+
+.quest-buttons-ui-test__role-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.quest-buttons-ui-test__role-hint {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.quest-buttons-ui-test__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.quest-buttons-ui-test__item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.quest-buttons-ui-test__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.quest-buttons-ui-test__item-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.quest-buttons-ui-test__item-context {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.quest-buttons-ui-test__class-name {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.45);
+  word-break: break-all;
+}
+
+.quest-buttons-ui-test__preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
+  padding: 10px 6px;
+}
+
+/* ==========================================================================
+   Variant styles (aurora, chunk, mist) — bloom lives in ui-quest-cta.css
+   ========================================================================== */
+
+.ui-btn--aurora {
+  border-radius: 999px;
+}
+
+.ui-btn--aurora.ui-btn--mission {
+  background: linear-gradient(135deg, #ff5a6e 0%, #e02035 55%, #c01028 100%);
+  box-shadow:
+    0 0 28px rgba(255, 60, 80, 0.45),
+    0 0 48px rgba(0, 80, 220, 0.25),
+    0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.ui-btn--aurora.ui-btn--mission:hover {
+  filter: brightness(1.08);
+  box-shadow:
+    0 0 36px rgba(255, 60, 80, 0.55),
+    0 0 60px rgba(0, 100, 255, 0.35),
+    0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+.ui-btn--aurora.ui-btn--nav {
+  background: linear-gradient(135deg, #4da3ff 0%, #1a6de8 50%, #0a4cb8 100%);
+  box-shadow:
+    0 0 24px rgba(0, 140, 255, 0.4),
+    0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.ui-btn--aurora.ui-btn--nav:hover {
+  filter: brightness(1.1);
+  box-shadow:
+    0 0 36px rgba(0, 160, 255, 0.55),
+    0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.ui-btn--aurora:active {
+  transform: scale(0.96);
+}
+
+/* ==========================================================================
+   3 — Toy Chunk (flat fill + 3D shadow stack)
+   ========================================================================== */
+
+.ui-btn--chunk {
+  border-radius: 18px;
+}
+
+.ui-btn--chunk.ui-btn--mission {
+  background: #ef3d4f;
+  box-shadow:
+    0 6px 0 #9a1525,
+    0 10px 20px rgba(0, 0, 0, 0.35);
+}
+
+.ui-btn--chunk.ui-btn--mission:hover {
+  filter: brightness(1.05);
+}
+
+.ui-btn--chunk.ui-btn--mission:active {
+  transform: translateY(4px);
+  box-shadow:
+    0 2px 0 #9a1525,
+    0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.ui-btn--chunk.ui-btn--nav {
+  background: #2f8af0;
+  box-shadow:
+    0 6px 0 #1458a8,
+    0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.ui-btn--chunk.ui-btn--nav:hover {
+  filter: brightness(1.06);
+}
+
+.ui-btn--chunk.ui-btn--nav:active {
+  transform: translateY(4px);
+  box-shadow:
+    0 2px 0 #1458a8,
+    0 4px 10px rgba(0, 0, 0, 0.22);
+}
+
+/* ==========================================================================
+   4 — Fog Beam (frosted + colored underglow)
+   ========================================================================== */
+
+.ui-btn--mist {
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.ui-btn--mist.ui-btn--mission {
+  background: rgba(220, 40, 60, 0.72);
+  box-shadow:
+    0 12px 32px rgba(220, 40, 60, 0.45),
+    0 4px 12px rgba(0, 60, 180, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.ui-btn--mist.ui-btn--mission:hover {
+  background: rgba(230, 50, 70, 0.82);
+  box-shadow:
+    0 16px 40px rgba(220, 40, 60, 0.55),
+    0 6px 16px rgba(0, 80, 200, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.ui-btn--mist.ui-btn--nav {
+  background: rgba(30, 100, 200, 0.65);
+  box-shadow:
+    0 12px 32px rgba(0, 120, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.ui-btn--mist.ui-btn--nav:hover {
+  background: rgba(40, 115, 220, 0.78);
+  box-shadow:
+    0 16px 40px rgba(0, 140, 255, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.ui-btn--mist:active {
+  transform: scale(0.97);
+  filter: brightness(0.95);
+}
+
+/* --- Variant name accents --- */
+
+.quest-buttons-ui-test__concept[data-variant="aurora"] .quest-buttons-ui-test__concept-name {
+  color: #7ec8ff;
+}
+
+.quest-buttons-ui-test__concept[data-variant="bloom"] .quest-buttons-ui-test__concept-name {
+  color: #ff8a9a;
+}
+
+.quest-buttons-ui-test__concept[data-variant="chunk"] .quest-buttons-ui-test__concept-name {
+  color: #6ec0ff;
+}
+
+.quest-buttons-ui-test__concept[data-variant="mist"] .quest-buttons-ui-test__concept-name {
+  color: #a8c8e8;
+}
+
+/* --- Start menu link --- */
+
+.start-menu__ui-test-link {
+  align-self: flex-start;
+  margin-top: 4px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: background 0.2s ease;
+}
+
+.start-menu__ui-test-link:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.quest-buttons-ui-test__concept--production {
+  border-color: rgba(255, 120, 140, 0.35);
+  background: rgba(255, 80, 100, 0.04);
+}
+
+.quest-buttons-ui-test__concept--production .quest-buttons-ui-test__concept-name {
+  color: #ff8a9a;
+}
+
+.quest-buttons-ui-test__cta-reset {
+  position: relative !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: none !important;
+}
+
+/* --- Reduced motion --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-btn,
+  .ui-btn:active {
+    transition: none;
+  }
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 900px) and (orientation: landscape),
+  (max-height: 500px) {
+  .quest-buttons-ui-test__header {
+    padding: 12px 14px;
+  }
+
+  .quest-buttons-ui-test__intro {
+    margin: 12px 12px 0;
+    padding: 12px 14px;
+  }
+
+  .quest-buttons-ui-test__concepts {
+    padding: 12px;
+    gap: 20px;
+  }
+
+  .quest-buttons-ui-test__concept-header {
+    padding: 14px;
+  }
+
+  .quest-buttons-ui-test__contexts {
+    padding: 10px;
+  }
+
+  .quest-buttons-ui-test__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ui-btn {
+    font-size: 0.9rem;
+    padding: 10px 22px;
+  }
+}

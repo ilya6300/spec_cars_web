@@ -4,6 +4,7 @@ import collectibleStarImg from "../../assets/ui/collectible-star.svg";
 import appStore from "../../state/appStore";
 import modeStore from "../../state/modeStore";
 import { GAME_MODES } from "../../state/modeScoring";
+import { QuestCtaButton } from "../ui/QuestCtaButton";
 
 const STAR_COUNT = 3;
 const titleId = "mode-result-title";
@@ -63,14 +64,13 @@ export const ModeResultModal = observer(({ carStore }) => {
             Поймано: {chaseProgress.current} / {chaseProgress.target}
           </p>
         )}
-        <button
-          type="button"
-          className="mode-result-card__button"
+        <QuestCtaButton
+          role="nav"
           data-type="mode-back-to-menu"
           onClick={() => appStore.backToMenu()}
         >
           В меню
-        </button>
+        </QuestCtaButton>
       </div>
     </div>
   );

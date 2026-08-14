@@ -28,7 +28,7 @@ test.describe("Police Quest E2E", () => {
         timeout: 30000,
       });
 
-      await page.click(".arrest-button");
+      await page.click('[data-type="police-quest-arrest"]');
       await page.waitForSelector('[data-type="quest-finish-overlay"]', { timeout: 5000 });
       await page.click('[data-type="quest-finish-continue"]');
       await page.waitForSelector(".police-quest-modal", { state: "hidden" });

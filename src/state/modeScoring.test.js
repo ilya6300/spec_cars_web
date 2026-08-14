@@ -4,6 +4,7 @@ import {
   calculateSessionStars,
   GAME_MODES,
   TIMED_DURATION_SEC,
+  getAtmosphereForMode,
   isNightChaseContext,
 } from "./modeScoring";
 import atmosphereStore from "./atmosphereStore";
@@ -56,4 +57,18 @@ test("isNightChaseContext: free + night atmosphere", () => {
   const mapStore = { gameMode: GAME_MODES.FREE };
   expect(isNightChaseContext(mapStore)).toBe(true);
   atmosphereStore.setAtmosphere({ timeOfDay: "day" });
+});
+
+test("getAtmosphereForMode: chase returns night and rain", () => {
+  expect(getAtmosphereForMode(GAME_MODES.CHASE)).toEqual({
+    timeOfDay: "night",
+    weather: "rain",
+  });
+});
+
+test("atmosphereStore.isRainy: true when weather is rain", () => {
+  atmosphereStore.setAtmosphere({ timeOfDay: "night", weather: "rain" });
+  expect(atmosphereStore.isRainy).toBe(true);
+  atmosphereStore.setAtmosphere({ timeOfDay: "day", weather: "clear" });
+  expect(atmosphereStore.isRainy).toBe(false);
 });

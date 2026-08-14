@@ -10,7 +10,13 @@ import {
   TRAFFIC_LIGHT_STOP_TOLERANCE_PX,
 } from "./trafficLightConstants";
 
+/** Минимальная relative-скорость мирной машины — не «прилипать» к полиции при совпадении скоростей */
+const CIVILIAN_MIN_RELATIVE_SPEED = 25;
+
+let questCarInstanceSeq = 0;
+
 class QuestCarStore {
+  uid;
   id;
   type;
   name;
@@ -31,6 +37,7 @@ class QuestCarStore {
   trafficLightResuming = false;
 
   constructor(carData) {
+    this.uid = `quest_car_${questCarInstanceSeq++}`;
     this.id = carData.id;
     this.type = carData.type;
     this.name = carData.name;
@@ -172,7 +179,16 @@ class QuestCarStore {
   }
 
   updatePosition(deltaTime, policeSpeed) {
-    const relativeSpeed = this.currentSpeed - policeSpeed;
+    let relativeSpeed = this.currentSpeed - policeSpeed;
+
+    if (
+      !this.enemy &&
+      this.currentSpeed > 0 &&
+      Math.abs(relativeSpeed) < CIVILIAN_MIN_RELATIVE_SPEED
+    ) {
+      relativeSpeed = -CIVILIAN_MIN_RELATIVE_SPEED;
+    }
+
     this.positionX += relativeSpeed * deltaTime;
   }
 

@@ -135,6 +135,35 @@ test('MapStore: questCarActive field does not exist', () => {
   expect(store.questCarActive).toBeUndefined();
 });
 
+test('MapStore: removeOffScreenQuestCars drops cars outside viewport', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.questCars = [
+    { active: true, positionX: -300, uid: 'a', enemy: true },
+    { active: true, positionX: 500, uid: 'b', enemy: false },
+    { active: true, positionX: 1300, uid: 'c', enemy: false },
+  ];
+
+  store.removeOffScreenQuestCars(1024);
+
+  expect(store.questCars.length).toBe(1);
+  expect(store.questCars[0].uid).toBe('b');
+});
+
+test('MapStore: removeOffScreenQuestCars keeps civilian behind left edge', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.questCars = [
+    { active: true, positionX: -400, uid: 'civilian-behind', enemy: false },
+    { active: true, positionX: 500, uid: 'civilian-visible', enemy: false },
+  ];
+
+  store.removeOffScreenQuestCars(1024);
+
+  expect(store.questCars.length).toBe(2);
+  expect(store.questCars.map((c) => c.uid)).toContain('civilian-behind');
+});
+
 test('MapStore: spawnCivilianQuestCar creates civilian car', () => {
   const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
   store.carStore = { gear: 'N', currentSpeed: 0 };

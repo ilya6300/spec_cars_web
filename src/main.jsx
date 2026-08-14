@@ -10,6 +10,7 @@ import "./style/mode.css";
 import "./style/quest-finish.css";
 import "./style/pedestrian_crossing_layer.css";
 import "./style/refuel-modal.css";
+import "./style/quest-buttons-ui-test.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

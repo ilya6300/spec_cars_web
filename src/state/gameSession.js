@@ -1,3 +1,5 @@
+import atmosphereStore from "./atmosphereStore";
+
 /**
  * Один тик игрового кадра: физика машины → мир → светофор/квесты → туториал → режим.
  */
@@ -21,4 +23,5 @@ export function tickGameFrame({
   mapStore.tickWorld(carStore, deltaTime, viewportWidth);
   tutorialStore?.tick(deltaTime, carStore, mapStore, viewportWidth);
   modeStore?.tick(deltaTime, carStore);
+  atmosphereStore.tick(deltaTime, modeStore?.gameMode);
 }

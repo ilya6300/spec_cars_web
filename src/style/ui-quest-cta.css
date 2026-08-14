@@ -1,0 +1,186 @@
+/* Siren Bloom — квестовые CTA (mission + nav) */
+
+.ui-btn {
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+  color: #fff;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease,
+    background 0.2s ease;
+}
+
+/* Единый размер всех квестовых CTA (mission + nav) */
+.ui-btn.ui-btn--bloom {
+  min-width: var(--quest-cta-min-width, 220px);
+  min-height: var(--quest-cta-min-height, 52px);
+  padding: var(--quest-cta-padding-y, 14px) var(--quest-cta-padding-x, 44px);
+  font-size: var(--quest-cta-font-size, 1.25rem);
+  box-sizing: border-box;
+}
+
+.ui-btn:focus {
+  outline: none;
+}
+
+.ui-btn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.35),
+    var(--btn-focus-extra, 0 0 0 0 transparent);
+}
+
+.ui-btn--bloom {
+  border-radius: var(--quest-cta-radius, 16px);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.ui-btn__label {
+  position: relative;
+  z-index: 1;
+}
+
+/* Layout — левый нижний угол экрана */
+.ui-btn.ui-btn--bloom.quest-cta--police-modal,
+.ui-btn.ui-btn--bloom.quest-cta--arrest-modal {
+  position: absolute;
+  bottom: var(--quest-cta-edge-y, 16px);
+  left: var(--quest-cta-edge-x, 12px);
+  transform: none;
+}
+
+.ui-btn.ui-btn--bloom.quest-cta--map {
+  position: fixed;
+  bottom: var(--quest-cta-edge-y, 16px);
+  left: var(--quest-cta-edge-x, 12px);
+  transform: none;
+}
+
+.ui-btn.ui-btn--bloom.quest-cta--police-modal:active,
+.ui-btn.ui-btn--bloom.quest-cta--arrest-modal:active,
+.ui-btn.ui-btn--bloom.quest-cta--map:active {
+  transform: scale(0.97);
+}
+
+.ui-btn.ui-btn--bloom:active:not(.quest-cta--police-modal):not(.quest-cta--arrest-modal):not(.quest-cta--map) {
+  transform: scale(0.97);
+}
+
+.ui-btn--bloom.ui-btn--mission {
+  background: radial-gradient(
+    ellipse 120% 100% at 50% 0%,
+    var(--quest-cta-mission-highlight, #ff7080) 0%,
+    var(--quest-cta-mission-core, #e82838) 45%,
+    var(--quest-cta-mission-deep, #a01020) 100%
+  );
+  box-shadow:
+    0 0 30px var(--quest-cta-mission-glow, rgba(255, 50, 70, 0.5)),
+    0 0 50px rgba(0, 70, 200, 0.2),
+    inset 0 -8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.ui-btn--bloom.ui-btn--mission::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(
+    circle at 50% -20%,
+    rgba(100, 170, 255, 0.35) 0%,
+    transparent 55%
+  );
+  pointer-events: none;
+}
+
+.ui-btn--bloom.ui-btn--mission:hover {
+  filter: brightness(1.06);
+  animation: bloom-mission-flicker 1.6s ease-in-out infinite;
+}
+
+.ui-btn--bloom.ui-btn--nav {
+  background: radial-gradient(
+    ellipse 120% 100% at 50% 0%,
+    var(--quest-cta-nav-highlight, #6db8ff) 0%,
+    var(--quest-cta-nav-core, #2a80e8) 45%,
+    var(--quest-cta-nav-deep, #0a50b0) 100%
+  );
+  box-shadow:
+    0 0 28px var(--quest-cta-nav-glow, rgba(0, 130, 255, 0.45)),
+    inset 0 -8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.ui-btn--bloom.ui-btn--nav::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(
+    circle at 50% -30%,
+    rgba(200, 230, 255, 0.4) 0%,
+    transparent 50%
+  );
+  pointer-events: none;
+}
+
+.ui-btn--bloom.ui-btn--nav:hover {
+  filter: brightness(1.08);
+  box-shadow:
+    0 0 40px rgba(0, 150, 255, 0.6),
+    inset 0 -8px 20px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes bloom-mission-flicker {
+  0%,
+  100% {
+    box-shadow:
+      0 0 30px var(--quest-cta-mission-glow, rgba(255, 50, 70, 0.5)),
+      0 0 40px rgba(0, 70, 200, 0.25);
+  }
+
+  50% {
+    box-shadow:
+      0 0 36px rgba(255, 50, 70, 0.55),
+      0 0 55px rgba(0, 100, 255, 0.4);
+  }
+}
+
+.ui-btn.ui-btn--bloom.quest-cta--refuel {
+  width: 100%;
+  min-width: 0;
+  margin-top: 8px;
+}
+
+@media (max-width: 900px) and (orientation: landscape),
+  (max-height: 500px) {
+  .ui-btn.ui-btn--bloom {
+    min-width: 216px;
+    min-height: 53px;
+    padding: 14px 38px;
+    font-size: 1.35rem;
+  }
+
+  .ui-btn.ui-btn--bloom.quest-cta--police-modal,
+  .ui-btn.ui-btn--bloom.quest-cta--arrest-modal,
+  .ui-btn.ui-btn--bloom.quest-cta--map {
+    bottom: var(--quest-cta-edge-y-mobile, 8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-btn--bloom.ui-btn--mission:hover {
+    animation: none;
+  }
+
+  .ui-btn,
+  .ui-btn:active {
+    transition: none;
+  }
+}

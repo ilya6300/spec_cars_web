@@ -68,27 +68,6 @@
   border-radius: 14px;
 }
 
-.quest-finish-continue {
-  min-width: 44px;
-  min-height: 44px;
-  padding: 12px 32px;
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: white;
-  background: #ff4444;
-  border: 2px solid #fff;
-  border-radius: 12px;
-  cursor: pointer;
-}
-
-.quest-finish-continue:hover {
-  background: #cc0000;
-}
-
-.quest-finish-continue:active {
-  transform: scale(0.98);
-}
-
 @keyframes questFinishAppear {
   from {
     opacity: 0;
@@ -149,10 +128,5 @@
 
   .quest-finish-image {
     max-height: min(62vh, 400px);
-  }
-
-  .quest-finish-continue {
-    font-size: 1rem;
-    padding: 12px 28px;
   }
 }

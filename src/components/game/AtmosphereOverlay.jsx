@@ -7,7 +7,7 @@ export const AtmosphereOverlay = observer(() => {
 
   return (
     <div
-      className="atmosphere-overlay"
+      className="atmosphere-overlay game-night-overlay"
       data-type="atmosphere-overlay"
       aria-hidden="true"
     />

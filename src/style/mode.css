@@ -204,28 +204,46 @@
   }
 }
 
-.mode-result-card__button {
-  min-width: 160px;
-  min-height: 44px;
-  padding: 10px 24px;
-  border: none;
-  border-radius: 12px;
-  background: var(--ui-accent, #00c6ff);
-  color: #001018;
-  font-size: 1rem;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.atmosphere-overlay {
+.atmosphere-overlay,
+.game-night-overlay {
   position: absolute;
   inset: 0;
   z-index: 45;
   pointer-events: none;
+}
+
+.game-night-overlay {
   background: linear-gradient(
-    to bottom,
-    rgba(20, 28, 55, 0.12) 0%,
-    rgba(10, 18, 40, 0.28) 100%
+    180deg,
+    rgba(25, 55, 105, 0.2) 0%,
+    rgba(12, 30, 70, 0.16) 45%,
+    rgba(3, 12, 35, 0.28) 100%
+  );
+}
+
+.game-night-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 120% 80% at 50% 20%,
+    rgba(90, 140, 200, 0.14) 0%,
+    rgba(40, 75, 130, 0.05) 40%,
+    transparent 70%
+  );
+}
+
+.game-night-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 45%,
+    rgba(0, 5, 20, 0.1) 75%,
+    rgba(0, 5, 20, 0.25) 100%
   );
 }
 
@@ -233,9 +251,109 @@
   filter: brightness(0.6) saturate(0.65);
 }
 
+.game-viewport--night .car_container--headlights .car-headlight-beam {
+  background: linear-gradient(
+    to right,
+    rgba(220, 235, 255, 0.78) 0%,
+    rgba(200, 225, 255, 0.32) 38%,
+    rgba(180, 210, 255, 0.1) 62%,
+    transparent 100%
+  );
+}
+
+.game-rain-container {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.game-rain {
+  position: absolute;
+  inset: -30%;
+  pointer-events: none;
+  opacity: 0;
+  overflow: hidden;
+  background-image: var(--rain-texture);
+  background-repeat: repeat;
+}
+
+.game-rain--far {
+  background-size: 280px 280px;
+}
+
+.game-rain--mid {
+  background-size: 360px 360px;
+}
+
+.game-rain--near {
+  background-size: 480px 480px;
+}
+
+.game-viewport--rain .game-rain--far {
+  opacity: 0.12;
+  animation: rain-drift-far 7s linear infinite;
+}
+
+.game-viewport--rain .game-rain--mid {
+  opacity: 0.18;
+  animation: rain-drift-mid 4.6s linear infinite;
+  animation-delay: -1.3s;
+}
+
+.game-viewport--rain .game-rain--near {
+  opacity: 0.24;
+  animation: rain-drift-near 2.8s linear infinite;
+  animation-delay: -0.7s;
+}
+
+@keyframes rain-drift-far {
+  from {
+    transform: translate3d(-6.4%, -30%, 0);
+  }
+  to {
+    transform: translate3d(6.4%, 30%, 0);
+  }
+}
+
+@keyframes rain-drift-mid {
+  from {
+    transform: translate3d(-8.5%, -40%, 0);
+  }
+  to {
+    transform: translate3d(8.5%, 40%, 0);
+  }
+}
+
+@keyframes rain-drift-near {
+  from {
+    transform: translate3d(-10.6%, -50%, 0);
+  }
+  to {
+    transform: translate3d(10.6%, 50%, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .game-viewport--night .game-map {
     filter: brightness(0.73);
+  }
+
+  .game-viewport--rain .game-rain {
+    animation: none;
+  }
+
+  .game-viewport--rain .game-rain--far {
+    opacity: 0.06;
+  }
+
+  .game-viewport--rain .game-rain--mid {
+    opacity: 0.08;
+  }
+
+  .game-viewport--rain .game-rain--near {
+    opacity: 0.1;
   }
 
   .mode-result-card {
@@ -322,5 +440,17 @@
   .mode-result-star {
     width: 40px;
     height: 40px;
+  }
+
+  .game-rain--far {
+    background-size: 336px 336px;
+  }
+
+  .game-rain--mid {
+    background-size: 432px 432px;
+  }
+
+  .game-rain--near {
+    background-size: 576px 576px;
   }
 }

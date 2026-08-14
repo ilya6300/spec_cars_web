@@ -1,6 +1,5 @@
 .car-ui {
   position: absolute;
-  z-index: 100;
   top: 0;
   left: 0;
   width: 100vw;
@@ -86,10 +85,6 @@
   isolation: isolate;
 }
 
-.car_container--headlights .car-body {
-  filter: drop-shadow(0 0 6px rgba(255, 248, 200, 0.35));
-}
-
 .car_container--headlights .left-shell,
 .car_container--headlights .right-shell {
   z-index: 2;
@@ -116,7 +111,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .car_container--headlights .car-body {
-    filter: drop-shadow(0 0 4px rgba(255, 248, 200, 0.3));
+  .car-headlight-beam {
+    animation: none;
   }
 }

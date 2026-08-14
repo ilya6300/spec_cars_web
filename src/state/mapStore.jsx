@@ -27,6 +27,7 @@ import {
 import starsStore from "./starsStore";
 
 const QUEST_CAR_VISIBLE_MARGIN = 150;
+const QUEST_CAR_DESPAWN_MARGIN = 250;
 
 // #region agent log
 let starDebugLastLog = 0;
@@ -833,10 +834,26 @@ class MapStore {
     });
   }
 
+  removeOffScreenQuestCars(viewportWidth = this.lastViewportWidth) {
+    const width = viewportWidth ?? window.innerWidth;
+    const minX = -QUEST_CAR_DESPAWN_MARGIN;
+    const maxX = width + QUEST_CAR_DESPAWN_MARGIN;
+
+    runInAction(() => {
+      this.questCars = this.questCars.filter((car) => {
+        if (!car.active) return false;
+        if (car.positionX > maxX) return false;
+        if (car.enemy && car.positionX < minX) return false;
+        return true;
+      });
+    });
+  }
+
   updateQuestCars(deltaTime) {
     if (this.questCars.length === 0) return;
 
     const policeSpeed = this.carStore.currentSpeed;
+    const viewportWidth = this.lastViewportWidth ?? window.innerWidth;
 
     runInAction(() => {
       for (const questCar of this.questCars) {
@@ -849,6 +866,8 @@ class MapStore {
         questCar.updatePosition(deltaTime, policeSpeed);
         questCar.updateWheelRotation(deltaTime);
       }
+
+      this.removeOffScreenQuestCars(viewportWidth);
     });
   }
 

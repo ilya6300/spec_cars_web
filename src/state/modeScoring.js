@@ -65,7 +65,7 @@ export function calculateSessionStars(helpCounts, gameMode) {
 
 export function getAtmosphereForMode(gameMode) {
   if (gameMode === GAME_MODES.CHASE) {
-    return { timeOfDay: "night", weather: "clear" };
+    return { timeOfDay: "night", weather: "rain" };
   }
   return { timeOfDay: "day", weather: "clear" };
 }

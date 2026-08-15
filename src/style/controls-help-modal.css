@@ -1,0 +1,133 @@
+.controls-help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.controls-help-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.controls-help-card {
+  position: relative;
+  z-index: 1101;
+  width: min(480px, 92vw);
+  max-height: 92dvh;
+  padding: 32px 28px;
+  border-radius: var(--ui-glass-radius, 18px);
+  background: var(--ui-glass-bg, rgba(20, 25, 35, 0.85));
+  border: 1px solid var(--ui-glass-border, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  color: var(--ui-text-primary, #fff);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.controls-help-card__title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.controls-help-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.controls-help-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.controls-help-section__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.controls-help-section p,
+.controls-help-section ul {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--ui-text-muted, rgba(255, 255, 255, 0.85));
+}
+
+.controls-help-section ul {
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.controls-help-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.controls-help-table th,
+.controls-help-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.controls-help-table th {
+  font-weight: 700;
+  color: var(--ui-text-primary, #fff);
+}
+
+.controls-help-key {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  color: var(--ui-text-primary, #fff);
+}
+
+.controls-help-card__actions {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.controls-help__back,
+.controls-help__close {
+  flex: 1;
+}
+
+@media (max-width: 900px) and (orientation: landscape), (max-height: 500px) {
+  .controls-help-card {
+    padding: 24px 20px;
+    gap: 12px;
+  }
+
+  .controls-help-card__title {
+    font-size: 1.4rem;
+  }
+
+  .controls-help-body {
+    max-height: 60dvh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .controls-help-section {
+    animation: none;
+  }
+}

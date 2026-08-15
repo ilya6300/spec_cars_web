@@ -239,7 +239,12 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
       <RainLayer />
       <Controllers
         activeCarStore={activeCarStore}
-        controlsBlocked={isRefuelModalOpen}
+        controlsBlocked={
+          isRefuelModalOpen ||
+          modeStore.isComplete ||
+          activeMapStore.isPoliceQuestActive ||
+          activeMapStore.isQuestArrestActive
+        }
         onEmptyGasPress={handleEmptyGasPress}
       />
 

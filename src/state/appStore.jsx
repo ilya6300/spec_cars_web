@@ -9,13 +9,46 @@ class AppStore {
   screen = "menu";
   selectedMode = GAME_MODES.FREE;
   gameSessionKey = 0;
+  isSettingsModalOpen = false;
+  isControlsHelpOpen = false;
 
   constructor() {
     makeAutoObservable(this);
   }
 
+  openSettings() {
+    runInAction(() => {
+      this.isSettingsModalOpen = true;
+    });
+  }
+
+  closeSettings() {
+    runInAction(() => {
+      this.isSettingsModalOpen = false;
+      this.isControlsHelpOpen = false;
+    });
+  }
+
+  openControlsHelp() {
+    runInAction(() => {
+      this.isControlsHelpOpen = true;
+    });
+  }
+
+  closeControlsHelp() {
+    runInAction(() => {
+      this.isControlsHelpOpen = false;
+    });
+  }
+
+  backFromControlsHelp() {
+    this.closeControlsHelp();
+  }
+
   startGame(mode = GAME_MODES.FREE) {
     runInAction(() => {
+      this.isSettingsModalOpen = false;
+      this.isControlsHelpOpen = false;
       this.selectedMode = mode;
       this.screen = "game";
       this.gameSessionKey += 1;

@@ -1,7 +1,7 @@
 # Техническая документация spec_cars_web
 
 > Постоянная документация для разработчиков. Дополняет `.cursor/planner/PROJECT_PRINCIPLES.md`.
-> Обновляется **только после завершения задачи** (последнее: TASK-052, 13 авг. 2026).
+> Обновляется **только после завершения задачи** (последнее: TASK-057, 16 авг. 2026).
 
 ---
 
@@ -98,6 +98,7 @@
 | Объекты | `objects.jsx` | `objectConfigs`, `objectConfigByType`, `buildInitialNextSpawnDistances` |
 | Квесты | `quests.jsx` | `getQuestsForService`, `getHelpTypeForPoliceObject` |
 | Bootstrap | `gameBootstrap.js` | `createGameStores({ carId, mapId })` |
+| События / баланс | `event.config.js` | константы, `getEnemyFirstSpawnGateSec`, `random*QuestCarRespawnDelaySec` |
 
 ---
 
@@ -1432,5 +1433,143 @@ Chase/timed — фиксированная атмосфера через `getAtm
 ### Тесты
 
 Vitest 10/10; Playwright chase-mode 11/11.
+
+---
+
+## [TASK-055] `event.config.js` — централизация констант событий
+
+**Дата:** 2026-08-16  
+**Контекст:** logic
+
+### Описание
+
+Единый модуль баланса и таймингов событий. Константы вынесены из `mapStore`, `atmosphereStore`, `modeScoring`, `objects.jsx`; `questCrossingConstants.js` реэкспортирует `CROSS_ON_RED_CHANCE`.
+
+### API
+
+**Файл:** `src/state/event.config.js`
+
+| Группа | Константы / функции |
+|--------|---------------------|
+| Enemy quest-car gate | `ENEMY_FIRST_SPAWN_GATE_SEC_FREE/TIMED` = 30, `CHASE` = 20; `getEnemyFirstSpawnGateSec(gameMode)` |
+| Quest-car respawn | `randomEnemyQuestCarRespawnDelaySec`, `randomCivilianQuestCarRespawnDelaySec`; initial timers 10 / 5 с |
+| Pedestrian quest | `PEDESTRIAN_QUEST_SPAWN_CHANCE` = 1, `CROSS_ON_RED_CHANCE` = 0.3 |
+| Free weather | `FREE_RAIN_START_CHANCE`, `FREE_RAIN_CHECK_INTERVAL_SEC`, `FREE_RAIN_DURATION_*` (см. TASK-052) |
+| Chase atmosphere | `CHASE_TIME_OF_DAY`, `CHASE_RAIN_CHANCE` → `getAtmosphereForMode` |
+| Traffic light | `TRAFFIC_LIGHT_CYCLE_MS` = 10000 |
+
+### Реализация
+
+| Файл | Импорт из `event.config` |
+|------|---------------------------|
+| `mapStore.jsx` | gates, respawn delays, traffic light cycle |
+| `atmosphereStore.jsx` | free rain constants |
+| `modeScoring.js` | chase time/rain |
+| `objects.jsx` | pedestrian spawn chance |
+| `questCrossingConstants.js` | re-export `CROSS_ON_RED_CHANCE` |
+
+### Влияние
+
+Поведение игры без изменений — только перенос magic numbers. Баланс правится в одном файле.
+
+---
+
+## [TASK-056] Управление с клавиатуры (ПК)
+
+**Дата:** 2026-08-16  
+**Контекст:** logic
+
+### Описание
+
+Дублирование on-screen контролов с клавиатуры в `Controllers.jsx`. Чистые хелперы КПП — в отдельном модуле.
+
+### keyboardControls
+
+**Файл:** `src/components/controllers/keyboardControls.js`
+
+| Функция | Назначение |
+|---------|------------|
+| `mapKeyCodeToGear(code)` | `KeyN`/`Digit0` → N; `Digit1`–`Digit4` → 1–4; иначе `null` |
+| `shiftGearUp(currentGear)` | N→1→2→3→4; на 4-й — без изменений |
+
+### Привязки (`Controllers.jsx`, `window` keydown/keyup)
+
+| Клавиша | Действие |
+|---------|----------|
+| `Space` (hold) | `pressGas` / `releaseGas`; при `fuel <= 0` — `onEmptyGasPress` |
+| `ControlLeft` | `toggleIgnition` |
+| `KeyC` | `toggleSirena` |
+| `ShiftLeft` / `ShiftRight` | `shiftGearUp` |
+| `N`, `0`–`4` | `shiftGear(gear)` |
+
+`repeat` игнорируется (кроме Space). При `controlsBlocked` — early return.
+
+### `controlsBlocked` (composite, `Game.jsx`)
+
+```js
+isRefuelModalOpen ||
+modeStore.isComplete ||
+activeMapStore.isPoliceQuestActive ||
+activeMapStore.isQuestArrestActive
+```
+
+Газ, зажигание, сирена и передачи блокируются одинаково. В меню слушателей клавиатуры нет.
+
+### Реализация
+
+- `src/components/controllers/Controllers.jsx` — listeners + интеграция
+- `src/components/controllers/keyboardControls.test.js` — Vitest
+
+### Влияние
+
+Touch/mouse контролы без изменений. Game loop / MobX — без изменений.
+
+---
+
+## [TASK-057] Меню «Настройки» и модалка «Управление»
+
+**Дата:** 2026-08-16  
+**Контекст:** ui-ux  
+**Зависимости:** TASK-056 (список клавиш)
+
+### Описание
+
+Кнопка «Настройки» в `StartMenu` → glass-модалка со списком → пункт «Управление» → `ControlsHelpModal` с текстом про мышь/сенсор, зажигание, МКПП, сирену и таблицу клавиш ПК.
+
+### appStore API
+
+**Файл:** `src/state/appStore.jsx`
+
+| Поле / метод | Назначение |
+|--------------|------------|
+| `isSettingsModalOpen` | видимость `SettingsModal` |
+| `isControlsHelpOpen` | видимость `ControlsHelpModal` |
+| `openSettings()` / `closeSettings()` | открыть / закрыть (help сбрасывается) |
+| `openControlsHelp()` / `backFromControlsHelp()` | вложенный help / назад в настройки |
+| `startGame()` | закрывает обе модалки |
+
+### Модалки
+
+| Компонент | Файл | z-index |
+|-----------|------|---------|
+| `SettingsModal` | `src/components/menu/SettingsModal.jsx` | overlay **1100** |
+| `ControlsHelpModal` | `src/components/menu/ControlsHelpModal.jsx` | overlay 1100, card **1101** |
+
+Закрытие: backdrop, CTA «Закрыть», `Escape` (`StartMenu` — help → settings → close). a11y: `role="dialog"`, `aria-modal`, `aria-labelledby`.
+
+### data-type (E2E)
+
+`open-settings`, `settings-modal`, `settings-modal-backdrop`, `settings-modal-card`, `settings-controls-item`, `settings-modal-close`, `controls-help-modal`, `controls-help-back`, `controls-help-close`, секции `controls-help-section-*`, `controls-help-table`.
+
+### Реализация
+
+- `src/components/menu/StartMenu.jsx` — кнопка, Escape, рендер модалок
+- `src/style/settings-modal.css`, `src/style/controls-help-modal.css` — glass, `min(420–480px, 92vw)`, `max-height: 92dvh` у help
+- `src/main.jsx` — импорт CSS
+- Vitest: `SettingsModal.test.jsx`, `ControlsHelpModal.test.jsx`, `appStore.test.js`
+
+### Влияние
+
+Mode-cards и game loop без изменений. Клавиатура в игре не активна при открытых модалках (listeners только в `Controllers` на экране `game`). HUD z-index (10) ниже модалок (1100+).
 
 ---

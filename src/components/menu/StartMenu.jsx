@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import appStore from "../../state/appStore";
 import { getDefaultCar } from "../../state/cars";
@@ -9,6 +10,8 @@ import modeFreeIcon from "../../assets/menu/mode-free.png";
 import modeTimedIcon from "../../assets/menu/mode-timed.png";
 import modeChaseIcon from "../../assets/menu/mode-chase.png";
 import { LeaderboardPanel } from "./LeaderboardPanel";
+import { SettingsModal } from "./SettingsModal";
+import { ControlsHelpModal } from "./ControlsHelpModal";
 
 const MODES = [
   {
@@ -34,6 +37,27 @@ const MODES = [
 export const StartMenu = observer(() => {
   const defaultCar = getDefaultCar();
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+      if (appStore.isControlsHelpOpen) {
+        appStore.backFromControlsHelp();
+      } else if (appStore.isSettingsModalOpen) {
+        appStore.closeSettings();
+      }
+    };
+
+    if (appStore.isSettingsModalOpen || appStore.isControlsHelpOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [appStore.isSettingsModalOpen, appStore.isControlsHelpOpen]);
+
   return (
     <div className="start-menu" data-type="start-menu">
       <div
@@ -48,14 +72,26 @@ export const StartMenu = observer(() => {
       <div className="start-menu__content">
         <header className="start-menu__header">
           <h1 className="start-menu__title">Машины специального назначения</h1>
-          <button
-            type="button"
-            className="start-menu__ui-test-link"
-            data-type="open-quest-buttons-ui-test"
-            onClick={() => appStore.openUiTest()}
-          >
-            UI: квестовые кнопки
-          </button>
+          <div className="start-menu__header-actions">
+            <button
+              type="button"
+              className="start-menu__settings-btn"
+              data-type="open-settings"
+              aria-haspopup="dialog"
+              aria-expanded={appStore.isSettingsModalOpen}
+              onClick={() => appStore.openSettings()}
+            >
+              Настройки
+            </button>
+            <button
+              type="button"
+              className="start-menu__ui-test-link"
+              data-type="open-quest-buttons-ui-test"
+              onClick={() => appStore.openUiTest()}
+            >
+              UI: квестовые кнопки
+            </button>
+          </div>
         </header>
         <div className="start-menu__modes">
           {MODES.map(({ id, dataType, title, icon }) => (
@@ -74,6 +110,8 @@ export const StartMenu = observer(() => {
           ))}
         </div>
       </div>
+      <SettingsModal />
+      <ControlsHelpModal />
     </div>
   );
 });

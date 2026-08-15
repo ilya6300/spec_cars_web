@@ -1,10 +1,11 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import { GAME_MODES } from "./modeScoring";
-
-export const FREE_RAIN_START_CHANCE = 0.1;
-export const FREE_RAIN_CHECK_INTERVAL_SEC = 60;
-export const FREE_RAIN_DURATION_MIN_SEC = 120;
-export const FREE_RAIN_DURATION_MAX_SEC = 360;
+import {
+  FREE_RAIN_CHECK_INTERVAL_SEC,
+  FREE_RAIN_DURATION_MAX_SEC,
+  FREE_RAIN_DURATION_MIN_SEC,
+  FREE_RAIN_START_CHANCE,
+} from "./event.config";
 
 export function shouldStartFreeRain(
   randomValue,

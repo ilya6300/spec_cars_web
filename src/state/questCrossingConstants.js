@@ -3,7 +3,7 @@ export const GREEN_SWITCH_MIN = 3;
 export const GREEN_SWITCH_MAX = 4;
 export const RED_WALK_DELAY_MIN = 3;
 export const RED_WALK_DELAY_MAX = 5;
-export const CROSS_ON_RED_CHANCE = 0.3;
+export { CROSS_ON_RED_CHANCE } from "./event.config";
 export const QUEST_CROSSING_TYPE = "traffic_light_quest_crossing";
 export const QUEST_CROSSING_WIDTH_DESKTOP = 230;
 export const QUEST_CROSSING_HEIGHT_DESKTOP = 445;

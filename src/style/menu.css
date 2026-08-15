@@ -57,9 +57,38 @@
 
 .start-menu__title {
   margin: 0;
+  flex: 1;
+  min-width: 0;
   font-size: clamp(2rem, 3vw, 3rem);
   color: rgba(20, 25, 35, 0.65);
   /* text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); */
+}
+
+.start-menu__header-actions {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1.2vw, 12px);
+  flex-shrink: 0;
+}
+
+.start-menu__settings-btn {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--ui-glass-border, rgba(255, 255, 255, 0.12));
+  border-radius: 999px;
+  background: var(--ui-glass-bg, rgba(20, 25, 35, 0.65));
+  backdrop-filter: blur(var(--ui-glass-blur, 12px));
+  -webkit-backdrop-filter: blur(var(--ui-glass-blur, 12px));
+  color: var(--ui-text-primary, #fff);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: background 0.2s ease;
+}
+
+.start-menu__settings-btn:hover {
+  background: rgba(20, 25, 35, 0.8);
 }
 
 .start-menu__modes {
@@ -229,6 +258,12 @@
 
   .start-menu__header {
     padding: 10px 14px;
+    flex-wrap: wrap;
+  }
+
+  .start-menu__header-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 
   .mode-card {

@@ -1,4 +1,5 @@
 import atmosphereStore from "./atmosphereStore";
+import { CHASE_RAIN_CHANCE, CHASE_TIME_OF_DAY } from "./event.config";
 
 export const GAME_MODES = {
   FREE: "free",
@@ -63,9 +64,14 @@ export function calculateSessionStars(helpCounts, gameMode) {
   return 0;
 }
 
-export function getAtmosphereForMode(gameMode) {
+export function getAtmosphereForMode(gameMode, randomFn = Math.random) {
   if (gameMode === GAME_MODES.CHASE) {
-    return { timeOfDay: "night", weather: "rain" };
+    const isRain =
+      CHASE_RAIN_CHANCE >= 1 || randomFn() < CHASE_RAIN_CHANCE;
+    return {
+      timeOfDay: CHASE_TIME_OF_DAY,
+      weather: isRain ? "rain" : "clear",
+    };
   }
   return { timeOfDay: "day", weather: "clear" };
 }

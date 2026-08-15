@@ -1,11 +1,13 @@
 import { expect, test, beforeEach } from "vitest";
 import atmosphereStore, {
-  FREE_RAIN_DURATION_MIN_SEC,
-  FREE_RAIN_DURATION_MAX_SEC,
-  FREE_RAIN_CHECK_INTERVAL_SEC,
   pickFreeRainDurationSec,
   shouldStartFreeRain,
 } from "./atmosphereStore";
+import {
+  FREE_RAIN_CHECK_INTERVAL_SEC,
+  FREE_RAIN_DURATION_MAX_SEC,
+  FREE_RAIN_DURATION_MIN_SEC,
+} from "./event.config";
 import { GAME_MODES } from "./modeScoring";
 
 beforeEach(() => {

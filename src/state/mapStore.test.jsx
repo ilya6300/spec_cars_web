@@ -221,6 +221,33 @@ test('MapStore: spawnEnemyQuestCar blocks enemy before 30s session', () => {
   expect(store.questCarSpawnTimer).toBeGreaterThanOrEqual(10);
 });
 
+test('MapStore: spawnEnemyQuestCar blocks enemy before 20s in chase', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.carStore = { gear: 'N', currentSpeed: 0 };
+  store.gameMode = 'chase';
+  store.sessionElapsedSec = 15;
+
+  store.spawnEnemyQuestCar();
+
+  expect(store.questCars.length).toBe(0);
+  expect(store.questCarSpawnTimer).toBeGreaterThanOrEqual(8);
+  expect(store.questCarSpawnTimer).toBeLessThanOrEqual(15);
+});
+
+test('MapStore: spawnEnemyQuestCar allows enemy at 20s in chase', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.carStore = { gear: 'N', currentSpeed: 0 };
+  store.gameMode = 'chase';
+  store.sessionElapsedSec = 20;
+
+  store.spawnEnemyQuestCar();
+
+  expect(store.questCars.length).toBe(1);
+  expect(store.questCars[0].enemy).toBe(true);
+  expect(store.questCarSpawnTimer).toBeGreaterThanOrEqual(8);
+  expect(store.questCarSpawnTimer).toBeLessThanOrEqual(15);
+});
+
 test('MapStore: spawnCivilianQuestCar allows civilian during active quest', () => {
   const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
   store.carStore = { gear: 'N', currentSpeed: 0 };

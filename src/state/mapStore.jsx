@@ -25,6 +25,14 @@ import {
   isPeacefulHumanType,
 } from "./modeScoring";
 import starsStore from "./starsStore";
+import {
+  CIVILIAN_QUEST_CAR_INITIAL_TIMER_SEC,
+  ENEMY_QUEST_CAR_INITIAL_TIMER_SEC,
+  getEnemyFirstSpawnGateSec,
+  randomCivilianQuestCarRespawnDelaySec,
+  randomEnemyQuestCarRespawnDelaySec,
+  TRAFFIC_LIGHT_CYCLE_MS,
+} from "./event.config";
 
 const QUEST_CAR_VISIBLE_MARGIN = 150;
 const QUEST_CAR_DESPAWN_MARGIN = 250;
@@ -109,8 +117,8 @@ class MapStore {
 
   // Quest Cars state
   questCars = [];
-  questCarSpawnTimer = 10;
-  civilianQuestCarSpawnTimer = 5;
+  questCarSpawnTimer = ENEMY_QUEST_CAR_INITIAL_TIMER_SEC;
+  civilianQuestCarSpawnTimer = CIVILIAN_QUEST_CAR_INITIAL_TIMER_SEC;
   questCarForArrest = null;
 
   // Quest Arrest modal state
@@ -352,14 +360,11 @@ class MapStore {
   }
 
   randomCivilianQuestCarSpawnDelay() {
-    return 5 + Math.random() * 10;
+    return randomCivilianQuestCarRespawnDelaySec();
   }
 
   randomEnemyQuestCarSpawnDelay() {
-    if (this.gameMode === "chase") {
-      return 8 + Math.random() * 7;
-    }
-    return 10 + Math.random() * 20;
+    return randomEnemyQuestCarRespawnDelaySec(this.gameMode);
   }
 
   spawnCivilianQuestCar() {
@@ -423,7 +428,7 @@ class MapStore {
       this.isPoliceQuestActive ||
       this.isPedestrianCrossingQuestActive ||
       this.isQuestArrestActive ||
-      this.sessionElapsedSec < 30
+      this.sessionElapsedSec < getEnemyFirstSpawnGateSec(this.gameMode)
     );
   }
 
@@ -569,7 +574,7 @@ class MapStore {
         this.trafficLightColor =
           this.trafficLightColor === "red" ? "green" : "red";
       });
-    }, 10000);
+    }, TRAFFIC_LIGHT_CYCLE_MS);
   }
 
   // Однократная заправка

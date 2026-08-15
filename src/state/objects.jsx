@@ -11,6 +11,7 @@ import {
   QUEST_CROSSING_WIDTH_DESKTOP,
   QUEST_CROSSING_Z_INDEX,
 } from "./questCrossingConstants";
+import { PEDESTRIAN_QUEST_SPAWN_CHANCE } from "./event.config";
 import whiteLine from "../assets/objects/road_white_line.png";
 import { getDataSubObects, dataObjectsSub } from "./subobject";
 import humanAggr1Img from "../assets/objects/\police_quest/human_aggr1.png";
@@ -167,6 +168,7 @@ const createDataObjects = () => {
         /* ничего */
       },
       onAppear: (objData, mapStore) => {
+        if (Math.random() >= PEDESTRIAN_QUEST_SPAWN_CHANCE) return;
         const obj = mapStore.activeObjects.find((entry) => entry.uid === objData.uid);
         if (obj) {
           mapStore.initQuestCrossing(obj);

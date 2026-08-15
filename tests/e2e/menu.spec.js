@@ -26,4 +26,33 @@ test.describe("Start Menu", () => {
     });
     expect(await page.$('[data-type="atmosphere-overlay"]')).toBeTruthy();
   });
+
+  test("Settings opens controls help with keyboard table", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForSelector('[data-type="start-menu"]', { timeout: 10000 });
+    await page.click('[data-type="open-settings"]');
+    await page.waitForSelector('[data-type="settings-modal"]');
+    await page.click('[data-type="settings-controls-item"]');
+    await page.waitForSelector('[data-type="controls-help-modal"]');
+    await expect(page.locator('[data-type="controls-help-section-mouse"]')).toBeVisible();
+    await expect(
+      page.locator('[data-type="controls-help-section-keyboard"] table'),
+    ).toBeVisible();
+    await page.click('[data-type="controls-help-back"]');
+    await expect(page.locator('[data-type="settings-modal"]')).toBeVisible();
+    await page.click('[data-type="settings-modal-close"]');
+    await expect(page.locator('[data-type="settings-modal"]')).toHaveCount(0);
+  });
+
+  test("Mode cards work after closing settings", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForSelector('[data-type="start-menu"]', { timeout: 10000 });
+    await page.click('[data-type="open-settings"]');
+    await page.waitForSelector('[data-type="settings-modal"]');
+    await page.click('[data-type="settings-modal-close"]');
+    await expect(page.locator('[data-type="settings-modal"]')).toHaveCount(0);
+    await page.click('[data-type="mode-free"]', { force: true });
+    await page.waitForSelector(".game-viewport", { timeout: 10000 });
+    expect(await page.$(".game-viewport")).toBeTruthy();
+  });
 });

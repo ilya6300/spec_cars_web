@@ -17,8 +17,61 @@
 **Free mode dynamic rain (TASK-052):** закрыта 13 авг. 2026  
 **PoliceQuestModal atmosphere (TASK-053):** закрыта 14 авг. 2026  
 **AI traffic bugs (TASK-054):** закрыта 14 авг. 2026  
-**Проверка:** Vitest questCarStore 27/27, mapStore 26/26  
+**Event config centralization (TASK-055):** закрыта 16 авг. 2026  
+**Keyboard controls (TASK-056):** закрыта 16 авг. 2026  
+**Settings menu (TASK-057):** закрыта 16 авг. 2026  
+**Проверка:** Vitest questCarStore 27/27, mapStore 28/28, atmosphereStore 10/10  
 **Источник UI wave:** `UI_UX_DRAFT.md`
+
+---
+
+## TASK-057: Меню «Настройки» и модалка «Управление» (PLAN §2.5)
+
+**Статус:** DONE  
+**Закрыто:** 16 авг. 2026  
+**Контекст:** ui-ux  
+**Циклы:** 1 (Reviewer APPROVED, UI/UX принято)
+
+| Критерий | Результат |
+|---|---|
+| Кнопка «Настройки» `open-settings` | ✅ |
+| L1/L2 модалки, Escape/backdrop/close | ✅ |
+| Тексты управления (мышь + клавиатура) | ✅ |
+| z-index 1100/1101, glass-стиль | ✅ |
+| Vitest menu 18/18 | ✅ |
+| Playwright menu.spec.js (спеки добавлены) | ✅ |
+
+---
+
+## TASK-056: Управление с клавиатуры (ПК) (PLAN §2)
+
+**Статус:** DONE  
+**Закрыто:** 16 авг. 2026  
+**Контекст:** logic  
+**Циклы:** 1 (Reviewer APPROVED)
+
+| Критерий | Результат |
+|---|---|
+| Ctrl/Alt/Space/Shift/0-4 bindings | ✅ |
+| Composite controlsBlocked | ✅ |
+| Vitest controllers 16/16 | ✅ |
+
+---
+
+## TASK-055: Централизованный `event.config.js` (PLAN §1)
+
+**Статус:** DONE  
+**Закрыто:** 16 авг. 2026  
+**Контекст:** logic  
+**Циклы:** 1 (Reviewer APPROVED)
+
+| Критерий | Результат |
+|---|---|
+| `event.config.js` — единый источник констант | ✅ |
+| Enemy gates: free/timed 30 с, chase 20 с | ✅ |
+| Pedestrian spawn 100 %, cross on red 30 % | ✅ |
+| Free rain 10 %, chase rain 100 % | ✅ |
+| Vitest mapStore 28/28, atmosphere 10/10, modeScoring 8/8 | ✅ |
 
 ---
 

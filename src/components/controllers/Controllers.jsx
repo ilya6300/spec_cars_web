@@ -1,6 +1,7 @@
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useRef, useState } from "react";
 import { GearBox } from "./GearBox";
+import { mapKeyCodeToGear, shiftGearUp } from "./keyboardControls";
 import gasPedal from "../../assets/objects/gas_pedal.png";
 import keyActiveImg from "../../assets/objects/key_active.png";
 import keyDeactiveImg from "../../assets/objects/key_deactive.png";
@@ -47,6 +48,66 @@ export const Controllers = observer(
       window.removeEventListener("blur", releaseGasIfPressed);
     };
   }, [activeCarStore]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (controlsBlocked) return;
+
+      const { code, repeat } = event;
+
+      if (code === "Space") {
+        event.preventDefault();
+        if (activeCarStore.fuel <= 0) {
+          if (activeCarStore.isIgnitionOn && onEmptyGasPress) {
+            onEmptyGasPress();
+          }
+          return;
+        }
+        activeCarStore.pressGas();
+        return;
+      }
+
+      if (repeat) return;
+
+      const gear = mapKeyCodeToGear(code);
+      if (gear) {
+        activeCarStore.shiftGear(gear);
+        return;
+      }
+
+      switch (code) {
+        case "ControlLeft":
+          activeCarStore.toggleIgnition();
+          break;
+        case "ShiftLeft":
+        case "ShiftRight":
+          activeCarStore.shiftGear(shiftGearUp(activeCarStore.gear));
+          break;
+        case "KeyC":
+          activeCarStore.toggleSirena();
+          break;
+        default:
+          break;
+      }
+    };
+
+    const handleKeyUp = (event) => {
+      if (event.code === "Space") {
+        event.preventDefault();
+        if (!controlsBlocked) {
+          activeCarStore.releaseGas();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [activeCarStore, controlsBlocked, onEmptyGasPress]);
 
   const ignitionClass = [
     "ignition-key",

@@ -168,11 +168,10 @@ const createDataObjects = () => {
         /* ничего */
       },
       onAppear: (objData, mapStore) => {
-        if (Math.random() >= PEDESTRIAN_QUEST_SPAWN_CHANCE) return;
+        if (Math.random() >= PEDESTRIAN_QUEST_SPAWN_CHANCE) return "skip";
         const obj = mapStore.activeObjects.find((entry) => entry.uid === objData.uid);
-        if (obj) {
-          mapStore.initQuestCrossing(obj);
-        }
+        if (!obj) return "skip";
+        return mapStore.initQuestCrossing(obj) ? "done" : "retry";
       },
     });
 

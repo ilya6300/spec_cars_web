@@ -1,6 +1,11 @@
-import { expect, test, vi } from 'vitest';
+import { expect, test, vi, beforeEach } from 'vitest';
 import MapStore from './mapStore';
+import atmosphereStore from './atmosphereStore';
 import { buildInitialNextSpawnDistances } from './objects';
+
+beforeEach(() => {
+  atmosphereStore.setAtmosphere({ timeOfDay: 'day', weather: 'clear' });
+});
 test('buildInitialNextSpawnDistances includes all object types', () => {
   const distances = buildInitialNextSpawnDistances();
   expect(distances.building).toBe(0);
@@ -33,7 +38,7 @@ test('MapStore: initQuestCrossing', () => {
 
   window.__PLAYWRIGHT__ = true;
   store.__forcePedestrianCrossOnRed = true;
-  store.initQuestCrossing(obj);
+  expect(store.initQuestCrossing(obj)).toBe(true);
   delete window.__PLAYWRIGHT__;
 
   expect(store.isPedestrianCrossingQuestActive).toBe(true);
@@ -302,10 +307,51 @@ test('MapStore: initQuestCrossing blocked when human_aggr visible on screen', ()
     obj,
   ];
 
-  store.initQuestCrossing(obj);
-
+  expect(store.initQuestCrossing(obj)).toBe(false);
   expect(store.isPedestrianCrossingQuestActive).toBe(false);
   expect(store.pedestrianCrossingTargetObject).toBeNull();
+});
+
+test('MapStore: triggerAppearEvents keeps appeared false when quest crossing init blocked', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.offsetX = 1000;
+  const obj = {
+    uid: 'crossing_uid',
+    typeId: 'traffic_light_quest_crossing',
+    worldX: 5500,
+    appeared: false,
+  };
+  store.activeObjects = [
+    { uid: 'aggr', typeId: 'human_aggr1', worldX: 1100, appeared: true },
+    obj,
+  ];
+
+  store.triggerAppearEvents(null);
+
+  expect(obj.appeared).toBe(false);
+  expect(store.isPedestrianCrossingQuestActive).toBe(false);
+});
+
+test('MapStore: triggerAppearEvents starts quest crossing and marks appeared', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.offsetX = 5000;
+  store.activeObjects = [
+    {
+      uid: 'crossing_uid',
+      typeId: 'traffic_light_quest_crossing',
+      worldX: 5500,
+      appeared: false,
+    },
+  ];
+  const crossing = store.activeObjects[0];
+
+  store.triggerAppearEvents(null);
+
+  expect(crossing.appeared).toBe(true);
+  expect(store.isPedestrianCrossingQuestActive).toBe(true);
+  expect(store.pedestrianCrossingTargetObject?.uid).toBe(crossing.uid);
 });
 
 test('MapStore: startQuest blocked when pedestrian quest active', () => {

@@ -64,6 +64,7 @@
   -webkit-user-drag: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: none;
   min-width: 50px;
   height: 16vh;
   min-height: 110px;

@@ -158,4 +158,48 @@ describe("Controllers keyboard", () => {
     window.dispatchEvent(new Event("blur"));
     expect(activeCarStore.releaseGas).toHaveBeenCalledOnce();
   });
+
+  it("keeps gas pressed on pointer move outside pedal until pointer up", () => {
+    const activeCarStore = createCarStore();
+    const { getByAltText } = render(
+      <Controllers activeCarStore={activeCarStore} />,
+    );
+    const pedal = getByAltText("Педаль газа");
+
+    pedal.setPointerCapture = vi.fn();
+    pedal.hasPointerCapture = vi.fn(() => true);
+    pedal.releasePointerCapture = vi.fn();
+
+    pedal.dispatchEvent(
+      new PointerEvent("pointerdown", {
+        bubbles: true,
+        cancelable: true,
+        pointerId: 1,
+        pointerType: "touch",
+      }),
+    );
+    expect(activeCarStore.pressGas).toHaveBeenCalledOnce();
+
+    window.dispatchEvent(
+      new PointerEvent("pointermove", {
+        bubbles: true,
+        cancelable: true,
+        pointerId: 1,
+        pointerType: "touch",
+        clientX: 0,
+        clientY: 0,
+      }),
+    );
+    expect(activeCarStore.releaseGas).not.toHaveBeenCalled();
+
+    pedal.dispatchEvent(
+      new PointerEvent("pointerup", {
+        bubbles: true,
+        cancelable: true,
+        pointerId: 1,
+        pointerType: "touch",
+      }),
+    );
+    expect(activeCarStore.releaseGas).toHaveBeenCalledOnce();
+  });
 });

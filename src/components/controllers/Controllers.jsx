@@ -132,6 +132,20 @@ export const Controllers = observer(
     activeCarStore.releaseGas();
   };
 
+  const handleGasPointerDown = (event) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    handlePressGas();
+  };
+
+  const handleGasPointerUp = (event) => {
+    event.preventDefault();
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    handleReleaseGas();
+  };
+
   return (
     <div className="controllers_container">
       <img
@@ -154,21 +168,9 @@ export const Controllers = observer(
         alt="Педаль газа"
         src={gasPedal}
         onContextMenu={(e) => e.preventDefault()}
-        onMouseDown={handlePressGas}
-        onMouseUp={handleReleaseGas}
-        onMouseLeave={handleReleaseGas}
-        onTouchStart={(e) => {
-          e.preventDefault();
-          handlePressGas();
-        }}
-        onTouchEnd={(e) => {
-          e.preventDefault();
-          handleReleaseGas();
-        }}
-        onTouchCancel={(e) => {
-          e.preventDefault();
-          handleReleaseGas();
-        }}
+        onPointerDown={handleGasPointerDown}
+        onPointerUp={handleGasPointerUp}
+        onPointerCancel={handleGasPointerUp}
       />
       <img
         className={

@@ -15,7 +15,7 @@ export const FREE_RAIN_DURATION_MAX_SEC = 360;
 
 // Погода: chase mode
 export const CHASE_TIME_OF_DAY = "night";
-export const CHASE_RAIN_CHANCE = 0; // 100%
+export const CHASE_RAIN_CHANCE = 1; // 100%
 
 // Quest-car respawn
 export const ENEMY_QUEST_CAR_RESPAWN_MIN_SEC = 10;

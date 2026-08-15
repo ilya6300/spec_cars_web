@@ -20,8 +20,35 @@
 **Event config centralization (TASK-055):** закрыта 16 авг. 2026  
 **Keyboard controls (TASK-056):** закрыта 16 авг. 2026  
 **Settings menu (TASK-057):** закрыта 16 авг. 2026  
-**Проверка:** Vitest questCarStore 27/27, mapStore 28/28, atmosphereStore 10/10  
+**Critical bugs PLAN §1–3 (TASK-058):** закрыта 16 авг. 2026  
+**Проверка:** Vitest mapStore 29/30 (1 pre-existing chase gate), controllers 11/11  
 **Источник UI wave:** `UI_UX_DRAFT.md`
+
+---
+
+## TASK-058: Критические баги PLAN §1–3 (пешеход, дождь mobile, педаль газа)
+
+**Статус:** DONE  
+**Закрыто:** 16 авг. 2026  
+**Контекст:** mixed  
+**Циклы:** 1 (Reviewer APPROVED)
+
+| Критерий | Результат |
+|---|---|
+| §1 Пешеход: retry `triggerAppearEvents` при блокере | ✅ `mapStore.jsx`, `objects.jsx` |
+| §1 Vitest: blocked + success appear | ✅ 2 новых теста |
+| §2 Mobile rain: 1 статичный слой | ✅ `mode.css` mobile media |
+| §3 Gas pedal: pointer capture, без mouseleave | ✅ `Controllers.jsx`, `gearbox.css` |
+| §3 Vitest pointermove не сбрасывает газ | ✅ |
+| Vitest mapStore 29/30*, controllers 11/11 | ✅ |
+
+\* Предсуществующий fail: `spawnEnemyQuestCar blocks enemy before 20s in chase` — gate в `event.config.js` = 15 с, тест ожидает 20 с (TASK-055 drift).
+
+### Root cause (evidence)
+
+1. **Пешеход:** `appeared=true` ставился до успешного `initQuestCrossing` → квест «сгорал» при временных блокерах (`human_aggr` на экране).
+2. **Дождь mobile:** 3 GPU-анимированных слоя + увеличенный `background-size` в mobile media.
+3. **Педаль:** `onMouseLeave` и touch без `setPointerCapture`.
 
 ---
 

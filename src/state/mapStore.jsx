@@ -545,12 +545,15 @@ class MapStore {
     this.activeObjects.forEach((obj) => {
       if (!obj.appeared) {
         const config = objectConfigByType[obj.typeId];
+        let appearResult;
         if (config?.onAppear) {
-          config.onAppear({ ...obj, config }, this, carStore);
+          appearResult = config.onAppear({ ...obj, config }, this, carStore);
         }
-        runInAction(() => {
-          obj.appeared = true;
-        });
+        if (appearResult !== "retry") {
+          runInAction(() => {
+            obj.appeared = true;
+          });
+        }
       }
     });
   }
@@ -698,22 +701,22 @@ class MapStore {
   }
 
   initQuestCrossing(obj) {
-    if (isNightChaseContext(this)) return;
+    if (isNightChaseContext(this)) return false;
     if (
       this.isPedestrianCrossingQuestActive ||
       this.isPoliceQuestActive ||
       this.isQuestArrestActive ||
       this.hasVisiblePoliceAggroOnScreen()
     ) {
-      return;
+      return false;
     }
-    if (this.carStore?.sirena) return;
-    if (obj.questCrossing) return;
+    if (this.carStore?.sirena) return false;
+    if (obj.questCrossing) return true;
 
     const humanTypes = dataObjectsSub.filter((entry) =>
       /^human\d+$/.test(entry.type),
     );
-    if (humanTypes.length === 0) return;
+    if (humanTypes.length === 0) return false;
 
     const randomHuman =
       humanTypes[Math.floor(Math.random() * humanTypes.length)];
@@ -748,6 +751,7 @@ class MapStore {
       this.isPedestrianCrossingQuestActive = true;
       this.pedestrianCrossingTargetObject = obj;
     });
+    return true;
   }
 
   updateQuestCrossings(deltaTime, viewportWidth) {

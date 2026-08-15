@@ -442,15 +442,18 @@
     height: 40px;
   }
 
-  .game-rain--far {
-    background-size: 336px 336px;
+  .game-rain-container {
+    contain: strict;
   }
 
-  .game-rain--mid {
-    background-size: 432px 432px;
-  }
-
+  .game-rain--mid,
   .game-rain--near {
-    background-size: 576px 576px;
+    display: none;
+  }
+
+  .game-viewport--rain .game-rain--far {
+    animation: none;
+    opacity: 0.14;
+    background-size: 240px 240px;
   }
 }

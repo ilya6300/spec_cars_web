@@ -14,6 +14,12 @@ export const questsByService = {
       helpType: "pedestrianFine",
     },
     {
+      id: "parking-fine",
+      trigger: "onClick",
+      objectTypes: ["parking_zone"],
+      helpType: "parkingFine",
+    },
+    {
       id: "enemy-chase",
       trigger: "questCar",
       helpType: "enemyChase",

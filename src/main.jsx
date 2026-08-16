@@ -9,6 +9,7 @@ import "./style/menu.css";
 import "./style/mode.css";
 import "./style/quest-finish.css";
 import "./style/pedestrian_crossing_layer.css";
+import "./style/parking_zone_layer.css";
 import "./style/refuel-modal.css";
 import "./style/settings-modal.css";
 import "./style/controls-help-modal.css";

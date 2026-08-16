@@ -24,6 +24,7 @@ export async function getHelpCounts(page) {
       carStore?.helpCounts ?? {
         criminalArrest: 0,
         pedestrianFine: 0,
+        parkingFine: 0,
         enemyChase: 0,
         orientationMatch: 0,
       }

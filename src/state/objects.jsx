@@ -11,6 +11,13 @@ import {
   QUEST_CROSSING_WIDTH_DESKTOP,
   QUEST_CROSSING_Z_INDEX,
 } from "./questCrossingConstants";
+import {
+  PARKING_SPOT_HEIGHT,
+  PARKING_SPOT_MAX,
+  PARKING_SPOT_WIDTH,
+  PARKING_ZONE_TYPE,
+  PARKING_ZONE_Z_INDEX,
+} from "./parkingZoneConstants";
 import { PEDESTRIAN_QUEST_SPAWN_CHANCE } from "./event.config";
 import whiteLine from "../assets/objects/road_white_line.png";
 import { getDataSubObects, dataObjectsSub } from "./subobject";
@@ -151,6 +158,31 @@ const createDataObjects = () => {
       },
     });
 
+    const parkingZoneObj = new ObjectConfig({
+      id: PARKING_ZONE_TYPE,
+      type: PARKING_ZONE_TYPE,
+      image: null,
+      zIndex: PARKING_ZONE_Z_INDEX,
+      width: PARKING_SPOT_WIDTH * PARKING_SPOT_MAX,
+      height: PARKING_SPOT_HEIGHT,
+      minDistance: 12000,
+      maxDistance: 35000,
+      initialSpawnDistance: 15000,
+      onClick: () => {
+        /* ничего */
+      },
+      onLongPress: () => {
+        /* ничего */
+      },
+      onAppear: (objData, mapStore) => {
+        const obj = mapStore.activeObjects.find(
+          (entry) => entry.uid === objData.uid,
+        );
+        if (!obj) return "skip";
+        return mapStore.initParkingZone(obj) ? "done" : "retry";
+      },
+    });
+
     const trafficLightQuestCrossingObj = new ObjectConfig({
       id: QUEST_CROSSING_TYPE,
       type: QUEST_CROSSING_TYPE,
@@ -179,6 +211,7 @@ const createDataObjects = () => {
       buildings,
       gasStationObj,
       trafficLightObj,
+      parkingZoneObj,
       trafficLightQuestCrossingObj,
     );
 

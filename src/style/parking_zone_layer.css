@@ -1,0 +1,71 @@
+.parking-zone-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.parking-zone {
+  position: absolute;
+  bottom: 56%;
+  pointer-events: none;
+}
+
+.parking-zone-spot {
+  position: absolute;
+  top: 0;
+  overflow: visible;
+}
+
+.parking-zone-spot-marking {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+.parking-zone-car {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  width: var(--traffic-car-width);
+  transform-origin: center center;
+  pointer-events: none;
+}
+
+.parking-zone-car--illegal {
+  cursor: pointer;
+  pointer-events: auto;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.parking-violation-car--fining {
+  animation: parking-violation-fining 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes parking-violation-fining {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.55;
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape), (max-height: 500px) {
+  .parking-zone {
+    bottom: 52%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parking-violation-car--fining {
+    animation: none;
+    opacity: 0.75;
+  }
+}

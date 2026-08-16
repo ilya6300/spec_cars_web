@@ -18,6 +18,17 @@ import {
   randomRedWalkDelay,
   WALK_SPEED,
 } from "./questCrossingConstants";
+import {
+  buildParkingViolationTransform,
+  isParkingZoneType,
+  PARKING_FINE_DELAY_MS,
+  PARKING_ILLEGAL_CHANCE,
+  PARKING_OCCUPIED_CHANCE,
+  PARKING_SPOT_HEIGHT,
+  PARKING_SPOT_WIDTH,
+  PARKING_VIOLATION_TYPES,
+  randomParkingSpotCount,
+} from "./parkingZoneConstants";
 import QuestCarStore from "./questCarStore";
 import Cars from "./cars";
 import {
@@ -114,6 +125,10 @@ class MapStore {
   pedestrianCrossingTargetObject = null;
   lastViewportWidth = 1024;
   __forcePedestrianCrossOnRed = false;
+
+  // Parking Fine Quest state
+  parkingFineTargetZone = null;
+  __forceParkingIllegal = false;
 
   // Quest Cars state
   questCars = [];
@@ -428,8 +443,26 @@ class MapStore {
       this.isPoliceQuestActive ||
       this.isPedestrianCrossingQuestActive ||
       this.isQuestArrestActive ||
+      this.isParkingFineActive() ||
       this.sessionElapsedSec < getEnemyFirstSpawnGateSec(this.gameMode)
     );
+  }
+
+  isParkingFineActive() {
+    if (this.parkingFineTargetZone) return true;
+    return this.activeObjects.some((obj) => {
+      const pz = obj.parkingZone;
+      return (
+        pz &&
+        (pz.pendingSpotIndex !== null ||
+          pz.showFinishOverlay ||
+          pz.fineTimerId !== null)
+      );
+    });
+  }
+
+  getParkingZoneWidth(obj) {
+    return obj.parkingZone?.totalWidth ?? PARKING_SPOT_WIDTH * 8;
   }
 
   // Спавн объектов окружения справа за экраном
@@ -451,27 +484,44 @@ class MapStore {
         return;
       }
 
+      if (isParkingZoneType(config.type) && isNightChaseContext(this)) {
+        return;
+      }
+
       const nextSpawn = this.nextSpawnDistances[config.type];
 
       if (this.offsetX >= nextSpawn) {
-        // Ключевое изменение: worldX не может быть меньше lastObjectEndMeter
-        // Это предотвращает наложение объектов друг на друга
         const worldX =
           Math.max(this.offsetX + viewportWidth, this.lastObjectEndMeter) +
           Math.random() * 100;
 
         const uid = `obj_${config.type}_${Date.now()}_${Math.random()}`;
 
-        runInAction(() => {
-          this.activeObjects.push({
-            uid,
-            typeId: config.type,
-            worldX,
-            appeared: false,
+        if (isParkingZoneType(config.type)) {
+          const spotCount = randomParkingSpotCount();
+          const totalWidth = spotCount * PARKING_SPOT_WIDTH;
+
+          runInAction(() => {
+            this.activeObjects.push({
+              uid,
+              typeId: config.type,
+              worldX,
+              appeared: false,
+              parkingSpotCount: spotCount,
+            });
+            this.lastObjectEndMeter = worldX + totalWidth;
           });
-          // Обновляем метр конца последнего объекта
-          this.lastObjectEndMeter = worldX + config.width;
-        });
+        } else {
+          runInAction(() => {
+            this.activeObjects.push({
+              uid,
+              typeId: config.type,
+              worldX,
+              appeared: false,
+            });
+            this.lastObjectEndMeter = worldX + config.width;
+          });
+        }
 
         this.nextSpawnDistances[config.type] =
           nextSpawn +
@@ -521,6 +571,20 @@ class MapStore {
           return true;
         }
 
+        if (isParkingZoneType(obj.typeId)) {
+          const zoneWidth = this.getParkingZoneWidth(obj);
+          const visible = screenX > -zoneWidth;
+          if (!visible) {
+            if (obj.longPressTimeout) {
+              clearTimeout(obj.longPressTimeout);
+              obj.longPressTimeout = null;
+            }
+            this.clearParkingFineState(obj);
+            return false;
+          }
+          return true;
+        }
+
         const visible = screenX > -config.width;
         if (!visible && obj.longPressTimeout) {
           clearTimeout(obj.longPressTimeout);
@@ -532,8 +596,12 @@ class MapStore {
         (a, b) => b.worldX - a.worldX,
       );
       if (sorted.length > 0) {
-        const lastConfig = objectConfigByType[sorted[0].typeId];
-        this.lastObjectEndMeter = sorted[0].worldX + lastConfig.width;
+        const lastObj = sorted[0];
+        const lastConfig = objectConfigByType[lastObj.typeId];
+        const lastWidth = isParkingZoneType(lastObj.typeId)
+          ? this.getParkingZoneWidth(lastObj)
+          : lastConfig.width;
+        this.lastObjectEndMeter = lastObj.worldX + lastWidth;
       } else {
         this.lastObjectEndMeter = this.offsetX;
       }
@@ -649,7 +717,7 @@ class MapStore {
   }
 
   startQuest(targetObj) {
-    if (this.isPedestrianCrossingQuestActive) {
+    if (this.isPedestrianCrossingQuestActive || this.isParkingFineActive()) {
       return;
     }
 
@@ -678,8 +746,12 @@ class MapStore {
           (a, b) => b.worldX - a.worldX,
         );
         if (sorted.length > 0) {
-          const lastConfig = configMap[sorted[0].typeId];
-          this.lastObjectEndMeter = sorted[0].worldX + lastConfig.width;
+          const lastObj = sorted[0];
+          const lastConfig = configMap[lastObj.typeId];
+          const lastWidth = isParkingZoneType(lastObj.typeId)
+            ? this.getParkingZoneWidth(lastObj)
+            : lastConfig.width;
+          this.lastObjectEndMeter = lastObj.worldX + lastWidth;
         } else {
           this.lastObjectEndMeter = this.offsetX;
         }
@@ -706,6 +778,7 @@ class MapStore {
       this.isPedestrianCrossingQuestActive ||
       this.isPoliceQuestActive ||
       this.isQuestArrestActive ||
+      this.isParkingFineActive() ||
       this.hasVisiblePoliceAggroOnScreen()
     ) {
       return false;
@@ -835,6 +908,172 @@ class MapStore {
       this.isPedestrianCrossingQuestActive = false;
       this.pedestrianCrossingTargetObject = null;
     });
+  }
+
+  getCivilianCars() {
+    return Cars.otherCars.filter((car) => !car.enemy);
+  }
+
+  pickRandomCivilianCar(randomFn = Math.random) {
+    const civilianCars = this.getCivilianCars();
+    if (civilianCars.length === 0) return null;
+    return civilianCars[Math.floor(randomFn() * civilianCars.length)];
+  }
+
+  createParkingCarStore(carData) {
+    return {
+      urlBody: carData.urlBody,
+      urlShell: carData.urlShell,
+      wheelRotation: 0,
+      sirena: false,
+    };
+  }
+
+  shouldForceParkingIllegal() {
+    return (
+      typeof window !== "undefined" &&
+      window.__PLAYWRIGHT__ &&
+      this.__forceParkingIllegal
+    );
+  }
+
+  initParkingZone(obj) {
+    if (isNightChaseContext(this)) return false;
+    if (
+      this.isPoliceQuestActive ||
+      this.isPedestrianCrossingQuestActive ||
+      this.isQuestArrestActive ||
+      this.isParkingFineActive() ||
+      this.hasVisiblePoliceAggroOnScreen()
+    ) {
+      return false;
+    }
+    if (obj.parkingZone) return true;
+
+    const spotCount = obj.parkingSpotCount ?? randomParkingSpotCount();
+    const spotWidth = PARKING_SPOT_WIDTH;
+    const spotHeight = PARKING_SPOT_HEIGHT;
+    const totalWidth = spotCount * spotWidth;
+    const forceIllegal = this.shouldForceParkingIllegal();
+    const spots = [];
+
+    for (let index = 0; index < spotCount; index += 1) {
+      const occupied = Math.random() < PARKING_OCCUPIED_CHANCE;
+      let status = "empty";
+      let violationType = null;
+      let carData = null;
+      let carTransform = "";
+
+      if (occupied) {
+        const isIllegal =
+          forceIllegal || Math.random() < PARKING_ILLEGAL_CHANCE;
+        status = isIllegal ? "illegal" : "legal";
+        const civilianCar = this.pickRandomCivilianCar();
+        if (!civilianCar) {
+          status = "empty";
+        } else {
+          carData = this.createParkingCarStore(civilianCar);
+          if (isIllegal) {
+            violationType =
+              PARKING_VIOLATION_TYPES[
+                Math.floor(Math.random() * PARKING_VIOLATION_TYPES.length)
+              ];
+            carTransform = buildParkingViolationTransform(violationType);
+          }
+        }
+      }
+
+      spots.push({
+        index,
+        status,
+        violationType,
+        carData,
+        carTransform,
+        fined: false,
+        fining: false,
+      });
+    }
+
+    runInAction(() => {
+      obj.parkingZone = {
+        spotCount,
+        spotWidth,
+        spotHeight,
+        totalWidth,
+        spots,
+        pendingSpotIndex: null,
+        showFinishOverlay: false,
+        fineTimerId: null,
+      };
+    });
+    return true;
+  }
+
+  handleParkingViolationClick(zoneObj, spotIndex) {
+    if (
+      this.isPoliceQuestActive ||
+      this.isPedestrianCrossingQuestActive ||
+      this.isQuestArrestActive ||
+      this.isParkingFineActive()
+    ) {
+      return;
+    }
+
+    const pz = zoneObj?.parkingZone;
+    if (!pz || pz.pendingSpotIndex !== null || pz.showFinishOverlay) {
+      return;
+    }
+
+    const spot = pz.spots[spotIndex];
+    if (!spot || spot.status !== "illegal" || spot.fined || spot.fining) {
+      return;
+    }
+
+    runInAction(() => {
+      spot.fining = true;
+      pz.pendingSpotIndex = spotIndex;
+    });
+
+    if (pz.fineTimerId) {
+      clearTimeout(pz.fineTimerId);
+    }
+
+    pz.fineTimerId = setTimeout(() => {
+      runInAction(() => {
+        spot.fining = false;
+        spot.fined = true;
+        pz.pendingSpotIndex = null;
+        pz.showFinishOverlay = true;
+        pz.fineTimerId = null;
+        this.parkingFineTargetZone = zoneObj;
+      });
+    }, PARKING_FINE_DELAY_MS);
+  }
+
+  finishParkingFineQuest() {
+    runInAction(() => {
+      const target = this.parkingFineTargetZone;
+      if (target?.parkingZone) {
+        target.parkingZone.showFinishOverlay = false;
+      }
+      for (const obj of this.activeObjects) {
+        if (obj.parkingZone?.showFinishOverlay) {
+          obj.parkingZone.showFinishOverlay = false;
+        }
+      }
+      this.parkingFineTargetZone = null;
+    });
+  }
+
+  clearParkingFineState(zoneObj) {
+    const pz = zoneObj?.parkingZone;
+    if (pz?.fineTimerId) {
+      clearTimeout(pz.fineTimerId);
+      pz.fineTimerId = null;
+    }
+    if (this.parkingFineTargetZone?.uid === zoneObj?.uid) {
+      this.parkingFineTargetZone = null;
+    }
   }
 
   collectCollectibleStar(uid) {

@@ -21,8 +21,37 @@
 **Keyboard controls (TASK-056):** закрыта 16 авг. 2026  
 **Settings menu (TASK-057):** закрыта 16 авг. 2026  
 **Critical bugs PLAN §1–3 (TASK-058):** закрыта 16 авг. 2026  
-**Проверка:** Vitest mapStore 29/30 (1 pre-existing chase gate), controllers 11/11  
+**Parking fine quest (TASK-059):** закрыта 16 авг. 2026  
+**Проверка:** Vitest 212/212, parking-quest E2E passed  
 **Источник UI wave:** `UI_UX_DRAFT.md`
+
+---
+
+## TASK-059: Квест «Штраф за неправильную парковку»
+
+**Статус:** DONE  
+**Закрыто:** 16 авг. 2026  
+**Контекст:** mixed  
+**Циклы:** 1 (Reviewer APPROVED после fix mutual exclusion)
+
+| Критерий | Результат |
+|---|---|
+| Зона 4–8 мест (`unit_parking.png`, 382×122) | ✅ `parkingZoneConstants.js`, `initParkingZone` |
+| 50% занятость, 20% illegal, 0 min нарушителей | ✅ |
+| Клик по нарушителю → 1 с → finish overlay pedestrian | ✅ `ParkingZoneLayer`, `mapStore` |
+| Без новых модалок | ✅ `QuestFinishOverlay variant="pedestrian"` |
+| `parkingFine` = 4 очка (1 звезда) | ✅ `modeScoring.js`, `HelpBadges` |
+| Взаимоисключение квестов | ✅ `isParkingFineActive()` |
+| Не спавнить в chase/night | ✅ |
+| Vitest 212/212 | ✅ |
+| Playwright `parking-quest.spec.js` | ✅ |
+
+### Новые файлы
+
+- `src/state/parkingZoneConstants.js`
+- `src/components/game/ParkingZoneLayer.jsx`
+- `src/style/parking_zone_layer.css`
+- `tests/e2e/parking-quest.spec.js`
 
 ---
 

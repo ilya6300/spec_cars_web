@@ -37,6 +37,7 @@ class CarStore {
   helpCounts = {
     criminalArrest: 0,
     pedestrianFine: 0,
+    parkingFine: 0,
     enemyChase: 0,
     orientationMatch: 0,
   };
@@ -114,8 +115,9 @@ class CarStore {
   }
 
   get totalQuestCompletions() {
-    const { criminalArrest, pedestrianFine, enemyChase } = this.helpCounts;
-    return criminalArrest + pedestrianFine + enemyChase;
+    const { criminalArrest, pedestrianFine, parkingFine, enemyChase } =
+      this.helpCounts;
+    return criminalArrest + pedestrianFine + parkingFine + enemyChase;
   }
 
   get isStarCollectionUnlocked() {
@@ -127,6 +129,7 @@ class CarStore {
       this.helpCounts = {
         criminalArrest: 0,
         pedestrianFine: 0,
+        parkingFine: 0,
         enemyChase: 0,
         orientationMatch: 0,
       };

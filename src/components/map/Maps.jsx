@@ -7,6 +7,7 @@ import Objects, { objectConfigByType } from "../../state/objects";
 import { isNightChaseContext } from "../../state/modeScoring";
 
 import { isQuestCrossingType } from "../../state/questCrossingConstants";
+import { isParkingZoneType } from "../../state/parkingZoneConstants";
 
 import "../../style/quest_crossing_object.css";
 
@@ -101,6 +102,8 @@ export const Maps = observer(({ map, carStore, onClickObject }) => {
         const isCollectibleStar = obj.typeId === "collectible_star";
 
         if (isCollectibleStar) return null;
+
+        if (isParkingZoneType(obj.typeId)) return null;
 
 
 

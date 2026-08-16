@@ -9,10 +9,24 @@ import {
 } from "./modeScoring";
 import atmosphereStore from "./atmosphereStore";
 
+test("modeScoring: parkingFine awards 4 points in free/timed", () => {
+  const counts = {
+    criminalArrest: 0,
+    pedestrianFine: 0,
+    parkingFine: 1,
+    enemyChase: 0,
+    orientationMatch: 0,
+  };
+  expect(calculateSessionScore(counts, GAME_MODES.FREE)).toBe(4);
+  expect(calculateSessionScore(counts, GAME_MODES.TIMED)).toBe(4);
+  expect(calculateSessionScore(counts, GAME_MODES.CHASE)).toBe(0);
+});
+
 test("modeScoring timed: thresholds 10/5/1 guaranteed", () => {
   const empty = {
     criminalArrest: 0,
     pedestrianFine: 0,
+    parkingFine: 0,
     enemyChase: 0,
     orientationMatch: 0,
   };

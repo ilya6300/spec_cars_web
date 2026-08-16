@@ -22,6 +22,12 @@ const BADGES = [
     dataType: "help-badge-pedestrian",
     icon: pedestrianIcon,
   },
+  {
+    key: "parkingFine",
+    label: "Парковка",
+    dataType: "help-badge-parking",
+    icon: pedestrianIcon,
+  },
 ];
 
 export const HelpBadges = observer(({ carStore }) => {

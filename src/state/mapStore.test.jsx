@@ -230,7 +230,7 @@ test('MapStore: spawnEnemyQuestCar blocks enemy before 20s in chase', () => {
   const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
   store.carStore = { gear: 'N', currentSpeed: 0 };
   store.gameMode = 'chase';
-  store.sessionElapsedSec = 15;
+  store.sessionElapsedSec = 14;
 
   store.spawnEnemyQuestCar();
 
@@ -456,6 +456,143 @@ test('MapStore: spawnEnvironmentObjects skips peaceful humans in chase', () => {
     /^human\d+$/.test(obj.typeId),
   );
   expect(peacefulHumans.length).toBe(0);
+});
+
+test('MapStore: initParkingZone creates 4-8 spots with civilian cars only', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  const obj = {
+    uid: 'parking_uid',
+    typeId: 'parking_zone',
+    worldX: 16000,
+    appeared: false,
+    parkingSpotCount: 6,
+  };
+  store.activeObjects = [obj];
+
+  const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+
+  window.__PLAYWRIGHT__ = true;
+  store.__forceParkingIllegal = true;
+  expect(store.initParkingZone(obj)).toBe(true);
+  delete window.__PLAYWRIGHT__;
+  randomSpy.mockRestore();
+
+  expect(obj.parkingZone.spotCount).toBe(6);
+  expect(obj.parkingZone.spots.length).toBe(6);
+  expect(obj.parkingZone.totalWidth).toBe(6 * 382);
+
+  const occupied = obj.parkingZone.spots.filter((spot) => spot.status !== 'empty');
+  expect(occupied.length).toBe(6);
+  occupied.forEach((spot) => {
+    expect(spot.status).toBe('illegal');
+    expect(spot.carData).toBeTruthy();
+    expect(spot.carData.sirena).toBe(false);
+  });
+});
+
+test('MapStore: initParkingZone illegal rate about 20% among occupied', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  let illegalCount = 0;
+  let occupiedCount = 0;
+  const trials = 200;
+
+  for (let i = 0; i < trials; i += 1) {
+    const obj = {
+      uid: `parking_uid_${i}`,
+      typeId: 'parking_zone',
+      worldX: 16000 + i,
+      appeared: false,
+      parkingSpotCount: 8,
+    };
+    store.activeObjects = [obj];
+    store.initParkingZone(obj);
+
+    obj.parkingZone.spots.forEach((spot) => {
+      if (spot.status === 'empty') return;
+      occupiedCount += 1;
+      if (spot.status === 'illegal') illegalCount += 1;
+      if (spot.carData) {
+        const civilian = store.getCivilianCars().some(
+          (car) => car.urlBody === spot.carData.urlBody,
+        );
+        expect(civilian).toBe(true);
+      }
+    });
+  }
+
+  const illegalRate = illegalCount / occupiedCount;
+  expect(illegalRate).toBeGreaterThan(0.12);
+  expect(illegalRate).toBeLessThan(0.3);
+});
+
+test('MapStore: handleParkingViolationClick mutual exclusion and timer', () => {
+  vi.useFakeTimers();
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  const zoneObj = {
+    uid: 'parking_uid',
+    typeId: 'parking_zone',
+    worldX: 16000,
+    appeared: true,
+    parkingZone: {
+      spotCount: 1,
+      spotWidth: 382,
+      spotHeight: 122,
+      totalWidth: 382,
+      spots: [
+        {
+          index: 0,
+          status: 'illegal',
+          violationType: 'crooked',
+          carData: store.createParkingCarStore(store.getCivilianCars()[0]),
+          carTransform: 'rotate(15deg)',
+          fined: false,
+          fining: false,
+        },
+      ],
+      pendingSpotIndex: null,
+      showFinishOverlay: false,
+      fineTimerId: null,
+    },
+  };
+  store.activeObjects = [zoneObj];
+
+  store.isPoliceQuestActive = true;
+  store.handleParkingViolationClick(zoneObj, 0);
+  expect(zoneObj.parkingZone.showFinishOverlay).toBe(false);
+
+  store.isPoliceQuestActive = false;
+  store.handleParkingViolationClick(zoneObj, 0);
+  expect(zoneObj.parkingZone.spots[0].fining).toBe(true);
+  expect(zoneObj.parkingZone.pendingSpotIndex).toBe(0);
+  expect(zoneObj.parkingZone.showFinishOverlay).toBe(false);
+
+  store.handleParkingViolationClick(zoneObj, 0);
+  expect(zoneObj.parkingZone.pendingSpotIndex).toBe(0);
+
+  vi.advanceTimersByTime(1000);
+  expect(zoneObj.parkingZone.showFinishOverlay).toBe(true);
+  expect(store.parkingFineTargetZone?.uid).toBe(zoneObj.uid);
+  expect(zoneObj.parkingZone.spots[0].fined).toBe(true);
+
+  store.finishParkingFineQuest();
+  expect(store.parkingFineTargetZone).toBeNull();
+  expect(store.activeObjects[0].parkingZone.showFinishOverlay).toBe(false);
+
+  vi.useRealTimers();
+});
+
+test('MapStore: spawnEnvironmentObjects skips parking_zone in chase', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.gameMode = 'chase';
+  store.offsetX = 20000;
+  store.nextSpawnDistances.parking_zone = 0;
+
+  store.spawnEnvironmentObjects(1024);
+
+  const parkingZones = store.activeObjects.filter(
+    (obj) => obj.typeId === 'parking_zone',
+  );
+  expect(parkingZones.length).toBe(0);
 });
 
 test('MapStore: startTrafficLightTimer no-op in chase', () => {

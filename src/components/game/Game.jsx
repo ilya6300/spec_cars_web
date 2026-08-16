@@ -6,6 +6,7 @@ import { Maps } from "../map/Maps";
 import { Controllers } from "../controllers/Controllers";
 import { PoliceQuestModal } from "./PoliceQuestModal";
 import { PedestrianCrossingLayer } from "./PedestrianCrossingLayer";
+import { ParkingZoneLayer } from "./ParkingZoneLayer";
 import { QuestFinishOverlay } from "./QuestFinishOverlay";
 import { QuestArrestModal } from "./QuestArrestModal";
 import { QuestCar } from "./QuestCar";
@@ -265,6 +266,20 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
           />
         )}
 
+      {(gameMode === "free" || gameMode === "timed") &&
+        activeMapStore.parkingFineTargetZone?.parkingZone
+          ?.showFinishOverlay && (
+          <QuestFinishOverlay
+            variant="pedestrian"
+            onDismiss={() => {
+              activeMapStore.finishParkingFineQuest();
+              runInAction(() => {
+                activeCarStore.addHelp("parkingFine");
+              });
+            }}
+          />
+        )}
+
       {gameMode === "free" && <TutorialOverlay tutorialStore={tutorialStore} />}
 
       <PoliceQuestModal mapStore={activeMapStore} carStore={activeCarStore} />
@@ -274,6 +289,10 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
           mapStore={activeMapStore}
           carStore={activeCarStore}
         />
+      )}
+
+      {(gameMode === "free" || gameMode === "timed") && (
+        <ParkingZoneLayer mapStore={activeMapStore} />
       )}
 
       {activeMapStore.isQuestArrestActive && (
@@ -290,6 +309,7 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
 
       {activeMapStore.questCarForArrest &&
         !activeMapStore.isPedestrianCrossingQuestActive &&
+        !activeMapStore.isParkingFineActive() &&
         !activeMapStore.isPoliceQuestActive &&
         !activeMapStore.isQuestArrestActive &&
         !modeStore.isPaused && (

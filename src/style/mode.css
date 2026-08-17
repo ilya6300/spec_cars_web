@@ -47,14 +47,6 @@
   font-size: 0.85rem;
 }
 
-.game-global-stars {
-  position: absolute;
-  top: 12px;
-  right: 64px;
-  z-index: 130;
-  pointer-events: none;
-}
-
 .global-stars__count--bounce {
   animation: badge-bounce 0.3s ease;
 }
@@ -399,13 +391,6 @@
 
   .mode-hud__timer {
     font-size: 1.1rem;
-  }
-
-  .game-global-stars {
-    top: 8px;
-    right: 56px;
-    transform: scale(0.9);
-    transform-origin: top right;
   }
 
   .back-to-menu-button {

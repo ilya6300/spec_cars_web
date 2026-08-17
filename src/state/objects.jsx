@@ -165,9 +165,9 @@ const createDataObjects = () => {
       zIndex: PARKING_ZONE_Z_INDEX,
       width: PARKING_SPOT_WIDTH * PARKING_SPOT_MAX,
       height: PARKING_SPOT_HEIGHT,
-      minDistance: 12000,
-      maxDistance: 35000,
-      initialSpawnDistance: 15000,
+      minDistance: 6000,
+      maxDistance: 17500,
+      initialSpawnDistance: 7500,
       onClick: () => {
         /* ничего */
       },

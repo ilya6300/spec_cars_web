@@ -1,4 +1,5 @@
 import { expect, test, vi, beforeEach } from 'vitest';
+import { runInAction } from 'mobx';
 import MapStore from './mapStore';
 import atmosphereStore from './atmosphereStore';
 import { buildInitialNextSpawnDistances } from './objects';
@@ -485,6 +486,7 @@ test('MapStore: initParkingZone creates 4-8 spots with civilian cars only', () =
   expect(occupied.length).toBe(6);
   occupied.forEach((spot) => {
     expect(spot.status).toBe('illegal');
+    expect(['left', 'bottom', 'crooked']).toContain(spot.violationType);
     expect(spot.carData).toBeTruthy();
     expect(spot.carData.sirena).toBe(false);
   });
@@ -525,9 +527,24 @@ test('MapStore: initParkingZone illegal rate about 20% among occupied', () => {
   expect(illegalRate).toBeLessThan(0.3);
 });
 
-test('MapStore: handleParkingViolationClick mutual exclusion and timer', () => {
-  vi.useFakeTimers();
+test('MapStore: handleParkingViolationClick starts evacuation sequence', () => {
+  globalThis.__PARKING_EVAC_DEBUG_HOLD__ = false;
   const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.offsetX = 16000;
+  let gasReleased = false;
+  let helpType = null;
+  store.carStore = {
+    releaseGas: () => {
+      gasReleased = true;
+    },
+    isGasPressed: false,
+    currentSpeed: 50,
+    addHelp: (type) => {
+      helpType = type;
+    },
+  };
+
   const zoneObj = {
     uid: 'parking_uid',
     typeId: 'parking_zone',
@@ -544,41 +561,89 @@ test('MapStore: handleParkingViolationClick mutual exclusion and timer', () => {
           status: 'illegal',
           violationType: 'crooked',
           carData: store.createParkingCarStore(store.getCivilianCars()[0]),
-          carTransform: 'rotate(15deg)',
           fined: false,
           fining: false,
         },
       ],
       pendingSpotIndex: null,
-      showFinishOverlay: false,
-      fineTimerId: null,
     },
   };
   store.activeObjects = [zoneObj];
 
   store.isPoliceQuestActive = true;
   store.handleParkingViolationClick(zoneObj, 0);
-  expect(zoneObj.parkingZone.showFinishOverlay).toBe(false);
+  expect(store.parkingEvacuation.phase).toBe('idle');
 
   store.isPoliceQuestActive = false;
   store.handleParkingViolationClick(zoneObj, 0);
+  const spotsRef = store.parkingFineTargetZone.parkingZone.spots;
   expect(zoneObj.parkingZone.spots[0].fining).toBe(true);
   expect(zoneObj.parkingZone.pendingSpotIndex).toBe(0);
-  expect(zoneObj.parkingZone.showFinishOverlay).toBe(false);
+  expect(store.parkingEvacuation.phase).toBe('spawn_delay');
+  expect(gasReleased).toBe(true);
+  expect(store.carStore.currentSpeed).toBe(0);
 
   store.handleParkingViolationClick(zoneObj, 0);
   expect(zoneObj.parkingZone.pendingSpotIndex).toBe(0);
 
-  vi.advanceTimersByTime(1000);
-  expect(zoneObj.parkingZone.showFinishOverlay).toBe(true);
-  expect(store.parkingFineTargetZone?.uid).toBe(zoneObj.uid);
-  expect(zoneObj.parkingZone.spots[0].fined).toBe(true);
+  store.parkingEvacuation.spawnDelayRemaining = 0;
+  store.updateParkingEvacuation(0);
+  expect(store.parkingEvacuation.phase).toBe('approaching');
+  expect(store.parkingEvacuation.positionX).toBe(1024 + 200);
 
-  store.finishParkingFineQuest();
+  const stopX = store.parkingEvacuation.stopPositionX;
+  store.parkingEvacuation.positionX = stopX + 10;
+  store.parkingEvacuation.currentSpeed = 500;
+  store.updateParkingEvacuation(0.1);
+  expect(store.parkingEvacuation.phase).toBe('loading');
+
+  store.parkingEvacuation.loadDelayRemaining = 0;
+  store.updateParkingEvacuation(0);
+  expect(store.parkingEvacuation.carOnPlatform).toBe(true);
+  expect(store.parkingEvacuation.phase).toBe('loaded');
+
+  store.parkingEvacuation.loadedSettleRemaining = 0;
+  store.updateParkingEvacuation(0);
+  expect(store.parkingEvacuation.phase).toBe('departing');
+
+  store.parkingEvacuation.positionX = -500;
+  store.parkingEvacuation.phase = 'departing';
+  store.updateParkingEvacuation(0);
+  expect(store.parkingEvacuation.phase).toBe('idle');
+  expect(helpType).toBe('parkingFine');
+  expect(spotsRef[0].fined).toBe(true);
+  expect(spotsRef[0].carData).toBeNull();
   expect(store.parkingFineTargetZone).toBeNull();
-  expect(store.activeObjects[0].parkingZone.showFinishOverlay).toBe(false);
+});
 
-  vi.useRealTimers();
+test('MapStore: finalizeParkingEvacuation marks spot fined', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  let helpType = null;
+  store.carStore = { addHelp: (type) => { helpType = type; } };
+
+  const zoneObj = {
+    uid: 'parking_uid',
+    parkingZone: {
+      spots: [{ fined: false, fining: true, carData: { urlBody: 'x' } }],
+      pendingSpotIndex: 0,
+    },
+  };
+
+  runInAction(() => {
+    store.parkingFineTargetZone = zoneObj;
+    store.parkingEvacuation = {
+      ...store.parkingEvacuation,
+      zoneUid: zoneObj.uid,
+      spotIndex: 0,
+      phase: 'departing',
+    };
+  });
+  const spotsRef = store.parkingFineTargetZone.parkingZone.spots;
+  store.finalizeParkingEvacuation();
+
+  expect(helpType).toBe('parkingFine');
+  expect(spotsRef[0].fined).toBe(true);
+  expect(spotsRef[0].carData).toBeNull();
 });
 
 test('MapStore: spawnEnvironmentObjects skips parking_zone in chase', () => {
@@ -600,4 +665,41 @@ test('MapStore: startTrafficLightTimer no-op in chase', () => {
   store.gameMode = 'chase';
   store.startTrafficLightTimer();
   expect(store.trafficLightTimer).toBeNull();
+});
+
+test('MapStore: updateRoadMarkings spawns segments to the right of viewport', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  const viewportWidth = 1024;
+
+  store.updateRoadMarkings(viewportWidth);
+
+  expect(store.roadMarkings.length).toBeGreaterThan(0);
+  expect(store.roadMarkings[0].worldX).toBe(-180);
+  const lastMark = store.roadMarkings[store.roadMarkings.length - 1];
+  expect(lastMark.worldX + 180).toBeGreaterThanOrEqual(viewportWidth);
+});
+
+test('MapStore: updateRoadMarkings despawns segments past left edge + 100px', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  const viewportWidth = 1024;
+
+  store.updateRoadMarkings(viewportWidth);
+
+  runInAction(() => {
+    store.offsetX = 500;
+  });
+  store.updateRoadMarkings(viewportWidth);
+
+  expect(store.roadMarkings.length).toBeGreaterThan(0);
+  expect(store.roadMarkings[0].worldX).toBe(360);
+  expect(store.roadMarkings.some((mark) => mark.worldX < 360)).toBe(false);
+
+  runInAction(() => {
+    store.offsetX = 2000;
+  });
+  store.updateRoadMarkings(viewportWidth);
+
+  expect(store.roadMarkings.every((mark) => mark.worldX + 180 > 1900)).toBe(
+    true,
+  );
 });

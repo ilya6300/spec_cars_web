@@ -31,8 +31,9 @@
 .parking-zone-car {
   position: absolute;
   left: 50%;
-  bottom: 8%;
+  bottom: 30%;
   width: var(--traffic-car-width);
+  transform: translateX(-50%);
   transform-origin: center center;
   pointer-events: none;
 }
@@ -42,6 +43,19 @@
   pointer-events: auto;
   min-width: 44px;
   min-height: 44px;
+}
+
+.parking-zone-car--illegal-left {
+  left: 15%;
+  transform: none;
+}
+
+.parking-zone-car--illegal-bottom {
+  bottom: 0;
+}
+
+.parking-zone-car--illegal-crooked {
+  transform: translateX(-50%) rotate(-15deg);
 }
 
 .parking-violation-car--fining {

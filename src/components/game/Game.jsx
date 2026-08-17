@@ -7,6 +7,8 @@ import { Controllers } from "../controllers/Controllers";
 import { PoliceQuestModal } from "./PoliceQuestModal";
 import { PedestrianCrossingLayer } from "./PedestrianCrossingLayer";
 import { ParkingZoneLayer } from "./ParkingZoneLayer";
+import { Evacuator } from "../car/Evacuator";
+import Cars from "../../state/cars";
 import { QuestFinishOverlay } from "./QuestFinishOverlay";
 import { QuestArrestModal } from "./QuestArrestModal";
 import { QuestCar } from "./QuestCar";
@@ -19,7 +21,6 @@ import { RainLayer } from "./RainLayer";
 import { ModeTimer, ModeChaseProgress } from "./ModeTimer";
 import { ModeResultModal } from "./ModeResultModal";
 import { RefuelModal } from "./RefuelModal";
-import { GlobalStarsDisplay } from "../ui/GlobalStarsDisplay";
 import { QuestCtaButton } from "../ui/QuestCtaButton";
 import { StarFlyOverlay } from "./StarFlyOverlay";
 import { CollectibleStarLayer } from "./CollectibleStarLayer";
@@ -87,13 +88,9 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
 
       const now = performance.now();
       const durationSec = (now - sessionStart) / 1000;
-      const km =
-        activeMapStore.offsetX / stateApp.distanceMetersFactor / 1000;
+      const km = activeMapStore.offsetX / stateApp.distanceMetersFactor / 1000;
       const starsEarned = starsStore.totalStars - sessionStartStars;
-      const score = calculateSessionScore(
-        activeCarStore.helpCounts,
-        gameMode,
-      );
+      const score = calculateSessionScore(activeCarStore.helpCounts, gameMode);
 
       if (
         gameMode === "chase" &&
@@ -196,6 +193,13 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
     config.onClick?.(obj, mapStore, carStore);
   };
 
+  const parkingEvacuation = activeMapStore.parkingEvacuation;
+  const evacuatorVisible =
+    parkingEvacuation.phase === "approaching" ||
+    parkingEvacuation.phase === "loading" ||
+    parkingEvacuation.phase === "loaded" ||
+    parkingEvacuation.phase === "departing";
+
   const visibleQuestCars = activeMapStore.getVisibleQuestCars(
     viewportWidthRef.current,
   );
@@ -210,10 +214,7 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
     >
       {!modeStore.isComplete && <BackToMenuButton />}
       {/* <FullscreenButton /> */}
-      <GlobalStarsDisplay className="game-global-stars" />
-      {gameMode === "free" && (
-        <StarFlyOverlay mapStore={activeMapStore} />
-      )}
+      {gameMode === "free" && <StarFlyOverlay mapStore={activeMapStore} />}
       <ModeTimer carStore={activeCarStore} />
       <ModeChaseProgress carStore={activeCarStore} />
       <Maps
@@ -233,10 +234,7 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
           showHeadlights={atmosphereStore.isNight}
         />
       ))}
-      <Car
-        carStore={activeCarStore}
-        showHeadlights={showPlayerHeadlights}
-      />
+      <Car carStore={activeCarStore} showHeadlights={showPlayerHeadlights} />
       <RainLayer />
       <Controllers
         activeCarStore={activeCarStore}
@@ -244,7 +242,8 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
           isRefuelModalOpen ||
           modeStore.isComplete ||
           activeMapStore.isPoliceQuestActive ||
-          activeMapStore.isQuestArrestActive
+          activeMapStore.isQuestArrestActive ||
+          activeMapStore.isParkingFineActive()
         }
         onEmptyGasPress={handleEmptyGasPress}
       />
@@ -266,20 +265,6 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
           />
         )}
 
-      {(gameMode === "free" || gameMode === "timed") &&
-        activeMapStore.parkingFineTargetZone?.parkingZone
-          ?.showFinishOverlay && (
-          <QuestFinishOverlay
-            variant="pedestrian"
-            onDismiss={() => {
-              activeMapStore.finishParkingFineQuest();
-              runInAction(() => {
-                activeCarStore.addHelp("parkingFine");
-              });
-            }}
-          />
-        )}
-
       {gameMode === "free" && <TutorialOverlay tutorialStore={tutorialStore} />}
 
       <PoliceQuestModal mapStore={activeMapStore} carStore={activeCarStore} />
@@ -293,6 +278,16 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
 
       {(gameMode === "free" || gameMode === "timed") && (
         <ParkingZoneLayer mapStore={activeMapStore} />
+      )}
+
+      {evacuatorVisible && (
+        <Evacuator
+          evacuatorData={Cars.evacuator}
+          positionX={activeMapStore.parkingEvacuation.positionX}
+          wheelRotation={activeMapStore.parkingEvacuation.wheelRotation}
+          loadedCarStore={activeMapStore.getParkingEvacuationLoadedCar()}
+          carOnPlatform={activeMapStore.parkingEvacuation.carOnPlatform}
+        />
       )}
 
       {activeMapStore.isQuestArrestActive && (

@@ -7,6 +7,8 @@ import blackWhell from "../assets/cars/\other/sport_black_wheel.png";
 import car1 from "../assets/cars/\other/car1_body.png";
 import car2 from "../assets/cars/\other/car2_body.png";
 import car3 from "../assets/cars/\other/car3_body.png";
+import evacuatorBody from "../assets/cars/other/evacuator_v1.png";
+import evacuatorWhell from "../assets/cars/other/evacuator_wheel.png";
 
 const Cars = {
   speedMultiplierUI: 0.156,
@@ -106,6 +108,15 @@ const Cars = {
       speedMultiplier: 6.43,
     },
   ],
+  evacuator: {
+    type: "evacuator",
+    name: "Эвакуатор",
+    urlBody: evacuatorBody,
+    urlShell: evacuatorWhell,
+    maxSpeed: 55,
+    minSpeed: 45,
+    speedMultiplier: 6.43,
+  },
 };
 
 export function getDefaultCar() {

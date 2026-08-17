@@ -115,3 +115,74 @@
     animation: none;
   }
 }
+
+/* эвакуатор */
+
+.evacuator_conteiner {
+  position: absolute;
+  z-index: 55;
+  width: var(--evacuator-width, 370px);
+  bottom: var(--evacuator-bottom, 48%);
+  height: 160px;
+  pointer-events: none;
+}
+
+.evacuator_body {
+  width: 100%;
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+
+.evacuator_wheel_left {
+  width: 58px;
+  position: absolute;
+  bottom: 5px;
+  left: 11%;
+  z-index: 2;
+  transform-origin: center center;
+}
+
+.evacuator_wheel_right {
+  width: 58px;
+  position: absolute;
+  bottom: 5px;
+  left: 69%;
+  z-index: 2;
+  transform-origin: center center;
+}
+
+/* Оштрафованная машина на платформе — колёса на основании платформы */
+.evacuator-loaded-car {
+  position: absolute;
+  left: var(--evacuator-loaded-car-left, 6%);
+  bottom: var(--evacuator-lift-start-bottom, 54%);
+  width: var(--traffic-car-width);
+  z-index: 3;
+  pointer-events: none;
+  transform: rotate(-15deg);
+  transform-origin: center bottom;
+  transition:
+    bottom 0.7s cubic-bezier(0.33, 1, 0.68, 1),
+    transform 0.7s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.evacuator-loaded-car--settled {
+  bottom: var(--evacuator-platform-surface-bottom, 36%);
+  transform: rotate(0deg);
+}
+
+.evacuator-loaded-car .car_container--nested {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evacuator-loaded-car {
+    transition: none;
+  }
+
+  .evacuator-loaded-car--settled {
+    bottom: var(--evacuator-platform-surface-bottom, 36%);
+    transform: rotate(0deg);
+  }
+}

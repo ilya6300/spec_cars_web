@@ -49,17 +49,25 @@ export const Maps = observer(({ map, carStore, onClickObject }) => {
 
       <div ref={scrollRef} className="game-map-scroll">
 
-        <div
+        {(map.roadMarkings || []).map((mark) => (
 
-          className="road-line"
+          <div
 
-          style={{
+            key={mark.uid}
 
-            backgroundImage: `url(${Objects.white_line})`,
+            className="road-marking"
 
-          }}
+            style={{
 
-        />
+              left: `${mark.worldX}px`,
+
+              backgroundImage: `url(${Objects.white_line})`,
+
+            }}
+
+          />
+
+        ))}
 
 
 

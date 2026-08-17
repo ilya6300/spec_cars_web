@@ -7,10 +7,10 @@ import {
 } from "./helpers.js";
 
 test.describe("Parking Quest E2E", () => {
-  test("Parking quest: spawn zone -> click violation -> wait 1s -> finish overlay -> parkingFine++", async ({
+  test("Parking quest: spawn zone -> click violation -> evacuator scene -> parkingFine++", async ({
     page,
   }) => {
-    test.setTimeout(60000);
+    test.setTimeout(90000);
     await enablePlaywrightTestState(page);
     await page.goto("/");
     await navigateToFreeMode(page);
@@ -20,6 +20,7 @@ test.describe("Parking Quest E2E", () => {
     await page.evaluate(() => {
       const mapStore = window.__TEST_STATE__?.activeMapStore;
       if (!mapStore) return;
+      window.__PARKING_EVAC_DEBUG_HOLD__ = false;
       mapStore.__forceParkingIllegal = true;
       mapStore.nextSpawnDistances.parking_zone = 0;
       mapStore.nextSpawnDistances.traffic_light_quest_crossing = 999999;
@@ -40,18 +41,14 @@ test.describe("Parking Quest E2E", () => {
 
     await page.click('[data-type="parking-violation-car"]', { force: true });
 
-    await page.waitForFunction(
-      () =>
-        window.__TEST_STATE__?.activeMapStore?.parkingFineTargetZone?.parkingZone
-          ?.showFinishOverlay === true,
-      { timeout: 5000 },
-    );
-
-    await page.waitForSelector('[data-type="quest-finish-overlay"]', {
-      timeout: 5000,
+    await page.waitForSelector('[data-type="evacuator"]', {
+      timeout: 8000,
     });
 
-    await page.click('[data-type="quest-finish-continue"]');
+    await page.waitForFunction(
+      () => window.__TEST_STATE__?.activeMapStore?.parkingEvacuation?.phase === "idle",
+      { timeout: 30000 },
+    );
 
     const finalCounts = await getHelpCounts(page);
 

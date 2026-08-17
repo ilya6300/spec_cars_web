@@ -1,6 +1,7 @@
 import { observer } from "mobx-react-lite";
 import { CarModel } from "../car/CarModel";
 import {
+  getParkingIllegalClass,
   isParkingZoneType,
   PARKING_UNIT_IMAGE,
 } from "../../state/parkingZoneConstants";
@@ -21,13 +22,14 @@ export const ParkingZoneLayer = observer(({ mapStore }) => {
     mapStore.isQuestArrestActive ||
     mapStore.isParkingFineActive();
 
+  const evacuation = mapStore.parkingEvacuation;
+
   return (
     <div className="parking-zone-layer" data-type="parking-zone-layer">
       {parkingZones.map((zoneObj) => {
         const pz = zoneObj.parkingZone;
         const screenX = zoneObj.worldX - mapStore.offsetX;
-        const overlayActive =
-          pz.pendingSpotIndex !== null || pz.showFinishOverlay;
+        const overlayActive = pz.pendingSpotIndex !== null;
 
         return (
           <div
@@ -41,61 +43,68 @@ export const ParkingZoneLayer = observer(({ mapStore }) => {
               height: `${pz.spotHeight}px`,
             }}
           >
-            {pz.spots.map((spot) => (
-              <div
-                key={spot.index}
-                className="parking-zone-spot"
-                style={{
-                  left: `${spot.index * pz.spotWidth}px`,
-                  width: `${pz.spotWidth}px`,
-                  height: `${pz.spotHeight}px`,
-                }}
-              >
-                <img
-                  src={PARKING_UNIT_IMAGE}
-                  alt=""
-                  className="parking-zone-spot-marking"
-                  draggable={false}
-                />
-                {spot.carData && (
-                  <div
-                    className={`parking-zone-car${
-                      spot.status === "illegal" ? " parking-zone-car--illegal" : ""
-                    }${spot.fining ? " parking-violation-car--fining" : ""}`}
-                    data-type={
-                      spot.status === "illegal"
-                        ? "parking-violation-car"
-                        : "parking-zone-car"
-                    }
-                    data-spot-index={spot.index}
-                    style={{
-                      transform: spot.carTransform
-                        ? `translate(-50%, 0) ${spot.carTransform}`
-                        : "translate(-50%, 0)",
-                    }}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      if (
-                        questBlocked ||
-                        overlayActive ||
-                        spot.status !== "illegal" ||
-                        spot.fined ||
-                        spot.fining
-                      ) {
-                        return;
+            {pz.spots.map((spot) => {
+              const carOnEvacuator =
+                evacuation.carOnPlatform &&
+                evacuation.zoneUid === zoneObj.uid &&
+                evacuation.spotIndex === spot.index;
+
+              return (
+                <div
+                  key={spot.index}
+                  className="parking-zone-spot"
+                  style={{
+                    left: `${spot.index * pz.spotWidth}px`,
+                    width: `${pz.spotWidth}px`,
+                    height: `${pz.spotHeight}px`,
+                  }}
+                >
+                  <img
+                    src={PARKING_UNIT_IMAGE}
+                    alt=""
+                    className="parking-zone-spot-marking"
+                    draggable={false}
+                  />
+                  {spot.carData && !carOnEvacuator && (
+                    <div
+                      className={`parking-zone-car${
+                        spot.status === "illegal"
+                          ? ` parking-zone-car--illegal ${getParkingIllegalClass(spot.violationType)}`
+                          : ""
+                      }${spot.fining ? " parking-violation-car--fining" : ""}`}
+                      data-type={
+                        spot.status === "illegal"
+                          ? "parking-violation-car"
+                          : "parking-zone-car"
                       }
-                      mapStore.handleParkingViolationClick(zoneObj, spot.index);
-                    }}
-                  >
-                    <CarModel
-                      carStore={spot.carData}
-                      variant="traffic"
-                      nested
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
+                      data-spot-index={spot.index}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (
+                          questBlocked ||
+                          overlayActive ||
+                          spot.status !== "illegal" ||
+                          spot.fined ||
+                          spot.fining
+                        ) {
+                          return;
+                        }
+                        mapStore.handleParkingViolationClick(
+                          zoneObj,
+                          spot.index,
+                        );
+                      }}
+                    >
+                      <CarModel
+                        carStore={spot.carData}
+                        variant="traffic"
+                        nested
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         );
       })}

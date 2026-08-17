@@ -17,8 +17,13 @@ export function tickGameFrame({
     tutorialStore?.shouldSuppressDrivingBlocks(mapStore, viewportWidth) ??
     false;
 
-  carStore.updatePhysics(deltaTime, { suppressDrivingBlocks });
-  mapStore.advance(carStore.currentSpeed, deltaTime);
+  if (!mapStore.isWorldFrozen) {
+    carStore.updatePhysics(deltaTime, { suppressDrivingBlocks });
+    mapStore.advance(carStore.currentSpeed, deltaTime);
+  } else {
+    carStore.releaseGas();
+  }
+
   carStore.checkTrafficLight(mapStore);
   mapStore.tickWorld(carStore, deltaTime, viewportWidth);
   tutorialStore?.tick(deltaTime, carStore, mapStore, viewportWidth);

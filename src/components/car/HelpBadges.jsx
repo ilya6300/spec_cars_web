@@ -43,7 +43,7 @@ export const HelpBadges = observer(({ carStore }) => {
         {"★".repeat(stars)}
         {"☆".repeat(3 - stars)}
       </div>
-      <div className="help-badges-row">
+      {/* <div className="help-badges-row">
         {BADGES.map(({ key, label, dataType, icon }) => (
           <div
             key={key}
@@ -66,7 +66,7 @@ export const HelpBadges = observer(({ carStore }) => {
             </div>
           </div>
         ))}
-      </div>
+      </div> */}
     </div>
   );
 });

@@ -19,14 +19,24 @@ import {
   WALK_SPEED,
 } from "./questCrossingConstants";
 import {
-  buildParkingViolationTransform,
+  computeEvacuatorStopX,
+  computeParkingCarScreenX,
+  createIdleParkingEvacuation,
+  EVACUATOR_APPROACH_TOLERANCE_PX,
+  EVACUATOR_DESPAWN_MARGIN_PX,
+  EVACUATOR_SPAWN_MARGIN_PX,
+  EVACUATOR_WHEEL_SPIN_FACTOR,
   isParkingZoneType,
-  PARKING_FINE_DELAY_MS,
+  isParkingEvacuatorDebugHoldAfterLoad,
+  randomParkingIllegalViolation,
   PARKING_ILLEGAL_CHANCE,
+  PARKING_LOAD_DELAY_SEC,
+  PARKING_LIFT_SETTLE_SEC,
   PARKING_OCCUPIED_CHANCE,
   PARKING_SPOT_HEIGHT,
   PARKING_SPOT_WIDTH,
-  PARKING_VIOLATION_TYPES,
+  randomEvacuatorSpawnDelaySec,
+  randomEvacuatorSpeed,
   randomParkingSpotCount,
 } from "./parkingZoneConstants";
 import QuestCarStore from "./questCarStore";
@@ -44,6 +54,11 @@ import {
   randomEnemyQuestCarRespawnDelaySec,
   TRAFFIC_LIGHT_CYCLE_MS,
 } from "./event.config";
+import {
+  ROAD_MARKING_DESPAWN_MARGIN_PX,
+  ROAD_MARKING_STEP_PX,
+  ROAD_MARKING_WIDTH_PX,
+} from "./roadMarkingConstants";
 
 const QUEST_CAR_VISIBLE_MARGIN = 150;
 const QUEST_CAR_DESPAWN_MARGIN = 250;
@@ -128,6 +143,7 @@ class MapStore {
 
   // Parking Fine Quest state
   parkingFineTargetZone = null;
+  parkingEvacuation = createIdleParkingEvacuation();
   __forceParkingIllegal = false;
 
   // Quest Cars state
@@ -147,6 +163,10 @@ class MapStore {
   questsAtLastStarEvent = 0;
   collectibleStarSpawnTimer = null;
   starFlies = [];
+
+  // Сегменты дорожной разметки: { uid, worldX }
+  roadMarkings = [];
+  roadMarkingSpawnCursor = null;
 
   constructor(mapData) {
     Object.assign(this, mapData);
@@ -168,6 +188,7 @@ class MapStore {
       this.sessionElapsedSec += deltaTime;
     });
     this.updateQuestCarSpawner(deltaTime);
+    this.updateRoadMarkings(viewportWidth);
     this.spawnEnvironmentObjects(viewportWidth);
     this.despawnObjects(viewportWidth);
     this.triggerAppearEvents(carStore);
@@ -175,7 +196,12 @@ class MapStore {
     this.checkCollectibleStarPickup();
     this.updateQuestCars(deltaTime);
     this.updateQuestCrossings(deltaTime, viewportWidth);
+    this.updateParkingEvacuation(deltaTime);
     this.checkQuestCarDistance();
+  }
+
+  get isWorldFrozen() {
+    return this.parkingEvacuation.phase !== "idle";
   }
 
   get questsSinceLastStar() {
@@ -449,20 +475,44 @@ class MapStore {
   }
 
   isParkingFineActive() {
+    if (this.parkingEvacuation.phase !== "idle") return true;
     if (this.parkingFineTargetZone) return true;
     return this.activeObjects.some((obj) => {
       const pz = obj.parkingZone;
-      return (
-        pz &&
-        (pz.pendingSpotIndex !== null ||
-          pz.showFinishOverlay ||
-          pz.fineTimerId !== null)
-      );
+      return pz && pz.pendingSpotIndex !== null;
     });
   }
 
   getParkingZoneWidth(obj) {
     return obj.parkingZone?.totalWidth ?? PARKING_SPOT_WIDTH * 8;
+  }
+
+  updateRoadMarkings(viewportWidth) {
+    runInAction(() => {
+      const leftDespawnWorldX = this.offsetX - ROAD_MARKING_DESPAWN_MARGIN_PX;
+      const rightSpawnWorldX = this.offsetX + viewportWidth;
+
+      if (this.roadMarkingSpawnCursor === null) {
+        this.roadMarkingSpawnCursor =
+          Math.floor(leftDespawnWorldX / ROAD_MARKING_STEP_PX) *
+          ROAD_MARKING_STEP_PX;
+      }
+
+      while (this.roadMarkingSpawnCursor <= rightSpawnWorldX) {
+        this.roadMarkings.push({
+          uid: `road_mark_${this.roadMarkingSpawnCursor}`,
+          worldX: this.roadMarkingSpawnCursor,
+        });
+        this.roadMarkingSpawnCursor += ROAD_MARKING_STEP_PX;
+      }
+
+      while (
+        this.roadMarkings.length > 0 &&
+        this.roadMarkings[0].worldX + ROAD_MARKING_WIDTH_PX <= leftDespawnWorldX
+      ) {
+        this.roadMarkings.shift();
+      }
+    });
   }
 
   // Спавн объектов окружения справа за экраном
@@ -962,7 +1012,6 @@ class MapStore {
       let status = "empty";
       let violationType = null;
       let carData = null;
-      let carTransform = "";
 
       if (occupied) {
         const isIllegal =
@@ -974,11 +1023,7 @@ class MapStore {
         } else {
           carData = this.createParkingCarStore(civilianCar);
           if (isIllegal) {
-            violationType =
-              PARKING_VIOLATION_TYPES[
-                Math.floor(Math.random() * PARKING_VIOLATION_TYPES.length)
-              ];
-            carTransform = buildParkingViolationTransform(violationType);
+            violationType = randomParkingIllegalViolation();
           }
         }
       }
@@ -988,7 +1033,6 @@ class MapStore {
         status,
         violationType,
         carData,
-        carTransform,
         fined: false,
         fining: false,
       });
@@ -1002,8 +1046,6 @@ class MapStore {
         totalWidth,
         spots,
         pendingSpotIndex: null,
-        showFinishOverlay: false,
-        fineTimerId: null,
       };
     });
     return true;
@@ -1020,7 +1062,7 @@ class MapStore {
     }
 
     const pz = zoneObj?.parkingZone;
-    if (!pz || pz.pendingSpotIndex !== null || pz.showFinishOverlay) {
+    if (!pz || pz.pendingSpotIndex !== null) {
       return;
     }
 
@@ -1029,50 +1071,182 @@ class MapStore {
       return;
     }
 
+    const zoneScreenX = zoneObj.worldX - this.offsetX;
+    const targetScreenX = computeParkingCarScreenX(
+      zoneScreenX,
+      spotIndex,
+      pz.spotWidth,
+    );
+    const stopPositionX = computeEvacuatorStopX(targetScreenX);
+
+    this.carStore?.releaseGas?.();
+    if (this.carStore) {
+      runInAction(() => {
+        this.carStore.isGasPressed = false;
+        this.carStore.currentSpeed = 0;
+      });
+    }
+
     runInAction(() => {
       spot.fining = true;
       pz.pendingSpotIndex = spotIndex;
+      this.parkingFineTargetZone = zoneObj;
+      this.parkingEvacuation = {
+        phase: "spawn_delay",
+        zoneUid: zoneObj.uid,
+        spotIndex,
+        targetScreenX,
+        stopPositionX,
+        positionX: 0,
+        currentSpeed: 0,
+        wheelRotation: 0,
+        spawnDelayRemaining: randomEvacuatorSpawnDelaySec(),
+        loadDelayRemaining: 0,
+        loadedSettleRemaining: 0,
+        carOnPlatform: false,
+      };
     });
+  }
 
-    if (pz.fineTimerId) {
-      clearTimeout(pz.fineTimerId);
+  getParkingEvacuationLoadedCar() {
+    const ev = this.parkingEvacuation;
+    if (!ev.carOnPlatform || ev.zoneUid == null || ev.spotIndex == null) {
+      return null;
     }
+    const zoneObj = this.activeObjects.find((obj) => obj.uid === ev.zoneUid);
+    return zoneObj?.parkingZone?.spots[ev.spotIndex]?.carData ?? null;
+  }
 
-    pz.fineTimerId = setTimeout(() => {
-      runInAction(() => {
-        spot.fining = false;
-        spot.fined = true;
+  updateParkingEvacuation(deltaTime) {
+    const ev = this.parkingEvacuation;
+    if (ev.phase === "idle") return;
+
+    const viewportWidth = this.lastViewportWidth ?? 1024;
+
+    runInAction(() => {
+      switch (ev.phase) {
+        case "spawn_delay": {
+          ev.spawnDelayRemaining -= deltaTime;
+          if (ev.spawnDelayRemaining <= 0) {
+            ev.phase = "approaching";
+            ev.positionX = viewportWidth + EVACUATOR_SPAWN_MARGIN_PX;
+            ev.currentSpeed = randomEvacuatorSpeed(Cars.evacuator);
+          }
+          break;
+        }
+        case "approaching": {
+          ev.positionX -= ev.currentSpeed * deltaTime;
+          ev.wheelRotation =
+            (ev.wheelRotation -
+              ev.currentSpeed * deltaTime * EVACUATOR_WHEEL_SPIN_FACTOR) %
+            360;
+          if (ev.positionX <= ev.stopPositionX + EVACUATOR_APPROACH_TOLERANCE_PX) {
+            ev.positionX = ev.stopPositionX;
+            ev.currentSpeed = 0;
+            ev.phase = "loading";
+            ev.loadDelayRemaining = PARKING_LOAD_DELAY_SEC;
+          }
+          break;
+        }
+        case "loading": {
+          ev.loadDelayRemaining -= deltaTime;
+          if (ev.loadDelayRemaining <= 0) {
+            ev.carOnPlatform = true;
+            ev.phase = "loaded";
+            ev.loadedSettleRemaining = PARKING_LIFT_SETTLE_SEC;
+          }
+          break;
+        }
+        case "loaded": {
+          ev.loadedSettleRemaining -= deltaTime;
+          if (ev.loadedSettleRemaining <= 0) {
+            ev.loadedSettleRemaining = 0;
+            if (isParkingEvacuatorDebugHoldAfterLoad()) {
+              ev.currentSpeed = 0;
+              break;
+            }
+            ev.phase = "departing";
+            ev.currentSpeed = randomEvacuatorSpeed(Cars.evacuator);
+          }
+          break;
+        }
+        case "departing": {
+          ev.positionX -= ev.currentSpeed * deltaTime;
+          ev.wheelRotation =
+            (ev.wheelRotation -
+              ev.currentSpeed * deltaTime * EVACUATOR_WHEEL_SPIN_FACTOR) %
+            360;
+          if (ev.positionX < -EVACUATOR_DESPAWN_MARGIN_PX) {
+            this.finalizeParkingEvacuation();
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    });
+  }
+
+  finalizeParkingEvacuation() {
+    runInAction(() => {
+      const ev = this.parkingEvacuation;
+      const zoneObj =
+        this.parkingFineTargetZone ??
+        this.activeObjects.find((obj) => obj.uid === ev.zoneUid);
+      const spotIndex = ev.spotIndex;
+      const pz = zoneObj?.parkingZone;
+
+      if (pz != null && spotIndex != null) {
+        const spot = pz.spots[spotIndex];
+        if (spot) {
+          pz.spots[spotIndex] = {
+            ...spot,
+            fining: false,
+            fined: true,
+            carData: null,
+          };
+        }
         pz.pendingSpotIndex = null;
-        pz.showFinishOverlay = true;
-        pz.fineTimerId = null;
-        this.parkingFineTargetZone = zoneObj;
-      });
-    }, PARKING_FINE_DELAY_MS);
+      }
+
+      if (this.carStore) {
+        this.carStore.addHelp("parkingFine");
+      }
+
+      this.parkingFineTargetZone = null;
+      this.parkingEvacuation = createIdleParkingEvacuation();
+    });
+  }
+
+  completeParkingEvacuation() {
+    this.finalizeParkingEvacuation();
   }
 
   finishParkingFineQuest() {
     runInAction(() => {
-      const target = this.parkingFineTargetZone;
-      if (target?.parkingZone) {
-        target.parkingZone.showFinishOverlay = false;
+      this.parkingFineTargetZone = null;
+      if (this.parkingEvacuation.phase !== "idle") {
+        this.parkingEvacuation = createIdleParkingEvacuation();
       }
       for (const obj of this.activeObjects) {
-        if (obj.parkingZone?.showFinishOverlay) {
-          obj.parkingZone.showFinishOverlay = false;
+        const pz = obj.parkingZone;
+        if (pz?.pendingSpotIndex !== null) {
+          pz.pendingSpotIndex = null;
         }
       }
-      this.parkingFineTargetZone = null;
     });
   }
 
   clearParkingFineState(zoneObj) {
-    const pz = zoneObj?.parkingZone;
-    if (pz?.fineTimerId) {
-      clearTimeout(pz.fineTimerId);
-      pz.fineTimerId = null;
-    }
     if (this.parkingFineTargetZone?.uid === zoneObj?.uid) {
       this.parkingFineTargetZone = null;
+    }
+    if (this.parkingEvacuation.zoneUid === zoneObj?.uid) {
+      this.parkingEvacuation = createIdleParkingEvacuation();
+    }
+    const pz = zoneObj?.parkingZone;
+    if (pz) {
+      pz.pendingSpotIndex = null;
     }
   }
 

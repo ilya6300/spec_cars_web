@@ -66,6 +66,13 @@
   --traffic-car-wheel-left: 8%;
   --traffic-car-wheel-right: 69%;
 
+  /* Эвакуатор — калибровка платформы и погрузки */
+  --evacuator-width: 370px;
+  --evacuator-bottom: 48%;
+  --evacuator-loaded-car-left: 35%;
+  --evacuator-lift-start-bottom: 54%;
+  --evacuator-platform-surface-bottom: 55%;
+
   /* Вертикальный сдвиг всего слоя карты (mobile: media.css) */
   --map-shift-y: 0;
 

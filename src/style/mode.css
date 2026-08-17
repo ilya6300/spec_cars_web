@@ -441,7 +441,9 @@
     width: 40px;
     height: 40px;
   }
+}
 
+@media (max-width: 900px) {
   .game-rain-container {
     contain: strict;
   }
@@ -453,7 +455,8 @@
 
   .game-viewport--rain .game-rain--far {
     animation: none;
-    opacity: 0.14;
-    background-size: 240px 240px;
+    opacity: var(--rain-far-opacity-mobile, 0.16);
+    background-size: var(--rain-far-size-mobile, 240px)
+      var(--rain-far-size-mobile, 240px);
   }
 }

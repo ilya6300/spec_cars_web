@@ -68,4 +68,12 @@
 
   /* Вертикальный сдвиг всего слоя карты (mobile: media.css) */
   --map-shift-y: 0;
+
+  /* TASK-060: mobile atmosphere perf (≤900px) */
+  --rain-far-opacity-mobile: 0.16;
+  --rain-far-size-mobile: 240px;
+  --road-wet-blur-mobile: 3px;
+  --road-wet-opacity-mobile: 0.88;
+  --road-wet-highlight-1-mobile: rgba(210, 230, 255, 0.14);
+  --road-wet-highlight-2-mobile: rgba(200, 222, 255, 0.12);
 }

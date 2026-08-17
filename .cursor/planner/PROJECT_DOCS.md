@@ -1,7 +1,7 @@
 # Техническая документация spec_cars_web
 
 > Постоянная документация для разработчиков. Дополняет `.cursor/planner/PROJECT_PRINCIPLES.md`.
-> Обновляется **только после завершения задачи** (последнее: TASK-057, 16 авг. 2026).
+> Обновляется **только после завершения задачи** (последнее: TASK-060, 17 авг. 2026).
 
 ---
 
@@ -1571,5 +1571,133 @@ Touch/mouse контролы без изменений. Game loop / MobX — б�
 ### Влияние
 
 Mode-cards и game loop без изменений. Клавиатура в игре не активна при открытых модалках (listeners только в `Controllers` на экране `game`). HUD z-index (10) ниже модалок (1100+).
+
+---
+
+## [TASK-060] Mobile perf: portrait rain + статичный road-wet
+
+**Дата:** 2026-08-17  
+**Контекст:** mixed (реализация — только CSS)  
+**Зависимости:** extends TASK-058 (HUD/layout-блок `mode.css:383-444` не менялся); опирается на TASK-049/050 (rain/wet gates, z-index)  
+**Out of scope:** TASK-061 (React fiber churn в `Maps.jsx` per-frame rerender)
+
+### Описание
+
+CSS-only оптимизация атмосферы на смартфонах (`viewport width ≤ 900px`, portrait **и** landscape): один статичный far-слой дождя вместо трёх GPU-анимированных; упрощённый `.road-wet` без shimmer и тяжёлого blur. Desktop (`>900px`) — без регрессии: 3 слоя rain + drift, 3 градиента wet + `blur(10px)` + shimmer. JS (`RainLayer.jsx`, `Maps.jsx`, MobX) **не менялся**.
+
+### Root cause (evidence)
+
+1. **Portrait gap TASK-058.** TASK-058 снизил rain до 1 статичного слоя только в query `(max-width: 900px) and (orientation: landscape), (max-height: 500px)` (`mode.css:383-384`). Portrait iPhone ~390×844: `max-width: 900px` ✓, `orientation: landscape` ✗, `max-height: 500px` ✗ (844 > 500) → применялись **desktop** rain rules (`mode.css:294-308`): 3 слоя с `rain-drift-*` и `translate3d` keyframes → лаги 1–2 мин при rain.
+
+2. **Road-wet — тяжёлый CSS на всех mobile.** До TASK-060 `.road-wet` (`road.css:43-71`) на любом viewport: 3 `radial-gradient`, `filter: blur(10px)`, `animation: road-wet-shimmer 16s` — без mobile override. Усиливает paint/composite cost и heap retention (`CSSRadialGradientValue`, PLAN §1).
+
+3. **React fiber (вторичный фактор).** `__reactFiber` на `<div class="road-wet">` из-за per-frame rerender `Maps.jsx` — **не** устраняется TASK-060; paint cost wet-слоя снижен, полное устранение — **TASK-061**.
+
+### Mobile perf zone
+
+| Параметр | Значение |
+|----------|----------|
+| Breakpoint | `@media (max-width: 900px)` — **отдельный** блок, не смешивается с HUD query TASK-058 |
+| Охват | portrait + landscape ≤900px (единая perf-зона) |
+| Файлы | `mode.css:446-462` (rain), `road.css:93-113` (road-wet) |
+| HUD-блок TASK-058 | `mode.css:383-444` — только mode-hud, stars, back button, mode-result; rain-правила **перенесены** из этого блока |
+
+### Rain — mobile (`max-width: 900px`)
+
+| Свойство | Значение | Desktop reference |
+|----------|----------|-------------------|
+| Видимые слои | только `.game-rain--far` | FAR/MID/NEAR + drift |
+| `.game-rain--mid`, `.game-rain--near` | `display: none` (DOM сохранён, `RainLayer.jsx`) | видимы |
+| Opacity far | **`0.16`** (`--rain-far-opacity-mobile`) | 0.12 |
+| `background-size` | **`240px`** (`--rain-far-size-mobile`) | 280px |
+| `animation` | **`none`** | `rain-drift-far` 7s |
+| `.game-rain-container` | `contain: strict` | — |
+
+Modal rain (PoliceQuest, QuestArrest) наследует global `.game-rain` rules.
+
+**`prefers-reduced-motion`:** блок `mode.css:338-357` сохранён. На mobile perf-зоне mid/near скрыты; far — `animation: none`, opacity **0.16** (не понижается до 0.06, иначе единственный слой почти невидим).
+
+### Road-wet — mobile (`max-width: 900px`)
+
+| Свойство | Значение | Desktop reference |
+|----------|----------|-------------------|
+| Градиенты | **2** radial-gradient | 3 шт. `road.css:52-67` |
+| `filter` | **`blur(3px)`** (`--road-wet-blur-mobile`) | `blur(10px)` |
+| `animation` | **`none`** | `road-wet-shimmer 16s` |
+| Opacity при `--rain` | **`0.88`** (`--road-wet-opacity-mobile`) | `opacity: 1` |
+| Gate | `.game-viewport--rain .road-wet` (TASK-050) | без изменений |
+| `data-type` | `"road-wet"` | без изменений |
+
+Геометрия без изменений: `top: calc(var(--road-lane-y) - 12%)`, `height: calc(var(--player-car-lane-y) - var(--road-lane-y) + 22%)`.
+
+### CSS tokens (`ui-tokens.css`)
+
+```css
+--rain-far-opacity-mobile: 0.16;
+--rain-far-size-mobile: 240px;
+--road-wet-blur-mobile: 3px;
+--road-wet-opacity-mobile: 0.88;
+--road-wet-highlight-1-mobile: rgba(210, 230, 255, 0.14);
+--road-wet-highlight-2-mobile: rgba(200, 222, 255, 0.12);
+```
+
+### Desktop — без регрессии
+
+| Элемент | Поведение (`>900px`) |
+|---------|----------------------|
+| Rain | 3 слоя FAR/MID/NEAR, `rain-drift-*`, opacity 0.12/0.18/0.24 |
+| Road-wet | 3 gradient, `blur(10px)`, shimmer, opacity 1 при `--rain` |
+| E2E desktop | `chase-mode.spec.js` — 3 `.game-rain` в DOM, z-index HUD > rain > player |
+
+### E2E — mobile portrait
+
+**Файл:** `tests/e2e/chase-mode.spec.js` — тест `chase: mobile portrait — static rain and simplified road-wet`.
+
+| Шаг | Assertion |
+|-----|-----------|
+| Viewport | **390×844** |
+| Rain far | `animationName: none`, `opacity ≈ 0.16`, `backgroundSize` содержит `240px` |
+| Rain mid/near | `display: none` (элементы в DOM) |
+| Road-wet | `opacity ≈ 0.88`, `filter` содержит `blur(3px)`, `animationName: none`, **2** `radial-gradient` |
+
+Desktop-тесты chase-mode (3 rain layers, z-index, 4 атмосферных состояния) — без регрессии.
+
+### Адаптивность (viewport)
+
+| Viewport | Rain | Road-wet |
+|----------|------|----------|
+| Desktop >900px | 3 слоя + drift | 3 gradient + blur 10px + shimmer |
+| Mobile ≤900px portrait (390×844) | 1 far static, opacity 0.16 | 2 gradient + blur 3px static |
+| Mobile ≤900px landscape (844×390) | 1 far static (было 0.14 в TASK-058 → **0.16**) | 2 gradient + blur 3px static |
+
+Lane/HUD tokens (`media.css`, `--road-lane-y`, `--map-shift-y`) — без изменений TASK-060.
+
+### Реализация
+
+| Файл | Действие |
+|------|----------|
+| `src/style/ui-tokens.css` | 6 mobile perf tokens (TASK-060 block) |
+| `src/style/mode.css` | Новый `@media (max-width: 900px)` rain perf; rain-правила удалены из landscape HUD-блока TASK-058 |
+| `src/style/road.css` | Mobile road-wet: 2 gradients, blur 3px, static, opacity token |
+| `tests/e2e/chase-mode.spec.js` | Mobile portrait test 390×844 |
+
+**Без изменений:** `RainLayer.jsx`, `Maps.jsx`, `Game.jsx`, `media.css`, MobX-сторы.
+
+### Влияние
+
+- Game loop / `deltaTime` / spawn / квесты / scoring — **не затронуты**
+- Z-index и gates TASK-049/050 — без изменений
+- Снижен GPU/paint cost rain и wet на mobile portrait (закрыт gap TASK-058)
+- React fiber churn на `.road-wet` **остаётся** → TASK-061
+
+### Связь с TASK-061
+
+TASK-060 снижает **CSS paint/composite** cost wet-слоя и rain на mobile. Полное устранение heap retention через `Maps.jsx` inline style churn и `__reactFiber` на `.road-wet` — **out of scope**, отдельная задача TASK-061.
+
+### Ограничения
+
+- **Не** расширять landscape HUD-query (`mode.css:383-384`) perf-правилами rain — иначе HUD-правила применятся к portrait некорректно
+- **Не** возвращать gate `night && rain` для `.road-wet` или `RainLayer`
+- **Не** вешать на `.car-ui` stacking context (TASK-049)
 
 ---

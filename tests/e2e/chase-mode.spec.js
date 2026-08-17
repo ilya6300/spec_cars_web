@@ -275,6 +275,60 @@ test.describe("Chase mode night fixes", () => {
     await expect(page.locator(".car-headlight-beam")).toBeVisible();
   });
 
+  test("chase: mobile portrait — static rain and simplified road-wet", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await enablePlaywrightTestState(page);
+    await page.goto("/");
+    await navigateToGameMode(page, "mode-chase");
+
+    await expect(page.locator(".game-viewport--rain")).toBeVisible();
+    await expect(page.locator('[data-type="rain-layer"]')).toBeVisible();
+
+    const rainLayer = page.locator('[data-type="rain-layer"]');
+    await expect(rainLayer.locator(".game-rain--far")).toHaveCount(1);
+    await expect(rainLayer.locator(".game-rain--mid")).toHaveCount(1);
+    await expect(rainLayer.locator(".game-rain--near")).toHaveCount(1);
+
+    const farStyle = await rainLayer.locator(".game-rain--far").evaluate((el) => {
+      const style = getComputedStyle(el);
+      return {
+        animationName: style.animationName,
+        opacity: Number(style.opacity),
+        backgroundSize: style.backgroundSize,
+      };
+    });
+    expect(farStyle.animationName).toBe("none");
+    expect(farStyle.opacity).toBeCloseTo(0.16, 2);
+    expect(farStyle.backgroundSize).toMatch(/240px/);
+
+    const hiddenLayers = await rainLayer
+      .locator(".game-rain--mid, .game-rain--near")
+      .evaluateAll((els) => els.map((el) => getComputedStyle(el).display));
+    for (const display of hiddenLayers) {
+      expect(display).toBe("none");
+    }
+
+    const wetStyle = await page
+      .locator('[data-type="road-wet"]')
+      .evaluate((el) => {
+        const style = getComputedStyle(el);
+        return {
+          opacity: Number(style.opacity),
+          filter: style.filter,
+          animationName: style.animationName,
+          backgroundImage: style.backgroundImage,
+        };
+      });
+    expect(wetStyle.opacity).toBeCloseTo(0.88, 2);
+    expect(wetStyle.filter).toContain("blur(3px)");
+    expect(wetStyle.animationName).toBe("none");
+    const gradientCount = (wetStyle.backgroundImage.match(/radial-gradient/g) || [])
+      .length;
+    expect(gradientCount).toBe(2);
+  });
+
   test("chase: reduced-motion keeps static rain drops", async ({ page }) => {
     await enablePlaywrightTestState(page);
     await page.emulateMedia({ reducedMotion: "reduce" });

@@ -22,60 +22,59 @@ Received:   0
 
 ```yaml
 - generic [ref=e4]:
-  - button "В меню" [ref=e5] [cursor=pointer]
+  - button "В меню" [ref=e5] [cursor=pointer]:
+    - img [ref=e6]
   - 'generic "Всего звёзд: 0"':
     - generic: ★
     - generic: "0"
-  - generic [ref=e9]:
-    - generic [ref=e11] [cursor=pointer]
-    - generic [ref=e12] [cursor=pointer]
-    - generic [ref=e13] [cursor=pointer]
-    - generic [ref=e14] [cursor=pointer]
-    - generic [ref=e15] [cursor=pointer]
-    - generic [ref=e16] [cursor=pointer]
   - generic:
-    - generic [ref=e18]:
-      - generic [ref=e19]: 61л
-      - generic [ref=e21]:
-        - generic: "0"
-        - generic [ref=e29]: "20"
-        - generic [ref=e36]: "40"
-        - generic [ref=e43]: "60"
-        - generic [ref=e48]: "80"
-        - generic [ref=e55]: "100"
-        - generic [ref=e62]: "120"
-        - generic: "140"
-        - generic [ref=e69]:
+    - generic [ref=e24]:
+      - generic [ref=e26]:
+        - generic: 61л
+      - generic [ref=e27]:
+        - generic [ref=e29]: "0"
+        - generic [ref=e36]: "20"
+        - generic [ref=e43]: "40"
+        - generic [ref=e50]: "60"
+        - generic [ref=e55]: "80"
+        - generic [ref=e62]: "100"
+        - generic [ref=e69]: "120"
+        - generic [ref=e74]: "140"
+        - generic [ref=e75]:
           - generic:
             - text: "0"
             - generic: км/ч
-      - generic [ref=e72]:
-        - paragraph [ref=e73]:
-          - generic [ref=e74]: 0.439 км
-        - generic [ref=e75]:
-          - 'generic "Звёзды: 0" [ref=e76]': ☆☆☆
-          - generic [ref=e77]:
-            - generic "Погоня" [ref=e78]: "0"
-            - generic "Арест" [ref=e81]: "0"
-            - generic "Штраф" [ref=e84]: "0"
-            - generic "Парковка" [ref=e87]: "0"
+      - generic [ref=e78]:
+        - paragraph [ref=e79]:
+          - generic [ref=e80]: 0.441 км
+        - generic [ref=e81]:
+          - 'generic "Звёзды: 0" [ref=e82]': ☆☆☆
+          - generic [ref=e83]:
+            - generic "Погоня" [ref=e84]:
+              - generic [ref=e86]: "0"
+            - generic "Арест" [ref=e87]:
+              - generic [ref=e89]: "0"
+            - generic "Штраф" [ref=e90]:
+              - generic [ref=e92]: "0"
+            - generic "Парковка" [ref=e93]:
+              - generic [ref=e95]: "0"
     - generic:
       - img "Кузов"
       - img "Колесо"
       - img "Колесо"
-  - generic [ref=e90]:
-    - img "Зажигание" [ref=e91] [cursor=pointer]
-    - generic [ref=e92]:
-      - generic [ref=e93]:
-        - generic [ref=e94]: МКПП
-        - button "N" [ref=e95] [cursor=pointer]
-      - generic [ref=e96]:
-        - button "1" [ref=e97] [cursor=pointer]
-        - button "2" [active] [ref=e98] [cursor=pointer]
-        - button "3" [ref=e99] [cursor=pointer]
-        - button "4" [ref=e100] [cursor=pointer]
-    - img "Педаль газа" [ref=e101] [cursor=pointer]
-    - img "Сирена" [ref=e102] [cursor=pointer]
+  - generic [ref=e96]:
+    - img "Зажигание" [ref=e97] [cursor=pointer]
+    - generic [ref=e98]:
+      - generic [ref=e99]:
+        - generic [ref=e100]: МКПП
+        - button "N" [ref=e101] [cursor=pointer]
+      - generic [ref=e102]:
+        - button "1" [ref=e103] [cursor=pointer]
+        - button "2" [active] [ref=e104] [cursor=pointer]
+        - button "3" [ref=e105] [cursor=pointer]
+        - button "4" [ref=e106] [cursor=pointer]
+    - img "Педаль газа" [ref=e107] [cursor=pointer]
+    - img "Сирена" [ref=e108] [cursor=pointer]
 ```
 
 # Test source

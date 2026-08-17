@@ -22,8 +22,40 @@
 **Settings menu (TASK-057):** закрыта 16 авг. 2026  
 **Critical bugs PLAN §1–3 (TASK-058):** закрыта 16 авг. 2026  
 **Parking fine quest (TASK-059):** закрыта 16 авг. 2026  
-**Проверка:** Vitest 212/212, parking-quest E2E passed  
+**Mobile perf portrait rain + road-wet (TASK-060):** закрыта 17 авг. 2026  
+**Проверка:** Vitest 212/212, chase-mode E2E 13/13  
 **Источник UI wave:** `UI_UX_DRAFT.md`
+
+---
+
+## TASK-060: Mobile perf — portrait rain + статичный road-wet
+
+**Статус:** DONE  
+**Закрыто:** 17 авг. 2026  
+**Контекст:** mixed  
+**Циклы:** 1 (Reviewer APPROVED, UI/UX принято)
+
+| Критерий | Результат |
+|---|---|
+| Portrait mobile rain: 1 static far, mid/near hidden | ✅ `mode.css` `@media (max-width: 900px)` |
+| Mobile road-wet: 2 gradients, blur 3px, no shimmer | ✅ `road.css` mobile block |
+| Desktop без регрессии | ✅ 3 rain layers + shimmer |
+| CSS tokens | ✅ `ui-tokens.css` |
+| Gate `--rain` only; `data-type="road-wet"` | ✅ |
+| Vitest 212/212 | ✅ |
+| Playwright chase-mode 13/13 + mobile portrait E2E | ✅ |
+
+### Root cause
+
+1. TASK-058 не покрывал portrait (~390×844) — 3 GPU rain layers на smartphone.
+2. `.road-wet` без mobile override — blur 10px + shimmer на всех mobile.
+
+### Изменённые файлы
+
+- `src/style/ui-tokens.css`
+- `src/style/mode.css`
+- `src/style/road.css`
+- `tests/e2e/chase-mode.spec.js`
 
 ---
 

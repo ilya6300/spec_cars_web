@@ -23,6 +23,7 @@ import { ModeResultModal } from "./ModeResultModal";
 import { RefuelModal } from "./RefuelModal";
 import { QuestCtaButton } from "../ui/QuestCtaButton";
 import { StarFlyOverlay } from "./StarFlyOverlay";
+import Ratio from "../car/Ratio";
 import { CollectibleStarLayer } from "./CollectibleStarLayer";
 import { useGameLoop } from "../../hooks/useGameLoop";
 import { createGameStores } from "../../state/gameBootstrap";
@@ -56,6 +57,13 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
   );
   const gameViewportRef = useRef(null);
   const [isRefuelModalOpen, setIsRefuelModalOpen] = useState(false);
+  const [showFreeModeRatio, setShowFreeModeRatio] = useState(
+    gameMode === "free",
+  );
+
+  const handleFreeModeRatioDismiss = useCallback(() => {
+    setShowFreeModeRatio(false);
+  }, []);
 
   useEffect(() => {
     const updateViewportWidth = () => {
@@ -214,6 +222,15 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
     >
       {!modeStore.isComplete && <BackToMenuButton />}
       {/* <FullscreenButton /> */}
+      {showFreeModeRatio && (
+        <Ratio
+          message="Пшшш... Начинайте потрулирование"
+          onDismiss={handleFreeModeRatioDismiss}
+        />
+      )}
+      {activeMapStore.parkingEvacuation.phase === "spawn_delay" && (
+        <Ratio message="Диспетчер, нужен эвакуатор" playSound={false} />
+      )}
       {gameMode === "free" && <StarFlyOverlay mapStore={activeMapStore} />}
       <ModeTimer carStore={activeCarStore} />
       <ModeChaseProgress carStore={activeCarStore} />

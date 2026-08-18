@@ -1,5 +1,6 @@
 import { observer } from "mobx-react-lite";
 import { CarModel } from "../car/CarModel";
+import { playRatioSound } from "../car/ratioAudio";
 import {
   getParkingIllegalClass,
   isParkingZoneType,
@@ -89,6 +90,7 @@ export const ParkingZoneLayer = observer(({ mapStore }) => {
                         ) {
                           return;
                         }
+                        playRatioSound();
                         mapStore.handleParkingViolationClick(
                           zoneObj,
                           spot.index,

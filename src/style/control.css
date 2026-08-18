@@ -33,3 +33,108 @@
     animation: none;
   }
 }
+
+/* Рация */
+
+/* Основной контейнер модального окна */
+.radio-modal {
+  position: absolute;
+  z-index: 3000;
+  bottom: 5%;
+  max-width: 70vw;
+  /* height: 120px; */
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 15px 30px;
+  box-sizing: border-box;
+  background: rgb(15 23 42 / 66%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 12px;
+  /* border: 1px solid rgba(0, 212, 255, 0.3); */
+  box-shadow:
+    0 8px 32px 0 rgba(0, 0, 0, 0.37),
+    inset 0 0 15px rgba(0, 212, 255, 0.05);
+  /* font-family: revert-rule; */
+  animation: slideUp 0.3s ease-out forwards;
+}
+
+/* Блок иконки рации */
+.radio-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+  height: 50px;
+  background: rgba(0, 212, 255, 0.1);
+  border-radius: 10px;
+  color: #00d4ff; /* Полицейский голубой */
+}
+
+.radio-icon {
+  width: 28px;
+  height: 28px;
+}
+
+/* Мигающий зеленый индикатор связи */
+.status-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background-color: #00ff66;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #00ff66;
+  animation: blink 1.5s infinite ease-in-out;
+}
+
+/* Блок с текстом */
+.radio-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-grow: 1;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Маленький тег сверху текста */
+
+
+/* Основной текст сообщения */
+.radio-text {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.4;
+  color: #e2e8f0; /* Мягкий белый/светло-серый */
+  font-weight: 500;
+}
+
+.radio-img {
+  height: 128px;
+}
+/* Анимации */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 12px #00ff66;
+  }
+}

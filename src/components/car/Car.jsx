@@ -105,7 +105,6 @@ export const Car = observer(({ carStore, showHeadlights = false }) => {
           </div>
         </div>
       </div>
-
       <CarModel
         carStore={carStore}
         variant="player"

@@ -77,6 +77,7 @@ export const ParkingZoneLayer = observer(({ mapStore, tutorialStore = null }) =>
                           ? "parking-violation-car"
                           : "parking-zone-car"
                       }
+                      data-zone-uid={zoneObj.uid}
                       data-spot-index={spot.index}
                       onClick={(event) => {
                         event.stopPropagation();

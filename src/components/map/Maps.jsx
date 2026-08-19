@@ -8,6 +8,7 @@ import { isNightChaseContext } from "../../state/modeScoring";
 
 import { isQuestCrossingType } from "../../state/questCrossingConstants";
 import { isParkingZoneType } from "../../state/parkingZoneConstants";
+import { isRoadsideBreakdownType } from "../../state/roadsideBreakdownConstants";
 
 import { useMapScrollSync } from "../../hooks/useMapScrollSync";
 
@@ -110,12 +111,9 @@ export const Maps = observer(({ map, carStore, onClickObject }) => {
           if (isCollectibleStar) return null;
 
           if (isParkingZoneType(obj.typeId)) return null;
-
-
+          if (isRoadsideBreakdownType(obj.typeId)) return null;
 
           const isQuestCrossing = isQuestCrossingType(obj.typeId);
-
-
 
           return (
 

@@ -448,11 +448,13 @@ test("TutorialStore: parking tutorial flow", () => {
   const mapStore = createMapStore({
     activeObjects: [
       {
+        uid: "parking_zone_uid",
         typeId: "parking_zone",
         worldX: 1500,
         parkingZone: {
           spots: [
             {
+              index: 0,
               status: "illegal",
               fined: false,
               fining: false,
@@ -465,6 +467,11 @@ test("TutorialStore: parking tutorial flow", () => {
 
   tutorial.tick(0.1, carStore, mapStore, 1024);
   expect(tutorial.currentStep).toBe("parking-violation");
+  expect(tutorial.parkingTutorialZoneUid).toBe("parking_zone_uid");
+  expect(tutorial.parkingTutorialSpotIndex).toBe(0);
+  expect(tutorial.parkingViolationSelector).toBe(
+    '[data-type="parking-violation-car"][data-zone-uid="parking_zone_uid"][data-spot-index="0"]',
+  );
   expect(releaseGasSpy).toHaveBeenCalled();
 
   tutorial.onParkingViolationClicked();

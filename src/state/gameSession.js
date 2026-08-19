@@ -1,3 +1,4 @@
+import { runInAction } from "mobx";
 import atmosphereStore from "./atmosphereStore";
 
 /**
@@ -22,6 +23,14 @@ export function tickGameFrame({
     mapStore.advance(carStore.currentSpeed, deltaTime);
   } else {
     carStore.releaseGas();
+    if (carStore.currentSpeed > 0) {
+      runInAction(() => {
+        carStore.currentSpeed = Math.max(
+          0,
+          carStore.currentSpeed - carStore.friction * deltaTime,
+        );
+      });
+    }
   }
 
   carStore.checkTrafficLight(mapStore);

@@ -9,6 +9,7 @@ class RatioStore {
 
   _timers = [];
   _onDismissComplete = null;
+  _responseDelaySec = DISPATCH_RESPONSE_DELAY_SEC;
 
   constructor() {
     makeAutoObservable(this);
@@ -34,7 +35,11 @@ class RatioStore {
   }
 
   showMessage(message, options = {}) {
-    const { playSound = true, onComplete = null } = options;
+    const {
+      playSound = true,
+      onComplete = null,
+      responseDelaySec = DISPATCH_RESPONSE_DELAY_SEC,
+    } = options;
     runInAction(() => {
       this.clearRatioTimers();
       this.sessionId += 1;
@@ -42,6 +47,7 @@ class RatioStore {
       this.message = message;
       this.playSoundOnShow = playSound;
       this._onDismissComplete = onComplete;
+      this._responseDelaySec = responseDelaySec;
     });
   }
 
@@ -56,7 +62,14 @@ class RatioStore {
     });
 
     if (onComplete) {
-      this.scheduleAfterDismiss(onComplete);
+      if (this._responseDelaySec === 0) {
+        onComplete();
+        runInAction(() => {
+          this.phase = "idle";
+        });
+      } else {
+        this.scheduleAfterDismiss(onComplete, this._responseDelaySec);
+      }
     }
   }
 
@@ -76,13 +89,18 @@ class RatioStore {
   }
 
   showDispatchResult(message, options = {}) {
-    const { playSound = true, onComplete = null } = options;
+    const {
+      playSound = true,
+      onComplete = null,
+      responseDelaySec = DISPATCH_RESPONSE_DELAY_SEC,
+    } = options;
     runInAction(() => {
       this.clearRatioTimers();
       this.phase = "dispatch_result";
       this.message = message;
       this.playSoundOnShow = playSound;
       this._onDismissComplete = onComplete;
+      this._responseDelaySec = responseDelaySec;
     });
   }
 

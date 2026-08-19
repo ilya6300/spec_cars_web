@@ -12,6 +12,8 @@ import {
   EVACUATION_RATIO_MESSAGE,
 } from './ratioConstants';
 import { DISPATCH_ORIENTATION_CONFLICT_CHANCE } from './event.config';
+import { createIdleParkingEvacuation } from './parkingZoneConstants';
+import QuestCarStore from './questCarStore';
 
 beforeEach(() => {
   atmosphereStore.setAtmosphere({ timeOfDay: 'day', weather: 'clear' });
@@ -608,7 +610,6 @@ test('MapStore: two-step parking evacuation flow', () => {
   expect(store.parkingEvacuation.phase).toBe('idle');
 
   ratioStore.onRatioDismiss();
-  vi.advanceTimersByTime(DISPATCH_RESPONSE_DELAY_SEC * 1000);
   expect(store.parkingEvacuation.phase).toBe('spawn_delay');
 
   store.parkingEvacuation.spawnDelayRemaining = 0;
@@ -711,7 +712,6 @@ test('MapStore: two-step roadside breakdown evacuation flow', () => {
   expect(ratioStore.message).toBe(EVACUATION_RATIO_MESSAGE);
 
   ratioStore.onRatioDismiss();
-  vi.advanceTimersByTime(DISPATCH_RESPONSE_DELAY_SEC * 1000);
   expect(store.parkingEvacuation.phase).toBe('spawn_delay');
   expect(store.parkingEvacuation.sourceKind).toBe('roadside');
 
@@ -734,6 +734,101 @@ test('MapStore: two-step roadside breakdown evacuation flow', () => {
     false,
   );
   vi.useRealTimers();
+});
+
+test('MapStore: startQuest allowed after roadside evacuation completes', () => {
+  vi.useFakeTimers();
+  ratioStore.dispose();
+  globalThis.__PARKING_EVAC_DEBUG_HOLD__ = false;
+
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.offsetX = 16000;
+  store.carStore = {
+    releaseGas: () => {},
+    isGasPressed: false,
+    currentSpeed: 0,
+    addHelp: () => {},
+  };
+
+  const breakdownObj = {
+    uid: 'breakdown_uid',
+    typeId: 'roadside_breakdown',
+    worldX: 16000,
+    appeared: true,
+    roadsideBreakdown: {
+      carData: store.createParkingCarStore(store.getCivilianCars()[0]),
+      selected: false,
+      helped: false,
+    },
+  };
+  store.activeObjects = [breakdownObj];
+
+  store.selectRoadsideBreakdownTarget(breakdownObj);
+  store.confirmParkingEvacuationViaRadio();
+  ratioStore.onRatioDismiss();
+  store.parkingEvacuation.spawnDelayRemaining = 0;
+  store.updateParkingEvacuation(0);
+  store.parkingEvacuation.positionX = store.parkingEvacuation.stopPositionX;
+  store.parkingEvacuation.phase = 'loading';
+  store.parkingEvacuation.loadDelayRemaining = 0;
+  store.updateParkingEvacuation(0);
+  store.parkingEvacuation.loadedSettleRemaining = 0;
+  store.updateParkingEvacuation(0);
+  store.parkingEvacuation.positionX = -500;
+  store.parkingEvacuation.phase = 'departing';
+  store.updateParkingEvacuation(0);
+
+  expect(store.isParkingFineActive()).toBe(false);
+  expect(store.hasPendingEvacuationTarget()).toBe(false);
+
+  const aggrTarget = { uid: 'aggr_uid', typeId: 'human_aggr1', worldX: 17000 };
+  store.startQuest(aggrTarget);
+  expect(store.isPoliceQuestActive).toBe(true);
+  expect(store.questTargetObject?.uid).toBe('aggr_uid');
+
+  vi.useRealTimers();
+});
+
+test('MapStore: second roadside breakdown can be selected after first evacuation', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.carStore = {
+    releaseGas: () => {},
+    isGasPressed: false,
+    currentSpeed: 0,
+  };
+
+  const secondBreakdown = {
+    uid: 'breakdown_uid_2',
+    typeId: 'roadside_breakdown',
+    worldX: 18000,
+    appeared: true,
+    roadsideBreakdown: {
+      carData: store.createParkingCarStore(store.getCivilianCars()[0]),
+      selected: false,
+      helped: false,
+    },
+  };
+  store.activeObjects = [secondBreakdown];
+
+  store.selectRoadsideBreakdownTarget(secondBreakdown);
+  expect(secondBreakdown.roadsideBreakdown.selected).toBe(true);
+  expect(store.hasPendingEvacuationTarget()).toBe(true);
+});
+
+test('MapStore: frozen world keeps quest cars moving forward', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.carStore = { currentSpeed: 200 };
+  store.parkingEvacuation = { ...createIdleParkingEvacuation(), phase: 'approaching' };
+
+  const questCar = new QuestCarStore(store.getCivilianCars()[0]);
+  questCar.positionX = 400;
+  questCar.currentSpeed = 80;
+  store.questCars = [questCar];
+
+  store.updateQuestCars(1);
+
+  expect(questCar.positionX).toBeGreaterThan(400);
 });
 
 test('MapStore: spawnEnvironmentObjects skips roadside_breakdown in chase', () => {

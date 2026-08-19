@@ -70,11 +70,13 @@ function findFirstVisibleParkingViolation(mapStore, viewportWidth) {
     if (!isParkingZoneType(obj.typeId) || !obj.parkingZone) continue;
     const screenX = getObjectScreenX(mapStore, obj);
     if (screenX < 0 || screenX > viewportWidth) continue;
-    const hasIllegal = obj.parkingZone.spots.some(
+    const spotIndex = obj.parkingZone.spots.findIndex(
       (spot) =>
         spot.status === "illegal" && !spot.fined && !spot.fining,
     );
-    if (hasIllegal) return obj;
+    if (spotIndex !== -1) {
+      return { zoneObj: obj, spotIndex };
+    }
   }
   return null;
 }
@@ -104,6 +106,8 @@ export class TutorialStore {
   pedestrianBlockDone = false;
   parkingBlockDone = false;
   roadsideBlockDone = false;
+  parkingTutorialZoneUid = null;
+  parkingTutorialSpotIndex = null;
   sirenStepSeconds = 0;
   banditTargetTypeId = null;
   banditEngageReleased = false;
@@ -158,6 +162,16 @@ export class TutorialStore {
   get banditTargetSelector() {
     if (!this.banditTargetTypeId) return null;
     return `[data-type="${this.banditTargetTypeId}"]`;
+  }
+
+  get parkingViolationSelector() {
+    if (
+      this.parkingTutorialZoneUid == null ||
+      this.parkingTutorialSpotIndex == null
+    ) {
+      return '[data-type="parking-violation-car"]';
+    }
+    return `[data-type="parking-violation-car"][data-zone-uid="${this.parkingTutorialZoneUid}"][data-spot-index="${this.parkingTutorialSpotIndex}"]`;
   }
 
   get isQuestModalBlocking() {
@@ -396,6 +410,8 @@ export class TutorialStore {
 
     carStore.releaseGas();
     runInAction(() => {
+      this.parkingTutorialZoneUid = violation.zoneObj.uid;
+      this.parkingTutorialSpotIndex = violation.spotIndex;
       this.currentStep = "parking-violation";
     });
   }
@@ -579,6 +595,8 @@ export class TutorialStore {
       this.pedestrianBlockDone = false;
       this.parkingBlockDone = false;
       this.roadsideBlockDone = false;
+      this.parkingTutorialZoneUid = null;
+      this.parkingTutorialSpotIndex = null;
       this.sirenStepSeconds = 0;
       this.banditTargetTypeId = null;
       this.banditEngageReleased = false;

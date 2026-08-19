@@ -1,5 +1,5 @@
 import unitParkingImg from "../assets/objects/police_quest/unit_parking.png";
-import { RATIO_DISPLAY_SEC } from "./ratioConstants";
+import { DISPATCH_RESPONSE_DELAY_SEC } from "./ratioConstants";
 
 export const PARKING_ZONE_TYPE = "parking_zone";
 
@@ -35,8 +35,9 @@ export const PARKING_ILLEGAL_CLASS_BY_VIOLATION = {
   [PARKING_ILLEGAL_VIOLATION_CROOKED]: "parking-zone-car--illegal-crooked",
 };
 
-export const PARKING_SPAWN_DELAY_MIN_MS = RATIO_DISPLAY_SEC * 1000;
-export const PARKING_SPAWN_DELAY_MAX_MS = RATIO_DISPLAY_SEC * 1000;
+/** Пауза после закрытия Ratio до появления эвакуатора */
+export const PARKING_SPAWN_DELAY_MIN_MS = DISPATCH_RESPONSE_DELAY_SEC * 1000;
+export const PARKING_SPAWN_DELAY_MAX_MS = DISPATCH_RESPONSE_DELAY_SEC * 1000;
 export const PARKING_LOAD_DELAY_SEC = 1;
 export const PARKING_LIFT_SETTLE_SEC = 0.7;
 

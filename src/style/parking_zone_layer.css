@@ -36,6 +36,7 @@
   transform: translateX(-50%);
   transform-origin: center center;
   pointer-events: none;
+  overflow: visible;
 }
 
 .parking-zone-car--illegal {
@@ -59,15 +60,45 @@
 }
 
 .parking-violation-car--fining {
-  animation: parking-violation-fining 0.8s ease-in-out infinite alternate;
+  animation: parking-violation-beacon 0.55s ease-in-out infinite alternate;
 }
 
-@keyframes parking-violation-fining {
+.parking-violation-car--fining::after {
+  content: "";
+  position: absolute;
+  top: 6%;
+  left: 42%;
+  width: 22%;
+  height: 18%;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 5;
+  animation: parking-violation-beacon-light 0.55s ease-in-out infinite alternate;
+}
+
+@keyframes parking-violation-beacon {
   from {
-    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(0, 85, 255, 0.7))
+      drop-shadow(0 0 14px rgba(0, 60, 220, 0.45));
   }
   to {
-    opacity: 0.55;
+    filter: drop-shadow(0 0 14px rgba(80, 180, 255, 1))
+      drop-shadow(0 0 28px rgba(0, 85, 255, 0.85));
+  }
+}
+
+@keyframes parking-violation-beacon-light {
+  from {
+    background: rgba(0, 85, 255, 0.85);
+    box-shadow:
+      0 0 8px 3px rgba(0, 85, 255, 0.9),
+      0 0 18px 6px rgba(0, 60, 220, 0.55);
+  }
+  to {
+    background: rgba(120, 200, 255, 1);
+    box-shadow:
+      0 0 12px 5px rgba(80, 180, 255, 1),
+      0 0 26px 10px rgba(0, 120, 255, 0.75);
   }
 }
 
@@ -80,6 +111,11 @@
 @media (prefers-reduced-motion: reduce) {
   .parking-violation-car--fining {
     animation: none;
-    opacity: 0.75;
+    filter: drop-shadow(0 0 6px rgba(0, 85, 255, 0.6));
+  }
+
+  .parking-violation-car--fining::after {
+    animation: none;
+    background: rgba(0, 85, 255, 0.8);
   }
 }

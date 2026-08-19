@@ -71,6 +71,7 @@ import {
   ROAD_MARKING_WIDTH_PX,
 } from "./roadMarkingConstants";
 import {
+  computeRoadsideBreakdownCarScreenX,
   isRoadsideBreakdownType,
   ROADSIDE_BREAKDOWN_WIDTH,
 } from "./roadsideBreakdownConstants";
@@ -503,9 +504,7 @@ class MapStore {
     if (this.pendingEvacuationTarget) return true;
     return this.activeObjects.some((obj) => {
       const pz = obj.parkingZone;
-      if (pz && pz.pendingSpotIndex !== null) return true;
-      const rb = obj.roadsideBreakdown;
-      return rb?.selected === true;
+      return pz && pz.pendingSpotIndex !== null;
     });
   }
 
@@ -1156,7 +1155,10 @@ class MapStore {
       return;
     }
 
-    const targetScreenX = breakdownObj.worldX - this.offsetX;
+    const targetScreenX = computeRoadsideBreakdownCarScreenX(
+      breakdownObj.worldX,
+      this.offsetX,
+    );
     const stopPositionX = computeEvacuatorStopX(targetScreenX);
 
     this.carStore?.releaseGas?.();
@@ -1240,7 +1242,7 @@ class MapStore {
     }
 
     ratioStore.showMessage(EVACUATION_RATIO_MESSAGE, {
-      playSound: false,
+      responseDelaySec: 0,
       onComplete: () => {
         runInAction(() => {
           if (target.kind === "parking") {
@@ -1261,6 +1263,12 @@ class MapStore {
               carOnPlatform: false,
             };
           } else {
+            const breakdownObj = this.activeObjects.find(
+              (obj) => obj.uid === target.breakdownUid,
+            );
+            if (breakdownObj?.roadsideBreakdown) {
+              breakdownObj.roadsideBreakdown.selected = false;
+            }
             this.parkingEvacuation = {
               phase: "spawn_delay",
               sourceKind: "roadside",
@@ -1304,9 +1312,7 @@ class MapStore {
     }
 
     if (this.orientationQuest.active) {
-      ratioStore.showMessage(DISPATCH_ORIENTATION_ALREADY_MESSAGE, {
-        playSound: false,
-      });
+      ratioStore.showMessage(DISPATCH_ORIENTATION_ALREADY_MESSAGE);
       return;
     }
 
@@ -1315,7 +1321,6 @@ class MapStore {
         Math.floor(Math.random() * DISPATCH_REQUEST_MESSAGES.length)
       ];
     ratioStore.showMessage(message, {
-      playSound: false,
       onComplete: () => {
         this.handleDispatchResponse();
       },
@@ -1325,7 +1330,6 @@ class MapStore {
   handleDispatchResponse() {
     if (Math.random() < DISPATCH_ORIENTATION_CONFLICT_CHANCE) {
       ratioStore.showDispatchResult(DISPATCH_CONFLICT_MESSAGE, {
-        playSound: false,
         onComplete: () => {
           this.spawnOrientationTarget();
         },
@@ -1333,9 +1337,7 @@ class MapStore {
       return;
     }
 
-    ratioStore.showDispatchResult(DISPATCH_QUIET_MESSAGE, {
-      playSound: false,
-    });
+    ratioStore.showDispatchResult(DISPATCH_QUIET_MESSAGE);
   }
 
   spawnOrientationTarget() {
@@ -1591,7 +1593,7 @@ class MapStore {
   updateQuestCars(deltaTime) {
     if (this.questCars.length === 0) return;
 
-    const policeSpeed = this.carStore.currentSpeed;
+    const policeSpeed = this.isWorldFrozen ? 0 : this.carStore.currentSpeed;
     const viewportWidth = this.lastViewportWidth ?? window.innerWidth;
 
     runInAction(() => {

@@ -1,6 +1,33 @@
 import { expect, test, vi } from "vitest";
 import { tickGameFrame } from "./gameSession";
 
+test("tickGameFrame: frozen world decays speed and skips advance", () => {
+  const carStore = {
+    currentSpeed: 120,
+    friction: 60,
+    releaseGas: vi.fn(),
+    updatePhysics: vi.fn(),
+    checkTrafficLight: vi.fn(),
+  };
+  const mapStore = {
+    isWorldFrozen: true,
+    advance: vi.fn(),
+    tickWorld: vi.fn(),
+  };
+
+  tickGameFrame({
+    carStore,
+    mapStore,
+    viewportWidth: 800,
+    deltaTime: 1,
+  });
+
+  expect(carStore.releaseGas).toHaveBeenCalled();
+  expect(carStore.updatePhysics).not.toHaveBeenCalled();
+  expect(mapStore.advance).not.toHaveBeenCalled();
+  expect(carStore.currentSpeed).toBe(60);
+});
+
 test("tickGameFrame: вызывает физику, advance мира и tickWorld в правильном порядке", () => {
   const calls = [];
   const carStore = {

@@ -20,7 +20,7 @@ export const Bensin = observer(({ carStore }) => {
     <div className="bensin-container" data-type="fuel-gauge">
       <div
         className={`canister ${isCritical ? "canister--critical" : ""}`}
-        style={{ "--fuel-percent": fuelPercent, "--fuel-color": fuelColor }}
+        style={{ "--fuel-percent": `${fuelPercent}%`, "--fuel-color": fuelColor }}
         data-fuel-percent={Math.round(fuelPercent)}
       >
         <div className="fuel-fill" />

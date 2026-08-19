@@ -111,16 +111,27 @@ test("ratioStore: isFlowActive", () => {
   expect(ratioStore.isFlowActive).toBe(false);
 });
 
+test("ratioStore: responseDelaySec 0 invokes onComplete immediately", () => {
+  const onComplete = vi.fn();
+  ratioStore.showMessage("Диспетчер, нужен эвакуатор.", {
+    onComplete,
+    responseDelaySec: 0,
+  });
+
+  ratioStore.onRatioDismiss();
+  expect(onComplete).toHaveBeenCalledTimes(1);
+  expect(ratioStore.phase).toBe("idle");
+});
+
 test("ratioStore: orientation already message path", () => {
   ratioStore.showMessage(
     "Мы уже выслали ориентировку, следую к цели",
-    { playSound: false },
   );
 
   expect(ratioStore.message).toBe(
     "Мы уже выслали ориентировку, следую к цели",
   );
-  expect(ratioStore.playSoundOnShow).toBe(false);
+  expect(ratioStore.playSoundOnShow).toBe(true);
   expect(ratioStore.phase).toBe("showing");
 
   ratioStore.onRatioDismiss();

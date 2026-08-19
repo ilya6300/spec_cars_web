@@ -1,6 +1,9 @@
 import { observer } from "mobx-react-lite";
 import { CarModel } from "../car/CarModel";
-import { isRoadsideBreakdownType } from "../../state/roadsideBreakdownConstants";
+import {
+  computeRoadsideBreakdownCarScreenX,
+  isRoadsideBreakdownType,
+} from "../../state/roadsideBreakdownConstants";
 import "../../style/roadside_breakdown_layer.css";
 
 export const RoadsideBreakdownLayer = observer(
@@ -32,7 +35,10 @@ export const RoadsideBreakdownLayer = observer(
       >
         {breakdowns.map((obj) => {
           const rb = obj.roadsideBreakdown;
-          const screenX = obj.worldX - mapStore.offsetX;
+          const screenX = computeRoadsideBreakdownCarScreenX(
+            obj.worldX,
+            mapStore.offsetX,
+          );
           const carOnEvacuator =
             evacuation.carOnPlatform &&
             evacuation.sourceKind === "roadside" &&
@@ -65,11 +71,12 @@ export const RoadsideBreakdownLayer = observer(
                 tutorialStore?.onRoadsideBreakdownClicked?.();
               }}
             >
+              <CarModel carStore={rb.carData} variant="traffic" nested />
               <div
                 className="roadside-breakdown-car__steam"
+                data-type="roadside-breakdown-steam"
                 aria-hidden="true"
               />
-              <CarModel carStore={rb.carData} variant="traffic" nested />
             </div>
           );
         })}

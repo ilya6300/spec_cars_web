@@ -48,7 +48,9 @@ export const TutorialOverlay = observer(({ tutorialStore }) => {
     const selector =
       step === "roadside-bandit"
         ? tutorialStore.banditTargetSelector
-        : STEP_SELECTORS[step];
+        : step === "parking-violation"
+          ? tutorialStore.parkingViolationSelector
+          : STEP_SELECTORS[step];
 
     if (!selector) {
       setFingerPos(null);
@@ -94,7 +96,7 @@ export const TutorialOverlay = observer(({ tutorialStore }) => {
       window.removeEventListener("resize", updatePosition);
       setFingerPos(null);
     };
-  }, [step, tutorialStore.banditTargetSelector]);
+  }, [step, tutorialStore.banditTargetSelector, tutorialStore.parkingViolationSelector]);
 
   if (!step || !fingerPos) return null;
 

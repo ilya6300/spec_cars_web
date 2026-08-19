@@ -12,6 +12,8 @@
 
 **Обязательный источник:** `.cursor/planner/PROJECT_PRINCIPLES.md`
 
+**Единицы расстояния:** `.cursor/planner/GAME_UNITS.md` — world px ÷ 20 = игровые метры в SPEC и задачах.
+
 ---
 
 ## Железное правило

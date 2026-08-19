@@ -48,6 +48,7 @@ import {
 import starsStore from "./starsStore";
 import {
   CIVILIAN_QUEST_CAR_INITIAL_TIMER_SEC,
+  DISPATCH_ORIENTATION_CONFLICT_CHANCE,
   ENEMY_QUEST_CAR_INITIAL_TIMER_SEC,
   getEnemyFirstSpawnGateSec,
   randomCivilianQuestCarRespawnDelaySec,
@@ -55,10 +56,24 @@ import {
   TRAFFIC_LIGHT_CYCLE_MS,
 } from "./event.config";
 import {
+  DISPATCH_CONFLICT_MESSAGE,
+  DISPATCH_ORIENTATION_ALREADY_MESSAGE,
+  DISPATCH_QUIET_MESSAGE,
+  DISPATCH_REQUEST_MESSAGES,
+  EVACUATION_RATIO_MESSAGE,
+  ORIENTATION_MAX_WORLD_PX,
+  ORIENTATION_MIN_WORLD_PX,
+} from "./ratioConstants";
+import ratioStore from "./ratioStore";
+import {
   ROAD_MARKING_DESPAWN_MARGIN_PX,
   ROAD_MARKING_STEP_PX,
   ROAD_MARKING_WIDTH_PX,
 } from "./roadMarkingConstants";
+import {
+  isRoadsideBreakdownType,
+  ROADSIDE_BREAKDOWN_WIDTH,
+} from "./roadsideBreakdownConstants";
 
 const QUEST_CAR_VISIBLE_MARGIN = 150;
 const QUEST_CAR_DESPAWN_MARGIN = 250;
@@ -144,6 +159,12 @@ class MapStore {
   // Parking Fine Quest state
   parkingFineTargetZone = null;
   parkingEvacuation = createIdleParkingEvacuation();
+  pendingEvacuationTarget = null;
+  orientationQuest = {
+    active: false,
+    targetUid: null,
+    targetWorldX: 0,
+  };
   __forceParkingIllegal = false;
 
   // Quest Cars state
@@ -474,13 +495,22 @@ class MapStore {
     );
   }
 
-  isParkingFineActive() {
-    if (this.parkingEvacuation.phase !== "idle") return true;
-    if (this.parkingFineTargetZone) return true;
+  isEvacuationInProgress() {
+    return this.parkingEvacuation.phase !== "idle";
+  }
+
+  hasPendingEvacuationTarget() {
+    if (this.pendingEvacuationTarget) return true;
     return this.activeObjects.some((obj) => {
       const pz = obj.parkingZone;
-      return pz && pz.pendingSpotIndex !== null;
+      if (pz && pz.pendingSpotIndex !== null) return true;
+      const rb = obj.roadsideBreakdown;
+      return rb?.selected === true;
     });
+  }
+
+  isParkingFineActive() {
+    return this.isEvacuationInProgress() || this.hasPendingEvacuationTarget();
   }
 
   getParkingZoneWidth(obj) {
@@ -536,6 +566,13 @@ class MapStore {
 
       if (isParkingZoneType(config.type) && isNightChaseContext(this)) {
         return;
+      }
+
+      if (isRoadsideBreakdownType(config.type)) {
+        if (isNightChaseContext(this)) return;
+        if (this.isEvacuationInProgress() || this.hasPendingEvacuationTarget()) {
+          return;
+        }
       }
 
       const nextSpawn = this.nextSpawnDistances[config.type];
@@ -635,6 +672,19 @@ class MapStore {
           return true;
         }
 
+        if (isRoadsideBreakdownType(obj.typeId)) {
+          const visible = screenX > -ROADSIDE_BREAKDOWN_WIDTH;
+          if (!visible) {
+            if (obj.longPressTimeout) {
+              clearTimeout(obj.longPressTimeout);
+              obj.longPressTimeout = null;
+            }
+            this.clearRoadsideBreakdownState(obj);
+            return false;
+          }
+          return true;
+        }
+
         const visible = screenX > -config.width;
         if (!visible && obj.longPressTimeout) {
           clearTimeout(obj.longPressTimeout);
@@ -650,7 +700,9 @@ class MapStore {
         const lastConfig = objectConfigByType[lastObj.typeId];
         const lastWidth = isParkingZoneType(lastObj.typeId)
           ? this.getParkingZoneWidth(lastObj)
-          : lastConfig.width;
+          : isRoadsideBreakdownType(lastObj.typeId)
+            ? ROADSIDE_BREAKDOWN_WIDTH
+            : lastConfig.width;
         this.lastObjectEndMeter = lastObj.worldX + lastWidth;
       } else {
         this.lastObjectEndMeter = this.offsetX;
@@ -759,6 +811,9 @@ class MapStore {
     this.questsAtLastStarEvent = 0;
     this.collectibleStarSpawnTimer = null;
     this.starFlies = [];
+    this.pendingEvacuationTarget = null;
+    this.finishOrientationQuest();
+    ratioStore.clearRatioTimers();
   }
 
   // Готовый признак: светофор на экране И красный
@@ -779,6 +834,14 @@ class MapStore {
   }
 
   finishQuest() {
+    const target = this.questTargetObject;
+    if (
+      target?.orientationSpawn ||
+      (target?.uid && target.uid === this.orientationQuest.targetUid)
+    ) {
+      this.finishOrientationQuest();
+    }
+
     runInAction(() => {
       this.isPoliceQuestActive = false;
       this.questTargetObject = null;
@@ -1051,12 +1114,77 @@ class MapStore {
     return true;
   }
 
-  handleParkingViolationClick(zoneObj, spotIndex) {
+  initRoadsideBreakdown(obj) {
+    if (isNightChaseContext(this)) return false;
     if (
       this.isPoliceQuestActive ||
       this.isPedestrianCrossingQuestActive ||
       this.isQuestArrestActive ||
-      this.isParkingFineActive()
+      this.isParkingFineActive() ||
+      this.hasVisiblePoliceAggroOnScreen()
+    ) {
+      return false;
+    }
+    if (obj.roadsideBreakdown) return true;
+
+    const civilianCar = this.pickRandomCivilianCar();
+    if (!civilianCar) return false;
+
+    runInAction(() => {
+      obj.roadsideBreakdown = {
+        carData: this.createParkingCarStore(civilianCar),
+        selected: false,
+        helped: false,
+      };
+    });
+    return true;
+  }
+
+  selectRoadsideBreakdownTarget(breakdownObj) {
+    if (
+      this.isPoliceQuestActive ||
+      this.isPedestrianCrossingQuestActive ||
+      this.isQuestArrestActive ||
+      this.isEvacuationInProgress() ||
+      this.hasPendingEvacuationTarget()
+    ) {
+      return;
+    }
+
+    const rb = breakdownObj?.roadsideBreakdown;
+    if (!rb || rb.selected || rb.helped) {
+      return;
+    }
+
+    const targetScreenX = breakdownObj.worldX - this.offsetX;
+    const stopPositionX = computeEvacuatorStopX(targetScreenX);
+
+    this.carStore?.releaseGas?.();
+    if (this.carStore) {
+      runInAction(() => {
+        this.carStore.isGasPressed = false;
+        this.carStore.currentSpeed = 0;
+      });
+    }
+
+    runInAction(() => {
+      rb.selected = true;
+      this.pendingEvacuationTarget = {
+        kind: "roadside",
+        breakdownUid: breakdownObj.uid,
+        targetScreenX,
+        stopPositionX,
+      };
+    });
+  }
+
+  selectParkingViolationTarget(zoneObj, spotIndex) {
+    if (
+      this.isPoliceQuestActive ||
+      this.isPedestrianCrossingQuestActive ||
+      this.isQuestArrestActive ||
+      this.isEvacuationInProgress() ||
+      this.hasPendingEvacuationTarget()
     ) {
       return;
     }
@@ -1091,26 +1219,182 @@ class MapStore {
       spot.fining = true;
       pz.pendingSpotIndex = spotIndex;
       this.parkingFineTargetZone = zoneObj;
-      this.parkingEvacuation = {
-        phase: "spawn_delay",
+      this.pendingEvacuationTarget = {
+        kind: "parking",
         zoneUid: zoneObj.uid,
         spotIndex,
         targetScreenX,
         stopPositionX,
-        positionX: 0,
-        currentSpeed: 0,
-        wheelRotation: 0,
-        spawnDelayRemaining: randomEvacuatorSpawnDelaySec(),
-        loadDelayRemaining: 0,
-        loadedSettleRemaining: 0,
-        carOnPlatform: false,
+      };
+    });
+  }
+
+  confirmParkingEvacuationViaRadio() {
+    const target = this.pendingEvacuationTarget;
+    if (
+      !target ||
+      (target.kind !== "parking" && target.kind !== "roadside") ||
+      this.isEvacuationInProgress()
+    ) {
+      return;
+    }
+
+    ratioStore.showMessage(EVACUATION_RATIO_MESSAGE, {
+      playSound: false,
+      onComplete: () => {
+        runInAction(() => {
+          if (target.kind === "parking") {
+            this.parkingEvacuation = {
+              phase: "spawn_delay",
+              sourceKind: "parking",
+              targetUid: target.zoneUid,
+              zoneUid: target.zoneUid,
+              spotIndex: target.spotIndex,
+              targetScreenX: target.targetScreenX,
+              stopPositionX: target.stopPositionX,
+              positionX: 0,
+              currentSpeed: 0,
+              wheelRotation: 0,
+              spawnDelayRemaining: randomEvacuatorSpawnDelaySec(),
+              loadDelayRemaining: 0,
+              loadedSettleRemaining: 0,
+              carOnPlatform: false,
+            };
+          } else {
+            this.parkingEvacuation = {
+              phase: "spawn_delay",
+              sourceKind: "roadside",
+              targetUid: target.breakdownUid,
+              zoneUid: null,
+              spotIndex: null,
+              targetScreenX: target.targetScreenX,
+              stopPositionX: target.stopPositionX,
+              positionX: 0,
+              currentSpeed: 0,
+              wheelRotation: 0,
+              spawnDelayRemaining: randomEvacuatorSpawnDelaySec(),
+              loadDelayRemaining: 0,
+              loadedSettleRemaining: 0,
+              carOnPlatform: false,
+            };
+          }
+          this.pendingEvacuationTarget = null;
+        });
+      },
+    });
+  }
+
+  handleRatioPress() {
+    if (ratioStore.isFlowActive || this.gameMode === "chase") {
+      return;
+    }
+
+    if (this.hasPendingEvacuationTarget()) {
+      this.confirmParkingEvacuationViaRadio();
+      return;
+    }
+
+    if (
+      this.isPoliceQuestActive ||
+      this.isPedestrianCrossingQuestActive ||
+      this.isQuestArrestActive ||
+      this.isEvacuationInProgress()
+    ) {
+      return;
+    }
+
+    if (this.orientationQuest.active) {
+      ratioStore.showMessage(DISPATCH_ORIENTATION_ALREADY_MESSAGE, {
+        playSound: false,
+      });
+      return;
+    }
+
+    const message =
+      DISPATCH_REQUEST_MESSAGES[
+        Math.floor(Math.random() * DISPATCH_REQUEST_MESSAGES.length)
+      ];
+    ratioStore.showMessage(message, {
+      playSound: false,
+      onComplete: () => {
+        this.handleDispatchResponse();
+      },
+    });
+  }
+
+  handleDispatchResponse() {
+    if (Math.random() < DISPATCH_ORIENTATION_CONFLICT_CHANCE) {
+      ratioStore.showDispatchResult(DISPATCH_CONFLICT_MESSAGE, {
+        playSound: false,
+        onComplete: () => {
+          this.spawnOrientationTarget();
+        },
+      });
+      return;
+    }
+
+    ratioStore.showDispatchResult(DISPATCH_QUIET_MESSAGE, {
+      playSound: false,
+    });
+  }
+
+  spawnOrientationTarget() {
+    const aggrTypes = ["human_aggr1", "human_aggr2", "human_aggr3"];
+    const typeId =
+      aggrTypes[Math.floor(Math.random() * aggrTypes.length)];
+    const config = objectConfigByType[typeId];
+    if (!config) return;
+
+    const distancePx =
+      ORIENTATION_MIN_WORLD_PX +
+      Math.random() * (ORIENTATION_MAX_WORLD_PX - ORIENTATION_MIN_WORLD_PX);
+    const worldX = this.offsetX + distancePx;
+    const uid = `orientation_${typeId}_${Date.now()}_${Math.random()}`;
+
+    runInAction(() => {
+      this.activeObjects.push({
+        uid,
+        typeId,
+        worldX,
+        appeared: false,
+        orientationSpawn: true,
+      });
+      this.orientationQuest = {
+        active: true,
+        targetUid: uid,
+        targetWorldX: worldX,
+      };
+      this.lastObjectEndMeter = Math.max(
+        this.lastObjectEndMeter,
+        worldX + config.width,
+      );
+    });
+  }
+
+  finishOrientationQuest() {
+    runInAction(() => {
+      this.orientationQuest = {
+        active: false,
+        targetUid: null,
+        targetWorldX: 0,
       };
     });
   }
 
   getParkingEvacuationLoadedCar() {
     const ev = this.parkingEvacuation;
-    if (!ev.carOnPlatform || ev.zoneUid == null || ev.spotIndex == null) {
+    if (!ev.carOnPlatform) {
+      return null;
+    }
+
+    if (ev.sourceKind === "roadside" && ev.targetUid != null) {
+      const breakdownObj = this.activeObjects.find(
+        (obj) => obj.uid === ev.targetUid,
+      );
+      return breakdownObj?.roadsideBreakdown?.carData ?? null;
+    }
+
+    if (ev.zoneUid == null || ev.spotIndex == null) {
       return null;
     }
     const zoneObj = this.activeObjects.find((obj) => obj.uid === ev.zoneUid);
@@ -1190,30 +1474,42 @@ class MapStore {
   finalizeParkingEvacuation() {
     runInAction(() => {
       const ev = this.parkingEvacuation;
-      const zoneObj =
-        this.parkingFineTargetZone ??
-        this.activeObjects.find((obj) => obj.uid === ev.zoneUid);
-      const spotIndex = ev.spotIndex;
-      const pz = zoneObj?.parkingZone;
 
-      if (pz != null && spotIndex != null) {
-        const spot = pz.spots[spotIndex];
-        if (spot) {
-          pz.spots[spotIndex] = {
-            ...spot,
-            fining: false,
-            fined: true,
-            carData: null,
-          };
+      if (ev.sourceKind === "roadside" && ev.targetUid != null) {
+        const breakdownObj = this.activeObjects.find(
+          (obj) => obj.uid === ev.targetUid,
+        );
+        if (breakdownObj?.roadsideBreakdown) {
+          breakdownObj.roadsideBreakdown.helped = true;
+          breakdownObj.roadsideBreakdown.selected = false;
         }
-        pz.pendingSpotIndex = null;
+        this.removeObjectByUid(ev.targetUid);
+        this.carStore?.addHelp?.("roadsideHelp");
+      } else {
+        const zoneObj =
+          this.parkingFineTargetZone ??
+          this.activeObjects.find((obj) => obj.uid === ev.zoneUid);
+        const spotIndex = ev.spotIndex;
+        const pz = zoneObj?.parkingZone;
+
+        if (pz != null && spotIndex != null) {
+          const spot = pz.spots[spotIndex];
+          if (spot) {
+            pz.spots[spotIndex] = {
+              ...spot,
+              fining: false,
+              fined: true,
+              carData: null,
+            };
+          }
+          pz.pendingSpotIndex = null;
+        }
+
+        this.carStore?.addHelp?.("parkingFine");
+        this.parkingFineTargetZone = null;
       }
 
-      if (this.carStore) {
-        this.carStore.addHelp("parkingFine");
-      }
-
-      this.parkingFineTargetZone = null;
+      this.pendingEvacuationTarget = null;
       this.parkingEvacuation = createIdleParkingEvacuation();
     });
   }
@@ -1225,6 +1521,7 @@ class MapStore {
   finishParkingFineQuest() {
     runInAction(() => {
       this.parkingFineTargetZone = null;
+      this.pendingEvacuationTarget = null;
       if (this.parkingEvacuation.phase !== "idle") {
         this.parkingEvacuation = createIdleParkingEvacuation();
       }
@@ -1237,9 +1534,29 @@ class MapStore {
     });
   }
 
+  clearRoadsideBreakdownState(breakdownObj) {
+    if (
+      this.pendingEvacuationTarget?.kind === "roadside" &&
+      this.pendingEvacuationTarget.breakdownUid === breakdownObj?.uid
+    ) {
+      this.pendingEvacuationTarget = null;
+    }
+    if (
+      this.parkingEvacuation.sourceKind === "roadside" &&
+      this.parkingEvacuation.targetUid === breakdownObj?.uid
+    ) {
+      this.parkingEvacuation = createIdleParkingEvacuation();
+    }
+    const rb = breakdownObj?.roadsideBreakdown;
+    if (rb) {
+      rb.selected = false;
+    }
+  }
+
   clearParkingFineState(zoneObj) {
     if (this.parkingFineTargetZone?.uid === zoneObj?.uid) {
       this.parkingFineTargetZone = null;
+      this.pendingEvacuationTarget = null;
     }
     if (this.parkingEvacuation.zoneUid === zoneObj?.uid) {
       this.parkingEvacuation = createIdleParkingEvacuation();

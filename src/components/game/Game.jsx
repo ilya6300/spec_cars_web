@@ -7,6 +7,7 @@ import { Controllers } from "../controllers/Controllers";
 import { PoliceQuestModal } from "./PoliceQuestModal";
 import { PedestrianCrossingLayer } from "./PedestrianCrossingLayer";
 import { ParkingZoneLayer } from "./ParkingZoneLayer";
+import { RoadsideBreakdownLayer } from "./RoadsideBreakdownLayer";
 import { Evacuator } from "../car/Evacuator";
 import Cars from "../../state/cars";
 import { QuestFinishOverlay } from "./QuestFinishOverlay";
@@ -25,12 +26,14 @@ import { QuestCtaButton } from "../ui/QuestCtaButton";
 import { StarFlyOverlay } from "./StarFlyOverlay";
 import Ratio from "../car/Ratio";
 import { CollectibleStarLayer } from "./CollectibleStarLayer";
+import { OrientationDistanceHud } from "./OrientationDistanceHud";
 import { useGameLoop } from "../../hooks/useGameLoop";
 import { createGameStores } from "../../state/gameBootstrap";
 import { TutorialStore } from "../../state/tutorialStore";
 import { registerFuelSaveOnUnload } from "../../state/persistence";
 import modeStore from "../../state/modeStore";
 import atmosphereStore from "../../state/atmosphereStore";
+import ratioStore from "../../state/ratioStore";
 import recordsStore from "../../state/recordsStore";
 import starsStore from "../../state/starsStore";
 import stateApp from "../../state/state_app";
@@ -141,6 +144,7 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
       unregisterFuelSave();
       stores.carStore.dispose();
       stores.mapStore.dispose();
+      ratioStore.dispose();
     };
   }, []);
   useEffect(() => {
@@ -228,12 +232,20 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
           onDismiss={handleFreeModeRatioDismiss}
         />
       )}
-      {activeMapStore.parkingEvacuation.phase === "spawn_delay" && (
-        <Ratio message="Диспетчер, нужен эвакуатор" playSound={false} />
+      {ratioStore.message && (
+        <Ratio
+          key={ratioStore.sessionId}
+          message={ratioStore.message}
+          onDismiss={() => ratioStore.onRatioDismiss()}
+          playSound={ratioStore.playSoundOnShow}
+        />
       )}
       {gameMode === "free" && <StarFlyOverlay mapStore={activeMapStore} />}
       <ModeTimer carStore={activeCarStore} />
       <ModeChaseProgress carStore={activeCarStore} />
+      {(gameMode === "free" || gameMode === "timed") && (
+        <OrientationDistanceHud mapStore={activeMapStore} />
+      )}
       <Maps
         map={activeMapStore}
         carStore={activeCarStore}
@@ -255,12 +267,16 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
       <RainLayer />
       <Controllers
         activeCarStore={activeCarStore}
+        mapStore={activeMapStore}
+        ratioStore={ratioStore}
+        tutorialStore={gameMode === "free" ? tutorialStore : null}
+        gameMode={gameMode}
         controlsBlocked={
           isRefuelModalOpen ||
           modeStore.isComplete ||
           activeMapStore.isPoliceQuestActive ||
           activeMapStore.isQuestArrestActive ||
-          activeMapStore.isParkingFineActive()
+          activeMapStore.isEvacuationInProgress()
         }
         onEmptyGasPress={handleEmptyGasPress}
       />
@@ -294,7 +310,17 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
       )}
 
       {(gameMode === "free" || gameMode === "timed") && (
-        <ParkingZoneLayer mapStore={activeMapStore} />
+        <ParkingZoneLayer
+          mapStore={activeMapStore}
+          tutorialStore={gameMode === "free" ? tutorialStore : null}
+        />
+      )}
+
+      {(gameMode === "free" || gameMode === "timed") && (
+        <RoadsideBreakdownLayer
+          mapStore={activeMapStore}
+          tutorialStore={gameMode === "free" ? tutorialStore : null}
+        />
       )}
 
       {evacuatorVisible && (

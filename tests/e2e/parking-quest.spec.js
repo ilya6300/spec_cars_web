@@ -41,6 +41,12 @@ test.describe("Parking Quest E2E", () => {
 
     await page.click('[data-type="parking-violation-car"]', { force: true });
 
+    await page.waitForSelector('.ratio-img-controller[data-type="ratio"]', {
+      timeout: 5000,
+    });
+
+    await page.click('.ratio-img-controller[data-type="ratio"]', { force: true });
+
     await page.waitForSelector('[data-type="evacuator"]', {
       timeout: 8000,
     });

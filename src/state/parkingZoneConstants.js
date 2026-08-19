@@ -1,4 +1,5 @@
 import unitParkingImg from "../assets/objects/police_quest/unit_parking.png";
+import { RATIO_DISPLAY_SEC } from "./ratioConstants";
 
 export const PARKING_ZONE_TYPE = "parking_zone";
 
@@ -34,7 +35,6 @@ export const PARKING_ILLEGAL_CLASS_BY_VIOLATION = {
   [PARKING_ILLEGAL_VIOLATION_CROOKED]: "parking-zone-car--illegal-crooked",
 };
 
-export const RATIO_DISPLAY_SEC = 3;
 export const PARKING_SPAWN_DELAY_MIN_MS = RATIO_DISPLAY_SEC * 1000;
 export const PARKING_SPAWN_DELAY_MAX_MS = RATIO_DISPLAY_SEC * 1000;
 export const PARKING_LOAD_DELAY_SEC = 1;
@@ -108,6 +108,8 @@ export function computeEvacuatorStopX(carCenterScreenX) {
 export function createIdleParkingEvacuation() {
   return {
     phase: "idle",
+    sourceKind: null,
+    targetUid: null,
     zoneUid: null,
     spotIndex: null,
     targetScreenX: 0,

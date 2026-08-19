@@ -6,6 +6,7 @@ import gasPedal from "../../assets/objects/gas_pedal.png";
 import keyActiveImg from "../../assets/objects/key_active.png";
 import keyDeactiveImg from "../../assets/objects/key_deactive.png";
 import sirenaBtn from "../../assets/objects/sirena_btn.png";
+import { ratio } from "../../state/cars";
 
 function activateControl(action) {
   return (event) => {
@@ -15,7 +16,15 @@ function activateControl(action) {
 }
 
 export const Controllers = observer(
-  ({ activeCarStore, controlsBlocked = false, onEmptyGasPress }) => {
+  ({
+    activeCarStore,
+    mapStore,
+    ratioStore,
+    tutorialStore = null,
+    gameMode = "free",
+    controlsBlocked = false,
+    onEmptyGasPress,
+  }) => {
   const [ignitionFlash, setIgnitionFlash] = useState(null);
   const prevIgnitionRef = useRef(activeCarStore.isIgnitionOn);
 
@@ -146,6 +155,23 @@ export const Controllers = observer(
     handleReleaseGas();
   };
 
+  const handleRatioPress = () => {
+    if (ratioStore?.isFlowActive) return;
+    tutorialStore?.onRatioClicked?.();
+    mapStore?.handleRatioPress();
+  };
+
+  const showRatioController = gameMode === "free" || gameMode === "timed";
+  const ratioClassName = [
+    "ratio-img-controller",
+    mapStore?.hasPendingEvacuationTarget()
+      ? "ratio-img-controller--has-target"
+      : null,
+    ratioStore?.isFlowActive ? "ratio-img-controller--disabled" : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <div className="controllers_container">
       <img
@@ -172,17 +198,30 @@ export const Controllers = observer(
         onPointerUp={handleGasPointerUp}
         onPointerCancel={handleGasPointerUp}
       />
-      <img
-        className={
-          activeCarStore.sirena ? "ignition-sirena-on" : "ignition-sirena"
-        }
-        data-type="siren"
-        alt="Сирена"
-        src={sirenaBtn}
-        onClick={() => activeCarStore.toggleSirena()}
-        onTouchEnd={activateControl(() => activeCarStore.toggleSirena())}
-        onContextMenu={(e) => e.preventDefault()}
-      />
+      <div className="device_container">
+        <img
+          className={
+            activeCarStore.sirena ? "ignition-sirena-on" : "ignition-sirena"
+          }
+          data-type="siren"
+          alt="Сирена"
+          src={sirenaBtn}
+          onClick={() => activeCarStore.toggleSirena()}
+          onTouchEnd={activateControl(() => activeCarStore.toggleSirena())}
+          onContextMenu={(e) => e.preventDefault()}
+        />
+        {showRatioController && (
+          <img
+            className={ratioClassName}
+            data-type="ratio"
+            alt="Рация"
+            src={ratio}
+            onClick={handleRatioPress}
+            onTouchEnd={activateControl(handleRatioPress)}
+            onContextMenu={(e) => e.preventDefault()}
+          />
+        )}
+      </div>
     </div>
   );
 },

@@ -159,7 +159,7 @@ activeCarStore.mapStore = activeMapStore; // двусторонняя связь
 {
   type: "building" | "gas_station" | "traffic_light" | "tree1" | "human1" | "human_aggr1" | …
   width, height, zIndex
-  minDistance, maxDistance   // интервал спавна в «метрах» offsetX
+  minDistance, maxDistance   // интервал спавна в world px (÷20 = игровые м; см. GAME_UNITS.md)
   onClick, onLongPress, onAppear  // колбэки
 }
 ```
@@ -574,6 +574,7 @@ flowchart TB
 | `.cursor/planner/SPEC.md` | Спецификация текущей задачи |
 | `.cursor/planner/SOURCES.md` | Реестр источников |
 | `.cursor/planner/PROJECT_DOCS.md` | История завершённых задач |
+| `.cursor/planner/GAME_UNITS.md` | world px ↔ игровые метры (`distanceMetersFactor`) |
 | `.cursor/rules/workflow.mdc` | Жизненный цикл агентов |
 | `.cursor/rules/safe-changes.mdc` | Минимальный diff |
 | `.cursor/agents/orchestrator.md` | Роль Orchestrator |
@@ -584,7 +585,8 @@ flowchart TB
 
 | Термин | Значение |
 |---|---|
-| `offsetX` / `distance` | Смещение мира вправо (сколько «проехали» в px) |
+| `offsetX` / `distance` | Смещение мира вправо (сколько «проехали» в **world px**) |
+| `distanceMetersFactor` | Делитель world px → игровые метры (20); см. `GAME_UNITS.md` |
 | `worldX` | Абсолютная позиция объекта на дороге |
 | `screenX` | Позиция объекта на экране |
 | `enemy` | AI-машина, которую можно блокировать |

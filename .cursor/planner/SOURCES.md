@@ -7,6 +7,7 @@
 | Документ | Путь | Когда использовать |
 |---|---|---|
 | **Принципы работы проекта** | `.cursor/planner/PROJECT_PRINCIPLES.md` | Архитектура, MobX, game loop, квесты, слои — **читать перед любой задачей** |
+| **Единицы расстояния** | `.cursor/planner/GAME_UNITS.md` | world px ÷ 20 = игровые метры; PLAN/SPEC/диалог — только метры/км |
 | Точка входа | `src/main.jsx` | Bootstrap, подключение CSS |
 | Корневой компонент | `src/App.jsx` | Fullscreen viewport |
 | Игровой цикл | `src/components/game/Game.jsx` | rAF, связка сторов, рендер слоёв |

@@ -10,12 +10,18 @@ const STEP_SELECTORS = {
   "gear-4": '[data-type="gear-4"]',
   "gas-station": '[data-type="gas_station"]',
   "pedestrian-human": '[data-type="quest-crossing-human"]',
+  "parking-violation": '[data-type="parking-violation-car"]',
+  "ratio-after-parking": '[data-type="ratio"]',
+  "roadside-breakdown": '[data-type="roadside-breakdown-car"]',
+  "ratio-after-breakdown": '[data-type="ratio"]',
 };
 
 const WORLD_STEPS = new Set([
   "gas-station",
   "roadside-bandit",
   "pedestrian-human",
+  "parking-violation",
+  "roadside-breakdown",
 ]);
 
 function getFingerPosition(selector) {

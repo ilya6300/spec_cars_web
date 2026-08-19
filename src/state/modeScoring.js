@@ -14,6 +14,7 @@ export const HELP_POINTS_BY_MODE = {
     criminalArrest: 3,
     pedestrianFine: 1,
     parkingFine: 4,
+    roadsideHelp: 2,
     enemyChase: 4,
     orientationMatch: 1,
   },
@@ -21,6 +22,7 @@ export const HELP_POINTS_BY_MODE = {
     criminalArrest: 3,
     pedestrianFine: 2,
     parkingFine: 4,
+    roadsideHelp: 2,
     enemyChase: 4,
     orientationMatch: 0,
   },
@@ -28,6 +30,7 @@ export const HELP_POINTS_BY_MODE = {
     criminalArrest: 0,
     pedestrianFine: 0,
     parkingFine: 0,
+    roadsideHelp: 0,
     enemyChase: 4,
     orientationMatch: 0,
   },
@@ -43,6 +46,7 @@ export function calculateSessionScore(helpCounts, gameMode) {
     helpCounts.criminalArrest * points.criminalArrest +
     helpCounts.pedestrianFine * points.pedestrianFine +
     (helpCounts.parkingFine ?? 0) * (points.parkingFine ?? 0) +
+    (helpCounts.roadsideHelp ?? 0) * (points.roadsideHelp ?? 0) +
     helpCounts.enemyChase * points.enemyChase +
     helpCounts.orientationMatch * points.orientationMatch
   );

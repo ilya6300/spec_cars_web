@@ -11,9 +11,10 @@
 ## Обязательные источники
 
 1. **`.cursor/planner/PROJECT_PRINCIPLES.md`**
-2. **`.cursor/planner/SPEC.md`** и активная задача в **`.cursor/planner/TASKS.md`**
-3. **Diff изменений** и **исходные файлы** (прочитать затронутые участки)
-4. Отчёт Developer о прочитанных файлах и grep (если есть)
+2. **`.cursor/planner/GAME_UNITS.md`** — при проверке дистанций в SPEC
+3. **`.cursor/planner/SPEC.md`** и активная задача в **`.cursor/planner/TASKS.md`**
+4. **Diff изменений** и **исходные файлы** (прочитать затронутые участки)
+5. Отчёт Developer о прочитанных файлах и grep (если есть)
 
 Правила: `evidence-based-work.mdc`, `game-review.mdc`, `safe-changes.mdc`.
 

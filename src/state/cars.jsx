@@ -1,5 +1,6 @@
 import policeBody from "../assets/cars/police/body.png";
 import shell_1 from "../assets/cars/police/shell_1.png";
+// import shell_1 from "../assets/cars/whell/whell_new_10.png";
 import redBody from "../assets/cars/\other/sport_red_body.png";
 import redWhell from "../assets/cars/\other/sport_red_wheel.png";
 import blackBody from "../assets/cars/\other/sport_black_body.png";
@@ -9,6 +10,13 @@ import car2 from "../assets/cars/\other/car2_body.png";
 import car3 from "../assets/cars/\other/car3_body.png";
 import evacuatorBody from "../assets/cars/other/evacuator_v1.png";
 import evacuatorWhell from "../assets/cars/other/evacuator_wheel.png";
+import ratio from "../assets/objects/two_way_radio.png";
+// 11,10, 8, 3 , 2
+// import whellNew1 from "../assets/cars/whell/whell_new_1.png";
+// import policeBody from "../assets/cars/police/body_jiguli.png";
+
+// Экспорт ассетов
+export { ratio };
 
 const Cars = {
   speedMultiplierUI: 0.156,

@@ -7,6 +7,8 @@ alwaysApply: true
 
 **Источник правды по архитектуре:** `.cursor/planner/PROJECT_PRINCIPLES.md` — читать перед любой задачей.
 
+**Единицы расстояния:** `.cursor/planner/GAME_UNITS.md` + `game-units.mdc` — **все агенты**; world px ÷ 20 = игровые метры; в диалоге и PLAN/SPEC — только метры/км.
+
 **Запрет догадок:** `evidence-based-work.mdc` — анализ и gate до любого изменения кода.
 
 ## Разделение ролей (строго)

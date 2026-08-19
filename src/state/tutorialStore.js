@@ -3,6 +3,9 @@ import {
   isQuestCrossingEngaged,
   QUEST_CROSSING_WIDTH_DESKTOP,
 } from "./questCrossingConstants";
+import { isParkingZoneType } from "./parkingZoneConstants";
+import { isRoadsideBreakdownType } from "./roadsideBreakdownConstants";
+import { TUTORIAL_SIREN_TIMEOUT_SEC } from "./event.config";
 
 const IDLE_THRESHOLD_SEC = 5;
 const SPEED_IDLE_EPS = 1;
@@ -11,6 +14,14 @@ const MIN_DRIVE_OFFSET_TO_SKIP_BLOCK_A = 300;
 const BANDIT_TYPES = ["human_aggr1", "human_aggr2", "human_aggr3"];
 const BLOCK_A_STEPS = new Set(["ignition", "gear-2", "gas-pedal"]);
 const BLOCK_B_STEPS = new Set(["siren", "gear-4"]);
+const PARKING_TUTORIAL_STEPS = new Set([
+  "parking-violation",
+  "ratio-after-parking",
+]);
+const ROADSIDE_TUTORIAL_STEPS = new Set([
+  "roadside-breakdown",
+  "ratio-after-breakdown",
+]);
 /** Зона подъезда к human_aggr: рядом с машиной игрока (~30px слева) */
 const BANDIT_ENGAGE_MIN_SCREEN_X = 100;
 const BANDIT_ENGAGE_MAX_SCREEN_X = 360;
@@ -54,6 +65,34 @@ function findVisibleBandit(mapStore, viewportWidth) {
   return findFirstVisibleObject(mapStore, viewportWidth, BANDIT_TYPES);
 }
 
+function findFirstVisibleParkingViolation(mapStore, viewportWidth) {
+  for (const obj of mapStore.activeObjects) {
+    if (!isParkingZoneType(obj.typeId) || !obj.parkingZone) continue;
+    const screenX = getObjectScreenX(mapStore, obj);
+    if (screenX < 0 || screenX > viewportWidth) continue;
+    const hasIllegal = obj.parkingZone.spots.some(
+      (spot) =>
+        spot.status === "illegal" && !spot.fined && !spot.fining,
+    );
+    if (hasIllegal) return obj;
+  }
+  return null;
+}
+
+function findFirstVisibleRoadsideBreakdown(mapStore, viewportWidth) {
+  for (const obj of mapStore.activeObjects) {
+    if (!isRoadsideBreakdownType(obj.typeId) || !obj.roadsideBreakdown) {
+      continue;
+    }
+    const screenX = getObjectScreenX(mapStore, obj);
+    if (screenX < 0 || screenX > viewportWidth) continue;
+    const rb = obj.roadsideBreakdown;
+    if (rb.helped || rb.selected) continue;
+    return obj;
+  }
+  return null;
+}
+
 export class TutorialStore {
   currentStep = null;
   idleSeconds = 0;
@@ -63,6 +102,9 @@ export class TutorialStore {
   refuelBlockDone = false;
   banditBlockDone = false;
   pedestrianBlockDone = false;
+  parkingBlockDone = false;
+  roadsideBlockDone = false;
+  sirenStepSeconds = 0;
   banditTargetTypeId = null;
   banditEngageReleased = false;
   pedestrianEngageReleased = false;
@@ -107,7 +149,9 @@ export class TutorialStore {
       this.enemyBlockDone &&
       this.refuelBlockDone &&
       this.banditBlockDone &&
-      this.pedestrianBlockDone
+      this.pedestrianBlockDone &&
+      this.parkingBlockDone &&
+      this.roadsideBlockDone
     );
   }
 
@@ -163,6 +207,7 @@ export class TutorialStore {
     if (!questBlocksIdle) {
       this.trackEnemy(mapStore);
       this.advanceBlockB(carStore);
+      this.tickSirenTimeout(deltaTime, carStore);
     }
 
     // Бандит — приоритетный контекстный шаг; не блокируется Block B и модалкой квеста
@@ -172,6 +217,8 @@ export class TutorialStore {
 
     if (this.canShowContextualSteps) {
       this.trackRefuel(mapStore, viewportWidth);
+      this.trackParkingFine(carStore, mapStore, viewportWidth);
+      this.trackRoadsideBreakdown(carStore, mapStore, viewportWidth);
       this.trackPedestrian(carStore, mapStore, viewportWidth);
     } else if (this.blockADone) {
       this.trackPedestrianAutoStopOnly(carStore, mapStore, viewportWidth);
@@ -207,6 +254,7 @@ export class TutorialStore {
       this.idleSeconds = 0;
       if (BLOCK_A_STEPS.has(this.currentStep)) {
         if (this.enemyQueued && !this.enemyBlockDone) {
+          this.sirenStepSeconds = 0;
           this.currentStep = "siren";
         } else {
           this.currentStep = null;
@@ -235,6 +283,7 @@ export class TutorialStore {
       runInAction(() => {
         this.blockADone = true;
         if (this.enemyQueued && !this.enemyBlockDone) {
+          this.sirenStepSeconds = 0;
           this.currentStep = "siren";
         } else if (!this.enemyQueued) {
           this.currentStep = null;
@@ -256,7 +305,10 @@ export class TutorialStore {
         (this.blockADone || this.currentStep === null) &&
         this.currentStep !== "roadside-bandit"
       ) {
-        this.currentStep = "siren";
+        runInAction(() => {
+          this.sirenStepSeconds = 0;
+          this.currentStep = "siren";
+        });
       }
     });
   }
@@ -266,6 +318,7 @@ export class TutorialStore {
 
     if (this.currentStep === "siren" && carStore.sirena) {
       runInAction(() => {
+        this.sirenStepSeconds = 0;
         this.currentStep = "gear-4";
       });
     }
@@ -273,12 +326,41 @@ export class TutorialStore {
       runInAction(() => {
         this.enemyBlockDone = true;
         this.currentStep = null;
+        this.sirenStepSeconds = 0;
       });
     }
   }
 
+  tickSirenTimeout(deltaTime, carStore) {
+    if (this.enemyBlockDone || this.currentStep !== "siren" || carStore.sirena) {
+      return;
+    }
+
+    runInAction(() => {
+      this.sirenStepSeconds += deltaTime;
+      if (this.sirenStepSeconds >= TUTORIAL_SIREN_TIMEOUT_SEC) {
+        this.skipSirenBlockB();
+      }
+    });
+  }
+
+  skipSirenBlockB() {
+    runInAction(() => {
+      this.enemyBlockDone = true;
+      this.currentStep = null;
+      this.sirenStepSeconds = 0;
+    });
+  }
+
   trackRefuel(mapStore, viewportWidth) {
-    if (this.refuelBlockDone || this.currentStep === "roadside-bandit") return;
+    if (
+      this.refuelBlockDone ||
+      this.currentStep === "roadside-bandit" ||
+      PARKING_TUTORIAL_STEPS.has(this.currentStep) ||
+      ROADSIDE_TUTORIAL_STEPS.has(this.currentStep)
+    ) {
+      return;
+    }
 
     const gasStation = findFirstVisibleObject(
       mapStore,
@@ -298,6 +380,75 @@ export class TutorialStore {
         if (this.currentStep === "gas-station") {
           this.currentStep = null;
         }
+      });
+    }
+  }
+
+  trackParkingFine(carStore, mapStore, viewportWidth) {
+    if (this.parkingBlockDone) return;
+    if (!this.canShowContextualSteps) return;
+    if (this.currentStep === "roadside-bandit") return;
+    if (PARKING_TUTORIAL_STEPS.has(this.currentStep)) return;
+    if (ROADSIDE_TUTORIAL_STEPS.has(this.currentStep)) return;
+
+    const violation = findFirstVisibleParkingViolation(mapStore, viewportWidth);
+    if (!violation) return;
+
+    carStore.releaseGas();
+    runInAction(() => {
+      this.currentStep = "parking-violation";
+    });
+  }
+
+  trackRoadsideBreakdown(carStore, mapStore, viewportWidth) {
+    if (this.roadsideBlockDone) return;
+    if (!this.canShowContextualSteps) return;
+    if (this.currentStep === "roadside-bandit") return;
+    if (PARKING_TUTORIAL_STEPS.has(this.currentStep)) return;
+    if (ROADSIDE_TUTORIAL_STEPS.has(this.currentStep)) return;
+
+    if (
+      !this.parkingBlockDone &&
+      findFirstVisibleParkingViolation(mapStore, viewportWidth)
+    ) {
+      return;
+    }
+
+    const breakdown = findFirstVisibleRoadsideBreakdown(mapStore, viewportWidth);
+    if (!breakdown) return;
+
+    carStore.releaseGas();
+    runInAction(() => {
+      this.currentStep = "roadside-breakdown";
+    });
+  }
+
+  onParkingViolationClicked() {
+    if (this.currentStep !== "parking-violation") return;
+    runInAction(() => {
+      this.currentStep = "ratio-after-parking";
+    });
+  }
+
+  onRoadsideBreakdownClicked() {
+    if (this.currentStep !== "roadside-breakdown") return;
+    runInAction(() => {
+      this.currentStep = "ratio-after-breakdown";
+    });
+  }
+
+  onRatioClicked() {
+    if (this.currentStep === "ratio-after-parking") {
+      runInAction(() => {
+        this.parkingBlockDone = true;
+        this.currentStep = null;
+      });
+      return;
+    }
+    if (this.currentStep === "ratio-after-breakdown") {
+      runInAction(() => {
+        this.roadsideBlockDone = true;
+        this.currentStep = null;
       });
     }
   }
@@ -389,6 +540,8 @@ export class TutorialStore {
 
   trackPedestrian(carStore, mapStore, viewportWidth = 1024) {
     if (this.pedestrianBlockDone) return;
+    if (PARKING_TUTORIAL_STEPS.has(this.currentStep)) return;
+    if (ROADSIDE_TUTORIAL_STEPS.has(this.currentStep)) return;
 
     const qc = this.getViolatorCrossingState(mapStore);
     if (!qc) return;
@@ -424,6 +577,9 @@ export class TutorialStore {
       this.refuelBlockDone = false;
       this.banditBlockDone = false;
       this.pedestrianBlockDone = false;
+      this.parkingBlockDone = false;
+      this.roadsideBlockDone = false;
+      this.sirenStepSeconds = 0;
       this.banditTargetTypeId = null;
       this.banditEngageReleased = false;
       this.pedestrianEngageReleased = false;

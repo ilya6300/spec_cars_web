@@ -3,7 +3,11 @@ import carStartSound from "../assets/audio/effects/car_start.mp3";
 import theEngineIsRunning from "../assets/audio/effects/the_engine_is_running.wav";
 import sirenaPolice from "../assets/audio/effects/police_siren.wav";
 import stateApp from "./state_app";
-import { flushPendingFuelSave, loadFuel, scheduleFuelSave } from "./persistence";
+import {
+  flushPendingFuelSave,
+  loadFuel,
+  scheduleFuelSave,
+} from "./persistence";
 import {
   calculateSessionScore,
   calculateSessionStars,
@@ -24,7 +28,6 @@ class CarStore {
   name = "";
   urlBody = "";
   urlShell = "";
-  // ╨б╤Б╤Л╨╗╨║╨░ ╨╜╨░ MapStore (╤Г╤Б╤В╨░╨╜╨░╨▓╨╗╨╕╨▓╨░╨╡╤В╤Б╤П ╨▓ Game.jsx)
   mapStore = null;
 
   disposed = false;
@@ -38,6 +41,7 @@ class CarStore {
     criminalArrest: 0,
     pedestrianFine: 0,
     parkingFine: 0,
+    roadsideHelp: 0,
     enemyChase: 0,
     orientationMatch: 0,
   };
@@ -56,7 +60,6 @@ class CarStore {
   acceleration = 120;
   friction = 160;
 
-  // ╨Ш╨б╨Я╨а╨Р╨Т╨Ы╨Х╨Э╨Ю: ╨п╨▓╨╜╨╛ ╨╛╨▒╤К╤П╨▓╨╗╤П╨╡╨╝ ╤Б╨▓╨╛╨╣╤Б╤В╨▓╨╛, ╤З╤В╨╛╨▒╤Л MobX ╨▓╨╖╤П╨╗ ╨╡╨│╨╛ ╨╜╨░ ╨║╨╛╨╜╤В╤А╨╛╨╗╤М
   wheelRotation = 0;
 
   fuel = 65000;
@@ -65,28 +68,21 @@ class CarStore {
 
   isGasPressed = false;
 
-  // ╨Ч╨░╨╢╨╕╨│╨░╨╜╨╕╨╡ (╨╖╨░╨▓╨╡╨┤╤С╨╜ ╨┤╨▓╨╕╨│╨░╤В╨╡╨╗╤М ╨╕╨╗╨╕ ╨╜╨╡╤В)
   isIgnitionOn = false;
 
-  // ╨е╤А╨░╨╜╨╕╨╗╨╕╤Й╨░ ╨┤╨╗╤П ╨╛╨▒╤К╨╡╨║╤В╨╛╨▓ ╨░╤Г╨┤╨╕╨╛
   audioStart = null;
   audioEngine = null;
-  ignitionTimeoutId = null; // ╨Ф╨╗╤П ╨╛╤В╨╝╨╡╨╜╤Л ╤В╨░╨╣╨╝╨╡╤А╨░, ╨╡╤Б╨╗╨╕ ╨╖╨░╨╢╨╕╨│╨░╨╜╨╕╨╡ ╨▓╤Л╨║╨╗╤О╤З╨╕╨╗╨╕ ╨┤╨╛ ╤Б╤В╨░╤А╤В╨░ ╨╝╨╛╤В╨╛╤А╨░
-
-  // ╨Я╤А╨╛╨╣╨┤╨╡╨╜╨╜╨╛╨╡ ╤А╨░╤Б╤Б╤В╨╛╤П╨╜╨╕╨╡ ╨▓ ╨╝╨╡╤В╤А╨░╤Е
+  ignitionTimeoutId = null;
   distanceMeters = 0;
 
-  // ╨б╨╛╤Б╤В╨╛╤П╨╜╨╕╨╡ ╤Б╨▓╨╡╤В╨╛╤Д╨╛╤А╨░
   isTrafficLightOnScreen = false;
   trafficLightColor = null; // 'red' | 'green' | null
   trafficLightDistance = null; // screen px левого края traffic_light
   trafficLightGap = null; // зазор: traffic_light left − правый край машины
   trafficLightStopReleased = false;
 
-  // ╨Я╨╡╤А╨╡╨┤╨░╤З╨░ (╨Ь╨Ъ╨Я╨Я)
   gear = "N"; // 'N' | '1' | '2' | '3' | '4'
 
-  // ╨б╨╕╤А╨╡╨╜╨░
   sirena = false;
   sirenaBuffer = null;
   sirenaSource = null;
@@ -194,7 +190,6 @@ class CarStore {
     this.disposed = false;
   }
 
-  // ╨д╤Г╨╜╨║╤Ж╨╕╤П-╨┐╨╛╨╝╨╛╤Й╨╜╨╕╨║ ╨┤╨╗╤П ╤Б╨║╨░╤З╨╕╨▓╨░╨╜╨╕╤П ╨░╤Г╨┤╨╕╨╛╤Д╨░╨╣╨╗╨░ ╨▓ Web Audio ╨▒╤Г╤Д╨╡╤А
   async loadSound(url) {
     if (!this.audioCtx) return null;
     try {
@@ -202,7 +197,7 @@ class CarStore {
       const arrayBuffer = await response.arrayBuffer();
       return await this.audioCtx.decodeAudioData(arrayBuffer);
     } catch (e) {
-      console.error("╨Ю╤И╨╕╨▒╨║╨░ ╨╖╨░╨│╤А╤Г╨╖╨║╨╕ ╨╖╨▓╤Г╨║╨░ ╨╕╨│╤А╤Л:", e);
+      console.error("Failed to load sound:", e);
       return null;
     }
   }
@@ -216,7 +211,6 @@ class CarStore {
     });
 
     if (turnOn) {
-      // ╨Ш╨╜╨╕╤Ж╨╕╨░╨╗╨╕╨╖╨░╤Ж╨╕╤П AudioContext ╨╡╤Б╨╗╨╕ ╨╜╨╡╤В
       if (!this.audioCtx) {
         this.audioCtx = new (
           window.AudioContext || window.webkitAudioContext
@@ -226,7 +220,6 @@ class CarStore {
         await this.audioCtx.resume();
       }
 
-      // ╨Ч╨░╨│╤А╤Г╨╖╨║╨░ ╨╖╨▓╤Г╨║╨░ ╨╡╤Б╨╗╨╕ ╨╜╨╡╤В ╨▒╤Г╤Д╨╡╤А╨░
       if (!this.sirenaBuffer) {
         this.sirenaBuffer = await this.loadSound(sirenaPolice);
       }
@@ -250,21 +243,17 @@ class CarStore {
       this.isIgnitionOn = !this.isIgnitionOn;
     });
 
-    // 1. ╨Ш╨╜╨╕╤Ж╨╕╨░╨╗╨╕╨╖╨╕╤А╤Г╨╡╨╝ ╨░╤Г╨┤╨╕╨╛╨║╨╛╨╜╤В╨╡╨║╤Б╤В ╨┐╤А╨╕ ╨┐╨╡╤А╨▓╨╛╨╝ ╨╖╨░╨┐╤Г╤Б╨║╨╡ (╤В╤А╨╡╨▒╨╛╨▓╨░╨╜╨╕╨╡ ╨▒╤А╨░╤Г╨╖╨╡╤А╨╛╨▓)
     if (!this.audioCtx) {
       this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      // ╨Я╤А╨╡╨┤╨╖╨░╨│╤А╤Г╨╢╨░╨╡╨╝ ╨╛╨▒╨░ ╤Д╨░╨╣╨╗╨░ ╨▓ ╨┐╨░╨╝╤П╤В╤М (╤Г╨║╨░╨╢╨╕╤В╨╡ ╨▓╨░╤И╨╕ ╨┐╨╡╤А╨╡╨╝╨╡╨╜╨╜╤Л╨╡ ╨╕╨╝╨┐╨╛╤А╤В╨░)
       this.startSound = await this.loadSound(carStartSound);
       this.engineBuffer = await this.loadSound(theEngineIsRunning);
     }
 
     if (this.isIgnitionOn) {
-      // ╨Т╨║╨╗╤О╤З╨░╨╡╨╝ ╨║╨╛╨╜╤В╨╡╨║╤Б╤В (╨╡╤Б╨╗╨╕ ╨╛╨╜ ╨╖╨░╤Б╨╜╤Г╨╗)
       if (this.audioCtx.state === "suspended") {
         await this.audioCtx.resume();
       }
 
-      // ---- ╨Ш╨У╨а╨Р╨Х╨Ь ╨Ч╨Т╨г╨Ъ ╨б╨в╨Р╨а╨в╨Х╨а╨Р ----
       if (this.startSound) {
         const startNode = this.audioCtx.createBufferSource();
         startNode.buffer = this.startSound;
@@ -272,22 +261,18 @@ class CarStore {
         startNode.start(0);
       }
 
-      // ---- ╨Я╨Ы╨Р╨Э╨Ш╨а╨г╨Х╨Ь ╨С╨Х╨б╨и╨Ю╨Т╨Э╨л╨Щ ╨Ь╨Ю╨в╨Ю╨а ╨з╨Х╨а╨Х╨Ч 1 ╨б╨Х╨Ъ╨г╨Э╨Ф╨г ----
       this.ignitionTimeoutId = setTimeout(() => {
         if (this.disposed || !this.isIgnitionOn || !this.engineBuffer) return;
 
         this.engineSource = this.audioCtx.createBufferSource();
         this.engineSource.buffer = this.engineBuffer;
 
-        // ╨Ь╨Х╨У╨Р-╨Ъ╨Ы╨о╨з╨Х╨Т╨Ю╨Щ ╨Ь╨Ю╨Ь╨Х╨Э╨в: ╨Р╨┐╨┐╨░╤А╨░╤В╨╜╨╛╨╡ ╨╖╨░╤Ж╨╕╨║╨╗╨╕╨▓╨░╨╜╨╕╨╡ Web Audio API ╨▒╨╡╨╖ ╨╝╨╕╨║╤А╨╛╨┐╨░╤Г╨╖
         this.engineSource.loop = true;
 
-        // ╨Я╨╛╨┤╨║╨╗╤О╤З╨░╨╡╨╝ ╨║ ╨┤╨╕╨╜╨░╨╝╨╕╨║╨░╨╝ ╨╕ ╨╖╨░╨┐╤Г╤Б╨║╨░╨╡╨╝
         this.engineSource.connect(this.audioCtx.destination);
         this.engineSource.start(0);
       }, 1000);
     } else {
-      // ---- ╨Т╨л╨Ъ╨Ы╨о╨з╨Х╨Э╨Ш╨Х ╨Ч╨Р╨Ц╨Ш╨У╨Р╨Э╨Ш╨п ----
       if (this.ignitionTimeoutId) {
         clearTimeout(this.ignitionTimeoutId);
         this.ignitionTimeoutId = null;
@@ -319,7 +304,6 @@ class CarStore {
     this.persistFuel();
   }
 
-  // ╨Я╤А╨╕╨╜╤Г╨┤╨╕╤В╨╡╨╗╤М╨╜╨░╤П ╨╛╤Б╤В╨░╨╜╨╛╨▓╨║╨░ (╤Б╨▒╤А╨╛╤Б ╤Б╨║╨╛╤А╨╛╤Б╤В╨╕, ╨┤╨▓╨╕╨│╨░╤В╨╡╨╗╤М ╨╜╨╡ ╨│╨╗╤Г╤И╨╕╨╝)
   forceStop() {
     runInAction(() => {
       if (!this.sirena) {
@@ -328,13 +312,11 @@ class CarStore {
     });
   }
 
-  // ╨Я╨╡╤А╨╡╨║╨╗╤О╤З╨╡╨╜╨╕╨╡ ╨┐╨╡╤А╨╡╨┤╨░╤З╨╕
   shiftGear(newGear) {
     runInAction(() => {
       const validGears = ["N", "1", "2", "3", "4"];
       if (!validGears.includes(newGear)) return;
 
-      // ╨С╨╡╨╖╨╛╨┐╨░╤Б╨╜╨╛╤Б╤В╤М: ╨▒╨╗╨╛╨║╨╕╤А╨╛╨▓╨║╨░ ╨┐╤А╨╕ ╨▓╤Л╤Б╨╛╨║╨╛╨╣ ╤Б╨║╨╛╤А╨╛╤Б╤В╨╕
       if (newGear === "N" && this.currentSpeed > 120) return;
       if (newGear === "1" && this.currentSpeed > 200) return;
 
@@ -342,19 +324,18 @@ class CarStore {
     });
   }
 
-  // ╨Я╨╡╤А╨╡╨┤╨░╤В╨╛╤З╨╜╨╛╨╡ ╨╛╤В╨╜╨╛╤И╨╡╨╜╨╕╨╡
   get gearRatio() {
     switch (this.gear) {
       case "N":
-        return 0; // ╨Э╨╡╨╣╤В╤А╨░╨╗╨║╨░ тАФ ╤Б╨║╨╛╤А╨╛╤Б╤В╤М 0
+        return 0;
       case "1":
-        return 4; // ╨Ф╨╡╨╗╨╕╨╝ ╨╜╨░ 4
+        return 4;
       case "2":
-        return 2; // ╨Ф╨╡╨╗╨╕╨╝ ╨╜╨░ 3
+        return 2;
       case "3":
-        return 1.333333; // ╨Ф╨╡╨╗╨╕╨╝ ╨╜╨░ 2
+        return 1.333333;
       case "4":
-        return 1; // ╨Я╤А╤П╨╝╨░╤П ╨┐╨╡╤А╨╡╨┤╨░╤З╨░
+        return 1;
       default:
         return 1;
     }
@@ -424,12 +405,10 @@ class CarStore {
     return this.isTrafficLightOnScreen && this.trafficLightColor === "red";
   }
 
-  // ╨Ю╨Ф╨Ш╨Э ╨Ь╨Х╨в╨Ю╨Ф ╨Ф╨Ы╨п ╨Т╨Э╨Х╨и╨Э╨Х╨У╨Ю ╨Ю╨С╨й╨Ш╨в╨л╨Т╨Р╨Э╨Ш╨п ╨д╨Ш╨Ч╨Ш╨Ъ╨Ш
   updatePhysics(deltaTime, options = {}) {
     const { suppressDrivingBlocks = false } = options;
 
     runInAction(() => {
-      // 1. ╨Ы╨╛╨│╨╕╨║╨░ ╤А╨░╤Б╤Е╨╛╨┤╨░ ╤В╨╛╨┐╨╗╨╕╨▓╨░
       if (this.isIgnitionOn && this.fuel > 0) {
         this.fuel -= this.fuelConsumption;
 
@@ -450,7 +429,6 @@ class CarStore {
         this.trafficLightStopReleased = false;
       }
 
-      // 2. ╨Ы╨╛╨│╨╕╨║╨░ ╤А╨░╨╖╨│╨╛╨╜╨░ ╨╕ ╤В╨╛╤А╨╝╨╛╨╢╨╡╨╜╨╕╤П ╤Б ╤Г╤З╤С╤В╨╛╨╝ ╨┐╨╡╤А╨╡╨┤╨░╤З╨╕
       const speedMultiplier =
         this.speedMultiplier !== undefined ? this.speedMultiplier : 1;
       const effectiveMaxSpeed =
@@ -477,7 +455,10 @@ class CarStore {
           const gapToLight = this.getTrafficLightGapToStop();
           if (gapToLight === null) {
             // fallback
-          } else if (gapToLight <= TRAFFIC_LIGHT_STOP_GAP_PX + TRAFFIC_LIGHT_STOP_TOLERANCE_PX) {
+          } else if (
+            gapToLight <=
+            TRAFFIC_LIGHT_STOP_GAP_PX + TRAFFIC_LIGHT_STOP_TOLERANCE_PX
+          ) {
             this.currentSpeed = 0;
             holdSpeed = true;
           } else if (this.currentSpeed > 0) {
@@ -503,14 +484,10 @@ class CarStore {
           );
         }
       }
-      // 3. ╨Э╨Ю╨Т╨Ю╨Х: ╨а╨░╤Б╤З╨╡╤В ╤Г╨│╨╗╨░ ╨▓╤А╨░╤Й╨╡╨╜╨╕╤П ╨║╨╛╨╗╨╡╤Б
-      // ╨Ъ╨╛╤Н╤Д╤Д╨╕╤Ж╨╕╨╡╨╜╤В 2.5 тАФ ╤Б╨║╨╛╤А╨╛╤Б╤В╤М ╨▓╤А╨░╤Й╨╡╨╜╨╕╤П ╨║╨╛╨╗╨╡╤Б ╤Г╨╝╨╡╨╜╤М╤И╨╡╨╜╨░ ╨▓ 2 ╤А╨░╨╖╨░
       this.wheelRotation += this.currentSpeed * deltaTime * 2.5;
 
-      // ╨Ч╨░╤Ж╨╕╨║╨╗╨╕╨▓╨░╨╡╨╝ ╤Г╨│╨╛╨╗ ╨▓ ╨┐╤А╨╡╨┤╨╡╨╗╨░╤Е 360 ╨│╤А╨░╨┤╤Г╤Б╨╛╨▓, ╤З╤В╨╛╨▒╤Л ╤З╨╕╤Б╨╗╨╛ ╨╜╨╡ ╤А╨╛╤Б╨╗╨╛ ╨┤╨╛ ╨▒╨╡╤Б╨║╨╛╨╜╨╡╤З╨╜╨╛╤Б╤В╨╕
       this.wheelRotation %= 360;
 
-      // 4. ╨Э╨░╨║╨╛╨┐╨╗╨╡╨╜╨╕╨╡ ╨┐╤А╨╛╨╣╨┤╨╡╨╜╨╜╨╛╨│╨╛ ╤А╨░╤Б╤Б╤В╨╛╤П╨╜╨╕╤П (╤В╨╛╨╗╤М╨║╨╛ ╨┐╤А╨╕ ╨╜╨░╨╢╨░╤В╨╛╨╝ ╨│╨░╨╖╨╡)
       if (this.isGasPressed) {
         this.distanceMeters +=
           (realSpeed * deltaTime) / stateApp.distanceMetersFactor;

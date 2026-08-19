@@ -23,12 +23,131 @@
 **Critical bugs PLAN §1–3 (TASK-058):** закрыта 16 авг. 2026  
 **Parking fine quest (TASK-059):** закрыта 16 авг. 2026  
 **Mobile perf portrait rain + road-wet (TASK-060):** закрыта 17 авг. 2026  
-**Проверка:** Vitest 212/212, chase-mode E2E 13/13  
+**Radio Quest System (TASK-062…068):** закрыта 19 авг. 2026  
+**Проверка Radio Quest:** Vitest 228/228, E2E parking-quest + orientation-quest pass  
 **Источник UI wave:** `UI_UX_DRAFT.md`
 
 ---
 
-## TASK-060: Mobile perf — portrait rain + статичный road-wet
+## TASK-068: Тесты рации + E2E ориентировки + секция PLAN
+
+**Статус:** DONE  
+**Закрыто:** 19 авг. 2026  
+**Контекст:** logic  
+**Циклы:** 1
+
+| Критерий | Результат |
+|---|---|
+| `orientation-quest.spec.js` | ✅ |
+| `parking-quest.spec.js` two-step | ✅ |
+| PLAN.md секция «Рация — двухшаговое взаимодействие» | ✅ |
+| Vitest 228/228 | ✅ |
+
+---
+
+## TASK-067: Туториал — парковка, roadside, таймаут сирены 4 с
+
+**Статус:** DONE  
+**Закрыто:** 19 авг. 2026  
+**Контекст:** mixed  
+**Циклы:** 1
+
+| Критерий | Результат |
+|---|---|
+| Шаги parking-violation → ratio-after-parking | ✅ |
+| Шаги roadside-breakdown → ratio-after-breakdown | ✅ |
+| `TUTORIAL_SIREN_TIMEOUT_SEC = 4`, skip Block B | ✅ |
+| `tutorialStore.test.js` | ✅ |
+
+---
+
+## TASK-066: C2 «Заглохла у обочине» (roadside_breakdown)
+
+**Статус:** DONE  
+**Закрыто:** 19 авг. 2026  
+**Контекст:** mixed  
+**Циклы:** 1
+
+| Критерий | Результат |
+|---|---|
+| `roadside_breakdown` spawn 175–400 м (3500–8000 px) | ✅ |
+| `RoadsideBreakdownLayer.jsx` двухшаговый флоу | ✅ |
+| `roadsideHelp` +2 очка | ✅ |
+| Unit tests mapStore | ✅ |
+
+---
+
+## TASK-065: Диспетчерский запрос + квест ориентировки (HUD)
+
+**Статус:** DONE  
+**Закрыто:** 19 авг. 2026  
+**Контекст:** mixed  
+**Циклы:** 1
+
+| Критерий | Результат |
+|---|---|
+| `DISPATCH_ORIENTATION_CONFLICT_CHANCE = 0.2` | ✅ |
+| `handleRatioPress` dispatch/conflict/quiet/already | ✅ |
+| `OrientationDistanceHud.jsx` | ✅ |
+| Unit tests dispatch/orientation | ✅ |
+
+---
+
+## TASK-064: Controllers — рация (видимость, onClick, подсветка)
+
+**Статус:** DONE  
+**Закрыто:** 19 авг. 2026  
+**Контекст:** ui-ux  
+**Циклы:** 1
+
+| Критерий | Результат |
+|---|---|
+| Рация free+timed, скрыта chase | ✅ |
+| `data-type="ratio"`, `--has-target`, `--disabled` | ✅ |
+| `handleRatioPress` onClick | ✅ |
+| E2E two-step parking | ✅ |
+
+---
+
+## TASK-063: Парковка — двухшаговый флоу
+
+**Статус:** DONE  
+**Закрыто:** 19 авг. 2026  
+**Контекст:** mixed  
+**Циклы:** 1
+
+| Критерий | Результат |
+|---|---|
+| select → radio confirm → evacuation | ✅ |
+| `isEvacuationInProgress` / `hasPendingEvacuationTarget` | ✅ |
+| `mapStore.test.jsx` two-step | ✅ |
+
+---
+
+## TASK-062: ratioConstants + ratioStore (централизация Ratio)
+
+**Статус:** DONE  
+**Закрыто:** 19 авг. 2026  
+**Контекст:** logic  
+**Циклы:** 1 (Reviewer APPROVED после fix scope)
+
+| Критерий | Результат |
+|---|---|
+| `ratioConstants.js` — тексты, тайминги, orientation distances | ✅ |
+| `ratioStore.jsx` — MobX, sessionId, phases, dispose | ✅ |
+| `Game.jsx` — единый store-driven Ratio, free intro сохранён | ✅ |
+| spawn_delay auto-Ratio убран | ✅ (временно до TASK-063) |
+| `ratioStore.test.js` 7/7 | ✅ |
+| Vitest 223/223 | ✅ |
+
+### Новые файлы
+
+- `src/state/ratioConstants.js`
+- `src/state/ratioStore.jsx`
+- `src/state/ratioStore.test.js`
+
+---
+
 
 **Статус:** DONE  
 **Закрыто:** 17 авг. 2026  

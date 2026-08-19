@@ -22,6 +22,8 @@
 
 **Источник правды по архитектуре:** `.cursor/planner/PROJECT_PRINCIPLES.md`
 
+**Единицы расстояния:** `.cursor/planner/GAME_UNITS.md` — все дистанции в TASKS/диалоге в игровых метрах.
+
 ---
 
 ## Главный принцип

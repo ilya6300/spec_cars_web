@@ -1,0 +1,32 @@
+---
+description: Единицы расстояния spec_cars_web — обязательная конвертация world px → игровые метры. Читать всем агентам при планировании и в диалоге.
+alwaysApply: true
+---
+
+# Единицы расстояния (обязательно)
+
+**Полный справочник:** `.cursor/planner/GAME_UNITS.md` — читать Orchestrator, Planner, Architect, Developer, Reviewer, UI/UX Designer, Game Art Director, Game Design Director.
+
+## Формула
+
+`distanceMetersFactor = 20` (`src/state/state_app.jsx`).
+
+```
+игровые метры = worldPx / 20
+игровые км     = worldPx / 20000
+worldPx        = игровые метры × 20
+```
+
+`offsetX`, `worldX`, `minDistance`, `maxDistance`, `initialSpawnDistance` — **world px**, не метры.
+
+`carStore.distanceMeters` и HUD — **уже игровые метры**.
+
+## Запрет
+
+Не называть значения из конфигов спавна «метрами» или «километрами» без деления на 20. Не планировать «500 м интервал», имея в виду `minDistance: 500` в коде (это **25 м** в игре).
+
+## В диалоге и документах
+
+Указывать **игровые метры/км**; world px — только в скобках для разработчика.
+
+Пример: «интервал **200–400 м** (4000–8000 world px)».

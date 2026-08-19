@@ -1,3 +1,6 @@
+/** Таймаут шага сирены Block B туториала (сек) */
+export const TUTORIAL_SIREN_TIMEOUT_SEC = 4;
+
 // Enemy quest-car: первый спавн (gate)
 export const ENEMY_FIRST_SPAWN_GATE_SEC_FREE = 30;
 export const ENEMY_FIRST_SPAWN_GATE_SEC_TIMED = 20;
@@ -6,6 +9,9 @@ export const ENEMY_FIRST_SPAWN_GATE_SEC_CHASE = 15;
 // Pedestrian crossing quest
 export const PEDESTRIAN_QUEST_SPAWN_CHANCE = 1; // 100%
 export const CROSS_ON_RED_CHANCE = 0.3; // 30%
+
+/** Диспетчерский запрос: шанс ориентировки на human_aggr после паузы 1 с */
+export const DISPATCH_ORIENTATION_CONFLICT_CHANCE = 0.2;
 
 // Погода: free mode
 export const FREE_RAIN_START_CHANCE = 0.1;

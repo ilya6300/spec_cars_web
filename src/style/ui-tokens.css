@@ -51,9 +51,9 @@
   /* --- Машина игрока (police/body.png) --- */
   --player-car-width: 250px;
   --player-car-wheel-offset: 11%;
-  --player-car-body-lift: 0%;
+  --player-car-body-lift: -1%;
   --player-car-wheel-bottom: -11%;
-  --player-car-wheel-size: 21%;
+  --player-car-wheel-size: 20.5%;
   --player-car-wheel-left: 9%;
   --player-car-wheel-right: 69%;
 

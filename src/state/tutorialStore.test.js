@@ -433,9 +433,127 @@ test("TutorialStore: isTutorialComplete when all blocks done", () => {
   tutorial.refuelBlockDone = true;
   tutorial.banditBlockDone = true;
   tutorial.pedestrianBlockDone = true;
+  tutorial.parkingBlockDone = true;
+  tutorial.roadsideBlockDone = true;
 
   expect(tutorial.isTutorialComplete).toBe(true);
   expect(tutorial.highlightTarget).toBeNull();
+});
+
+test("TutorialStore: parking tutorial flow", () => {
+  const tutorial = new TutorialStore();
+  tutorial.blockADone = true;
+  const carStore = createCarStore();
+  const releaseGasSpy = vi.spyOn(carStore, "releaseGas");
+  const mapStore = createMapStore({
+    activeObjects: [
+      {
+        typeId: "parking_zone",
+        worldX: 1500,
+        parkingZone: {
+          spots: [
+            {
+              status: "illegal",
+              fined: false,
+              fining: false,
+            },
+          ],
+        },
+      },
+    ],
+  });
+
+  tutorial.tick(0.1, carStore, mapStore, 1024);
+  expect(tutorial.currentStep).toBe("parking-violation");
+  expect(releaseGasSpy).toHaveBeenCalled();
+
+  tutorial.onParkingViolationClicked();
+  expect(tutorial.currentStep).toBe("ratio-after-parking");
+
+  tutorial.onRatioClicked();
+  expect(tutorial.parkingBlockDone).toBe(true);
+  expect(tutorial.currentStep).toBeNull();
+});
+
+test("TutorialStore: roadside tutorial waits for parking priority", () => {
+  const tutorial = new TutorialStore();
+  tutorial.blockADone = true;
+  const carStore = createCarStore();
+  const mapStore = createMapStore({
+    activeObjects: [
+      {
+        typeId: "parking_zone",
+        worldX: 1500,
+        parkingZone: {
+          spots: [{ status: "illegal", fined: false, fining: false }],
+        },
+      },
+      {
+        typeId: "roadside_breakdown",
+        worldX: 1600,
+        roadsideBreakdown: { helped: false, selected: false },
+      },
+    ],
+  });
+
+  tutorial.tick(0.1, carStore, mapStore, 1024);
+  expect(tutorial.currentStep).toBe("parking-violation");
+
+  tutorial.parkingBlockDone = true;
+  tutorial.currentStep = null;
+  tutorial.tick(0.1, carStore, mapStore, 1024);
+  expect(tutorial.currentStep).toBe("roadside-breakdown");
+});
+
+test("TutorialStore: roadside tutorial ratio step completes block", () => {
+  const tutorial = new TutorialStore();
+  tutorial.blockADone = true;
+  tutorial.currentStep = "roadside-breakdown";
+
+  tutorial.onRoadsideBreakdownClicked();
+  expect(tutorial.currentStep).toBe("ratio-after-breakdown");
+
+  tutorial.onRatioClicked();
+  expect(tutorial.roadsideBlockDone).toBe(true);
+  expect(tutorial.currentStep).toBeNull();
+});
+
+test("TutorialStore: siren timeout skips block B without gear-4", () => {
+  const tutorial = new TutorialStore();
+  tutorial.blockADone = true;
+  tutorial.currentStep = "siren";
+  const carStore = createCarStore({ sirena: false });
+
+  tutorial.tick(4.1, carStore, createMapStore(), 1024);
+
+  expect(tutorial.enemyBlockDone).toBe(true);
+  expect(tutorial.currentStep).toBeNull();
+  expect(tutorial.currentStep).not.toBe("gear-4");
+});
+
+test("TutorialStore: siren pressed within timeout advances to gear-4", () => {
+  const tutorial = new TutorialStore();
+  tutorial.blockADone = true;
+  tutorial.currentStep = "siren";
+  const carStore = createCarStore({ sirena: false });
+
+  tutorial.tick(2, carStore, createMapStore(), 1024);
+  expect(tutorial.currentStep).toBe("siren");
+
+  carStore.sirena = true;
+  tutorial.tick(0.1, carStore, createMapStore(), 1024);
+  expect(tutorial.currentStep).toBe("gear-4");
+});
+
+test("TutorialStore: isTutorialComplete requires parking and roadside blocks", () => {
+  const tutorial = new TutorialStore();
+  tutorial.blockADone = true;
+  tutorial.enemyBlockDone = true;
+  tutorial.refuelBlockDone = true;
+  tutorial.banditBlockDone = true;
+  tutorial.pedestrianBlockDone = true;
+
+  expect(tutorial.isTutorialComplete).toBe(false);
 });
 
 test("TutorialStore: reset clears all block flags", () => {
@@ -455,6 +573,9 @@ test("TutorialStore: reset clears all block flags", () => {
   expect(tutorial.refuelBlockDone).toBe(false);
   expect(tutorial.banditBlockDone).toBe(false);
   expect(tutorial.pedestrianBlockDone).toBe(false);
+  expect(tutorial.parkingBlockDone).toBe(false);
+  expect(tutorial.roadsideBlockDone).toBe(false);
+  expect(tutorial.sirenStepSeconds).toBe(0);
   expect(tutorial.banditTargetTypeId).toBeNull();
   expect(tutorial.currentStep).toBeNull();
 });

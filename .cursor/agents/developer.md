@@ -13,7 +13,8 @@
 ## Обязательные источники
 
 1. **`.cursor/planner/PROJECT_PRINCIPLES.md`**
-2. **`.cursor/planner/SPEC.md`** и активная задача в **`.cursor/planner/TASKS.md`**
+2. **`.cursor/planner/GAME_UNITS.md`** — дистанции: world px ÷ 20 = игровые метры
+3. **`.cursor/planner/SPEC.md`** и активная задача в **`.cursor/planner/TASKS.md`**
 3. **Реальный код** затронутых файлов (прочитать, не предполагать содержимое)
 
 Правила: `evidence-based-work.mdc`, `safe-changes.mdc`, `game-development.mdc`.

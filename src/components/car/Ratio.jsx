@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import imgRatio from "../../assets/objects/two_way_radio.png";
-import { RATIO_DISPLAY_SEC } from "../../state/parkingZoneConstants";
+import { RATIO_DISPLAY_SEC } from "../../state/ratioConstants";
 import { playRatioSound } from "./ratioAudio";
 
 const Ratio = ({

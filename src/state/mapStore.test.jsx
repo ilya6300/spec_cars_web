@@ -1,11 +1,25 @@
-import { expect, test, vi, beforeEach } from 'vitest';
+import { expect, test, vi, beforeEach, afterEach } from 'vitest';
 import { runInAction } from 'mobx';
 import MapStore from './mapStore';
 import atmosphereStore from './atmosphereStore';
+import ratioStore from './ratioStore';
 import { buildInitialNextSpawnDistances } from './objects';
+import {
+  DISPATCH_CONFLICT_MESSAGE,
+  DISPATCH_ORIENTATION_ALREADY_MESSAGE,
+  DISPATCH_QUIET_MESSAGE,
+  DISPATCH_RESPONSE_DELAY_SEC,
+  EVACUATION_RATIO_MESSAGE,
+} from './ratioConstants';
+import { DISPATCH_ORIENTATION_CONFLICT_CHANCE } from './event.config';
 
 beforeEach(() => {
   atmosphereStore.setAtmosphere({ timeOfDay: 'day', weather: 'clear' });
+});
+
+afterEach(() => {
+  ratioStore.dispose();
+  vi.restoreAllMocks();
 });
 test('buildInitialNextSpawnDistances includes all object types', () => {
   const distances = buildInitialNextSpawnDistances();
@@ -527,7 +541,9 @@ test('MapStore: initParkingZone illegal rate about 20% among occupied', () => {
   expect(illegalRate).toBeLessThan(0.3);
 });
 
-test('MapStore: handleParkingViolationClick starts evacuation sequence', () => {
+test('MapStore: two-step parking evacuation flow', () => {
+  vi.useFakeTimers();
+  ratioStore.dispose();
   globalThis.__PARKING_EVAC_DEBUG_HOLD__ = false;
   const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
   store.lastViewportWidth = 1024;
@@ -571,20 +587,29 @@ test('MapStore: handleParkingViolationClick starts evacuation sequence', () => {
   store.activeObjects = [zoneObj];
 
   store.isPoliceQuestActive = true;
-  store.handleParkingViolationClick(zoneObj, 0);
+  store.selectParkingViolationTarget(zoneObj, 0);
   expect(store.parkingEvacuation.phase).toBe('idle');
 
   store.isPoliceQuestActive = false;
-  store.handleParkingViolationClick(zoneObj, 0);
+  store.selectParkingViolationTarget(zoneObj, 0);
   const spotsRef = store.parkingFineTargetZone.parkingZone.spots;
   expect(zoneObj.parkingZone.spots[0].fining).toBe(true);
   expect(zoneObj.parkingZone.pendingSpotIndex).toBe(0);
-  expect(store.parkingEvacuation.phase).toBe('spawn_delay');
+  expect(store.hasPendingEvacuationTarget()).toBe(true);
+  expect(store.parkingEvacuation.phase).toBe('idle');
   expect(gasReleased).toBe(true);
   expect(store.carStore.currentSpeed).toBe(0);
 
-  store.handleParkingViolationClick(zoneObj, 0);
+  store.selectParkingViolationTarget(zoneObj, 0);
   expect(zoneObj.parkingZone.pendingSpotIndex).toBe(0);
+
+  store.confirmParkingEvacuationViaRadio();
+  expect(ratioStore.message).toBe(EVACUATION_RATIO_MESSAGE);
+  expect(store.parkingEvacuation.phase).toBe('idle');
+
+  ratioStore.onRatioDismiss();
+  vi.advanceTimersByTime(DISPATCH_RESPONSE_DELAY_SEC * 1000);
+  expect(store.parkingEvacuation.phase).toBe('spawn_delay');
 
   store.parkingEvacuation.spawnDelayRemaining = 0;
   store.updateParkingEvacuation(0);
@@ -614,6 +639,7 @@ test('MapStore: handleParkingViolationClick starts evacuation sequence', () => {
   expect(spotsRef[0].fined).toBe(true);
   expect(spotsRef[0].carData).toBeNull();
   expect(store.parkingFineTargetZone).toBeNull();
+  vi.useRealTimers();
 });
 
 test('MapStore: finalizeParkingEvacuation marks spot fined', () => {
@@ -644,6 +670,84 @@ test('MapStore: finalizeParkingEvacuation marks spot fined', () => {
   expect(helpType).toBe('parkingFine');
   expect(spotsRef[0].fined).toBe(true);
   expect(spotsRef[0].carData).toBeNull();
+});
+
+test('MapStore: two-step roadside breakdown evacuation flow', () => {
+  vi.useFakeTimers();
+  ratioStore.dispose();
+  globalThis.__PARKING_EVAC_DEBUG_HOLD__ = false;
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.offsetX = 16000;
+  let helpType = null;
+  store.carStore = {
+    releaseGas: () => {},
+    isGasPressed: false,
+    currentSpeed: 50,
+    addHelp: (type) => {
+      helpType = type;
+    },
+  };
+
+  const breakdownObj = {
+    uid: 'breakdown_uid',
+    typeId: 'roadside_breakdown',
+    worldX: 16000,
+    appeared: true,
+    roadsideBreakdown: {
+      carData: store.createParkingCarStore(store.getCivilianCars()[0]),
+      selected: false,
+      helped: false,
+    },
+  };
+  store.activeObjects = [breakdownObj];
+
+  store.selectRoadsideBreakdownTarget(breakdownObj);
+  expect(breakdownObj.roadsideBreakdown.selected).toBe(true);
+  expect(store.hasPendingEvacuationTarget()).toBe(true);
+  expect(store.parkingEvacuation.phase).toBe('idle');
+
+  store.confirmParkingEvacuationViaRadio();
+  expect(ratioStore.message).toBe(EVACUATION_RATIO_MESSAGE);
+
+  ratioStore.onRatioDismiss();
+  vi.advanceTimersByTime(DISPATCH_RESPONSE_DELAY_SEC * 1000);
+  expect(store.parkingEvacuation.phase).toBe('spawn_delay');
+  expect(store.parkingEvacuation.sourceKind).toBe('roadside');
+
+  store.parkingEvacuation.spawnDelayRemaining = 0;
+  store.updateParkingEvacuation(0);
+  const stopX = store.parkingEvacuation.stopPositionX;
+  store.parkingEvacuation.positionX = stopX + 10;
+  store.parkingEvacuation.currentSpeed = 500;
+  store.updateParkingEvacuation(0.1);
+  store.parkingEvacuation.loadDelayRemaining = 0;
+  store.updateParkingEvacuation(0);
+  store.parkingEvacuation.loadedSettleRemaining = 0;
+  store.updateParkingEvacuation(0);
+  store.parkingEvacuation.positionX = -500;
+  store.parkingEvacuation.phase = 'departing';
+  store.updateParkingEvacuation(0);
+
+  expect(helpType).toBe('roadsideHelp');
+  expect(store.activeObjects.some((obj) => obj.uid === 'breakdown_uid')).toBe(
+    false,
+  );
+  vi.useRealTimers();
+});
+
+test('MapStore: spawnEnvironmentObjects skips roadside_breakdown in chase', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.gameMode = 'chase';
+  store.offsetX = 20000;
+  store.nextSpawnDistances.roadside_breakdown = 0;
+
+  store.spawnEnvironmentObjects(1024);
+
+  const breakdowns = store.activeObjects.filter(
+    (obj) => obj.typeId === 'roadside_breakdown',
+  );
+  expect(breakdowns.length).toBe(0);
 });
 
 test('MapStore: spawnEnvironmentObjects skips parking_zone in chase', () => {
@@ -702,4 +806,107 @@ test('MapStore: updateRoadMarkings despawns segments past left edge + 100px', ()
   expect(store.roadMarkings.every((mark) => mark.worldX + 180 > 1900)).toBe(
     true,
   );
+});
+
+function advanceDispatchRequestToResponse() {
+  ratioStore.onRatioDismiss();
+  vi.advanceTimersByTime(DISPATCH_RESPONSE_DELAY_SEC * 1000);
+}
+
+test('MapStore: dispatch conflict spawns orientation target', () => {
+  vi.useFakeTimers();
+  ratioStore.dispose();
+
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.offsetX = 5000;
+  store.gameMode = 'free';
+
+  const randomSpy = vi.spyOn(Math, 'random');
+  randomSpy.mockReturnValueOnce(0);
+  randomSpy.mockReturnValueOnce(DISPATCH_ORIENTATION_CONFLICT_CHANCE - 0.01);
+  randomSpy.mockReturnValueOnce(0);
+
+  store.handleRatioPress();
+  expect(ratioStore.message).toBeTruthy();
+  advanceDispatchRequestToResponse();
+
+  expect(ratioStore.message).toBe(DISPATCH_CONFLICT_MESSAGE);
+  ratioStore.onRatioDismiss();
+  vi.advanceTimersByTime(DISPATCH_RESPONSE_DELAY_SEC * 1000);
+
+  expect(store.orientationQuest.active).toBe(true);
+  expect(store.activeObjects.some((obj) => obj.orientationSpawn)).toBe(true);
+
+  randomSpy.mockRestore();
+  vi.useRealTimers();
+});
+
+test('MapStore: dispatch quiet path does not spawn orientation target', () => {
+  vi.useFakeTimers();
+  ratioStore.dispose();
+
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.offsetX = 5000;
+  store.gameMode = 'free';
+
+  const randomSpy = vi.spyOn(Math, 'random');
+  randomSpy.mockReturnValueOnce(0);
+  randomSpy.mockReturnValueOnce(DISPATCH_ORIENTATION_CONFLICT_CHANCE + 0.5);
+
+  store.handleRatioPress();
+  advanceDispatchRequestToResponse();
+
+  expect(ratioStore.message).toBe(DISPATCH_QUIET_MESSAGE);
+  expect(store.orientationQuest.active).toBe(false);
+  expect(store.activeObjects.some((obj) => obj.orientationSpawn)).toBe(false);
+
+  randomSpy.mockRestore();
+  vi.useRealTimers();
+});
+
+test('MapStore: active orientation radio shows already message without roll', () => {
+  vi.useFakeTimers();
+  ratioStore.dispose();
+
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.gameMode = 'free';
+  store.orientationQuest = {
+    active: true,
+    targetUid: 'orientation_uid',
+    targetWorldX: 7000,
+  };
+
+  const randomSpy = vi.spyOn(Math, 'random');
+  store.handleRatioPress();
+
+  expect(randomSpy).not.toHaveBeenCalled();
+  expect(ratioStore.message).toBe(DISPATCH_ORIENTATION_ALREADY_MESSAGE);
+  expect(store.activeObjects.some((obj) => obj.orientationSpawn)).toBe(false);
+
+  randomSpy.mockRestore();
+  vi.useRealTimers();
+});
+
+test('MapStore: finishQuest clears orientation quest for orientation target', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  const target = {
+    uid: 'orientation_uid',
+    typeId: 'human_aggr1',
+    orientationSpawn: true,
+  };
+
+  runInAction(() => {
+    store.isPoliceQuestActive = true;
+    store.questTargetObject = target;
+    store.orientationQuest = {
+      active: true,
+      targetUid: target.uid,
+      targetWorldX: 7000,
+    };
+  });
+
+  store.finishQuest();
+
+  expect(store.orientationQuest.active).toBe(false);
+  expect(store.isPoliceQuestActive).toBe(false);
 });

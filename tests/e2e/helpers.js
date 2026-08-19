@@ -25,6 +25,7 @@ export async function getHelpCounts(page) {
         criminalArrest: 0,
         pedestrianFine: 0,
         parkingFine: 0,
+        roadsideHelp: 0,
         enemyChase: 0,
         orientationMatch: 0,
       }

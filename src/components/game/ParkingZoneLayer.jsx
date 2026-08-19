@@ -1,6 +1,5 @@
 import { observer } from "mobx-react-lite";
 import { CarModel } from "../car/CarModel";
-import { playRatioSound } from "../car/ratioAudio";
 import {
   getParkingIllegalClass,
   isParkingZoneType,
@@ -8,7 +7,7 @@ import {
 } from "../../state/parkingZoneConstants";
 import "../../style/parking_zone_layer.css";
 
-export const ParkingZoneLayer = observer(({ mapStore }) => {
+export const ParkingZoneLayer = observer(({ mapStore, tutorialStore = null }) => {
   const parkingZones = mapStore.activeObjects.filter(
     (obj) => isParkingZoneType(obj.typeId) && obj.parkingZone,
   );
@@ -21,7 +20,7 @@ export const ParkingZoneLayer = observer(({ mapStore }) => {
     mapStore.isPoliceQuestActive ||
     mapStore.isPedestrianCrossingQuestActive ||
     mapStore.isQuestArrestActive ||
-    mapStore.isParkingFineActive();
+    mapStore.isEvacuationInProgress();
 
   const evacuation = mapStore.parkingEvacuation;
 
@@ -90,11 +89,11 @@ export const ParkingZoneLayer = observer(({ mapStore }) => {
                         ) {
                           return;
                         }
-                        playRatioSound();
-                        mapStore.handleParkingViolationClick(
+                        mapStore.selectParkingViolationTarget(
                           zoneObj,
                           spot.index,
                         );
+                        tutorialStore?.onParkingViolationClicked?.();
                       }}
                     >
                       <CarModel

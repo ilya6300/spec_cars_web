@@ -1,3 +1,4 @@
+
 import house1 from "../assets/objects/house_1.png";
 import gasStation from "../assets/objects/gas_station.png";
 import trafficLightRed from "../assets/objects/traffic_light_red.png";
@@ -19,6 +20,15 @@ import {
   PARKING_ZONE_Z_INDEX,
 } from "./parkingZoneConstants";
 import { PEDESTRIAN_QUEST_SPAWN_CHANCE } from "./event.config";
+import {
+  ROADSIDE_BREAKDOWN_HEIGHT,
+  ROADSIDE_BREAKDOWN_INITIAL_SPAWN_DISTANCE,
+  ROADSIDE_BREAKDOWN_MAX_DISTANCE,
+  ROADSIDE_BREAKDOWN_MIN_DISTANCE,
+  ROADSIDE_BREAKDOWN_TYPE,
+  ROADSIDE_BREAKDOWN_WIDTH,
+  ROADSIDE_BREAKDOWN_Z_INDEX,
+} from "./roadsideBreakdownConstants";
 import whiteLine from "../assets/objects/road_white_line.png";
 import { getDataSubObects, dataObjectsSub } from "./subobject";
 import humanAggr1Img from "../assets/objects/\police_quest/human_aggr1.png";
@@ -231,6 +241,33 @@ const createDataObjects = () => {
     });
 
     objectConfigs.push(collectibleStarObj);
+
+    const roadsideBreakdownObj = new ObjectConfig({
+      id: ROADSIDE_BREAKDOWN_TYPE,
+      type: ROADSIDE_BREAKDOWN_TYPE,
+      image: null,
+      zIndex: ROADSIDE_BREAKDOWN_Z_INDEX,
+      width: ROADSIDE_BREAKDOWN_WIDTH,
+      height: ROADSIDE_BREAKDOWN_HEIGHT,
+      minDistance: ROADSIDE_BREAKDOWN_MIN_DISTANCE,
+      maxDistance: ROADSIDE_BREAKDOWN_MAX_DISTANCE,
+      initialSpawnDistance: ROADSIDE_BREAKDOWN_INITIAL_SPAWN_DISTANCE,
+      onClick: () => {
+        /* handled in RoadsideBreakdownLayer */
+      },
+      onLongPress: () => {
+        /* ничего */
+      },
+      onAppear: (objData, mapStore) => {
+        const obj = mapStore.activeObjects.find(
+          (entry) => entry.uid === objData.uid,
+        );
+        if (!obj) return "skip";
+        return mapStore.initRoadsideBreakdown(obj) ? "done" : "retry";
+      },
+    });
+
+    objectConfigs.push(roadsideBreakdownObj);
 
     dataObjectsSub.forEach((tree) => {
       objectConfigs.push(tree);

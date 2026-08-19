@@ -16,6 +16,7 @@ alwaysApply: true
 | Документ | Путь | Когда читать |
 |---|---|---|
 | **Принципы работы проекта** | `.cursor/planner/PROJECT_PRINCIPLES.md` | **Все агенты** — React, MobX, game loop, квесты, слои |
+| **Единицы расстояния** | `.cursor/planner/GAME_UNITS.md` | **Все агенты** — спавн, баланс, дистанции в PLAN/SPEC/диалоге; `game-units.mdc` |
 | **Работа на основе данных** | `.cursor/rules/evidence-based-work.mdc` | **Перед изменением кода** — анализ, grep, gate |
 
 ## Файлы планирования
@@ -31,6 +32,7 @@ alwaysApply: true
 | `PROJECT_DOCS.md` | Постоянная техдокументация проекта | **Только после завершения задачи** (Technical Documentation Writer) |
 | `DONE.md` | Архив завершённых задач | Planner, Orchestrator |
 | `GAME_DESIGN_DRAFT.md` | Черновик идей геймдизайна (вне TASK pipeline) | Game Design Director → Orchestrator |
+| `GAME_UNITS.md` | world px ↔ игровые метры (`distanceMetersFactor`) | **Все агенты** при дистанциях и балансе |
 
 ## Где указаны источники для задачи
 

@@ -3,7 +3,8 @@ import { runInAction } from 'mobx';
 import MapStore from './mapStore';
 import atmosphereStore from './atmosphereStore';
 import ratioStore from './ratioStore';
-import { buildInitialNextSpawnDistances } from './objects';
+import { buildInitialNextSpawnDistances, objectConfigByType } from './objects';
+import * as peacefulHumanSpawn from './peacefulHumanSpawn';
 import {
   DISPATCH_CONFLICT_MESSAGE,
   DISPATCH_ORIENTATION_ALREADY_MESSAGE,
@@ -28,7 +29,8 @@ test('buildInitialNextSpawnDistances includes all object types', () => {
   expect(distances.building).toBe(0);
   expect(distances.gas_station).toBe(30000);
   expect(distances.human_aggr1).toBe(17700);
-  expect(distances.human1).toBe(150);
+  expect(distances.human1).toBeGreaterThanOrEqual(400);
+  expect(distances.human1).toBeLessThan(680);
 });
 
 test('MapStore: nextSpawnDistances initialized from objectConfigs', () => {
@@ -473,6 +475,438 @@ test('MapStore: spawnEnvironmentObjects skips peaceful humans in chase', () => {
     /^human\d+$/.test(obj.typeId),
   );
   expect(peacefulHumans.length).toBe(0);
+});
+
+test('MapStore: spawnEnvironmentObjects creates peaceful human pedestrian profile', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.offsetX = 10000;
+  for (let i = 1; i <= 16; i += 1) {
+    store.nextSpawnDistances[`human${i}`] = 999999;
+  }
+  store.nextSpawnDistances.human1 = 0;
+
+  const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
+  store.spawnEnvironmentObjects(1024);
+
+  randomSpy.mockRestore();
+
+  const human = store.activeObjects.find((obj) => obj.typeId === 'human1');
+  expect(human).toBeTruthy();
+  expect(human.pedestrian.sidewalkSlot).toBe(2);
+  expect(human.pedestrian.spawnWorldX).toBe(human.worldX);
+  expect(human.pedestrian.spawnSidewalkSlot).toBe(2);
+  expect(human.pedestrian.capSlotId).toBe(human.uid);
+  expect(human.pedestrian.groupId).toBeNull();
+  expect(human.pedestrian.pairRole).toBeNull();
+  expect(human.pedestrian.driftSpeedX).toBeGreaterThanOrEqual(-40);
+  expect(human.pedestrian.driftSpeedX).toBeLessThanOrEqual(-8);
+  expect(human.pedestrian.driftSpeedY).toBeGreaterThanOrEqual(12);
+  expect(human.pedestrian.driftSpeedY).toBeLessThanOrEqual(36);
+  expect(human.pedestrian.yDriftCooldownSec).toBe(human.pedestrian.driftSpeedY);
+  expect(human.worldX).toBeCloseTo(11144, 1);
+});
+
+test('MapStore: spawnEnvironmentObjects defers peaceful human when cap reached', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.offsetX = 10000;
+  store.nextSpawnDistances.human1 = 0;
+
+  store.activeObjects = Array.from({ length: 6 }, (_, i) => ({
+    uid: `visible_human_${i}`,
+    typeId: 'human2',
+    worldX: 10100 + i * 10,
+    appeared: true,
+    pedestrian: { capSlotId: `visible_human_${i}` },
+  }));
+
+  store.spawnEnvironmentObjects(1024);
+
+  expect(store.activeObjects.some((obj) => obj.typeId === 'human1')).toBe(false);
+  expect(store.nextSpawnDistances.human1).toBe(0);
+});
+
+test('MapStore: peaceful human spawn ignores lastObjectEndMeter', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.offsetX = 10000;
+  store.lastObjectEndMeter = 50000;
+  for (let i = 1; i <= 16; i += 1) {
+    store.nextSpawnDistances[`human${i}`] = 999999;
+  }
+  store.nextSpawnDistances.human1 = 0;
+
+  const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+  store.spawnEnvironmentObjects(1024);
+  randomSpy.mockRestore();
+
+  const human = store.activeObjects.find((obj) => obj.typeId === 'human1');
+  expect(human.worldX).toBeCloseTo(11144, 1);
+  expect(human.worldX).toBeLessThan(store.lastObjectEndMeter);
+});
+
+function createFleePedestrian(overrides = {}) {
+  return {
+    sidewalkSlot: 2,
+    spawnWorldX: 1000,
+    spawnSidewalkSlot: 2,
+    driftSpeedX: -20,
+    baseDriftSpeedX: -20,
+    driftSpeedY: 12,
+    yDriftCooldownSec: 12,
+    isWalking: true,
+    movementStateTimerSec: 5,
+    reactionToAggr: 'flee',
+    fleeRadius: 180,
+    fleeSpeed: 60,
+    fleeMaxDistance: 100,
+    pairRole: null,
+    ...overrides,
+  };
+}
+
+test('MapStore: updatePeacefulPedestrians drifts solo peaceful human worldX', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.activeObjects = [
+    {
+      uid: 'solo_human',
+      typeId: 'human1',
+      worldX: 1000,
+      appeared: true,
+      pedestrian: createFleePedestrian(),
+    },
+  ];
+
+  store.updatePeacefulPedestrians(0.5);
+
+  expect(store.activeObjects[0].worldX).toBe(990);
+});
+
+test('MapStore: updatePeacefulPedestrians syncs follower to leader offset', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.activeObjects = [
+    {
+      uid: 'leader',
+      typeId: 'human1',
+      worldX: 1000,
+      appeared: true,
+      pedestrian: createFleePedestrian({
+        groupId: 'group_test',
+        pairRole: 'leader',
+      }),
+    },
+    {
+      uid: 'follower',
+      typeId: 'human2',
+      worldX: 1080,
+      appeared: true,
+      pedestrian: createFleePedestrian({
+        groupId: 'group_test',
+        pairRole: 'follower',
+        groupFollowOffsetX: 80,
+      }),
+    },
+  ];
+
+  store.updatePeacefulPedestrians(0.5);
+
+  expect(store.activeObjects[0].worldX).toBe(990);
+  expect(store.activeObjects[1].worldX).toBe(1070);
+  expect(store.activeObjects[1].pedestrian.sidewalkSlot).toBe(
+    store.activeObjects[0].pedestrian.sidewalkSlot,
+  );
+});
+
+test('MapStore: spawnEnvironmentObjects spawns peaceful group with shared capSlotId', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.offsetX = 10000;
+  for (let i = 1; i <= 16; i += 1) {
+    store.nextSpawnDistances[`human${i}`] = 999999;
+  }
+  store.nextSpawnDistances.human1 = 0;
+
+  const groupSpy = vi
+    .spyOn(peacefulHumanSpawn, 'shouldSpawnPeacefulGroup')
+    .mockReturnValue(true);
+  const sizeSpy = vi
+    .spyOn(peacefulHumanSpawn, 'pickPeacefulGroupSize')
+    .mockReturnValue(2);
+
+  store.spawnEnvironmentObjects(1024);
+
+  groupSpy.mockRestore();
+  sizeSpy.mockRestore();
+
+  const peacefulHumans = store.activeObjects.filter((obj) =>
+    /^human\d+$/.test(obj.typeId),
+  );
+  expect(peacefulHumans.length).toBe(2);
+  const capSlotIds = new Set(
+    peacefulHumans.map((obj) => obj.pedestrian.capSlotId),
+  );
+  expect(capSlotIds.size).toBe(1);
+  expect(peacefulHumans.some((obj) => obj.pedestrian.pairRole === 'leader')).toBe(
+    true,
+  );
+  expect(
+    peacefulHumans.some((obj) => obj.pedestrian.pairRole === 'follower'),
+  ).toBe(true);
+});
+
+test('MapStore: updatePeacefulPedestrians no-op in chase', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.gameMode = 'chase';
+  store.activeObjects = [
+    {
+      uid: 'solo_human',
+      typeId: 'human1',
+      worldX: 1000,
+      appeared: true,
+      pedestrian: {
+        sidewalkSlot: 2,
+        driftSpeedX: -20,
+        driftSpeedY: 12,
+        yDriftCooldownSec: 12,
+        pairRole: null,
+      },
+    },
+  ];
+
+  store.updatePeacefulPedestrians(0.5);
+
+  expect(store.activeObjects[0].worldX).toBe(1000);
+});
+
+test('MapStore: updatePeacefulPedestrians flees from visible aggr on screen', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.offsetX = 0;
+  store.activeObjects = [
+    {
+      uid: 'aggr',
+      typeId: 'human_aggr1',
+      worldX: 1000,
+      appeared: true,
+    },
+    {
+      uid: 'solo_human',
+      typeId: 'human1',
+      worldX: 1000,
+      appeared: true,
+      pedestrian: createFleePedestrian(),
+    },
+  ];
+
+  store.updatePeacefulPedestrians(1);
+
+  expect(store.activeObjects[1].worldX).toBe(940);
+});
+
+test('MapStore: updatePeacefulPedestrians clamps flee distance from spawnWorldX', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.offsetX = 0;
+  store.activeObjects = [
+    {
+      uid: 'aggr',
+      typeId: 'human_aggr1',
+      worldX: 1000,
+      appeared: true,
+    },
+    {
+      uid: 'solo_human',
+      typeId: 'human1',
+      worldX: 900,
+      appeared: true,
+      pedestrian: createFleePedestrian({ spawnWorldX: 1000 }),
+    },
+  ];
+
+  for (let i = 0; i < 5; i += 1) {
+    store.updatePeacefulPedestrians(1);
+  }
+
+  expect(store.activeObjects[1].worldX).toBe(900);
+  expect(
+    Math.abs(store.activeObjects[1].worldX - store.activeObjects[1].pedestrian.spawnWorldX),
+  ).toBeLessThanOrEqual(100);
+});
+
+test('MapStore: updatePeacefulPedestrians watch stops drift near aggr', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.offsetX = 0;
+  store.activeObjects = [
+    {
+      uid: 'aggr',
+      typeId: 'human_aggr1',
+      worldX: 1000,
+      appeared: true,
+    },
+    {
+      uid: 'solo_human',
+      typeId: 'human1',
+      worldX: 1000,
+      appeared: true,
+      pedestrian: createFleePedestrian({ reactionToAggr: 'watch' }),
+    },
+  ];
+
+  store.updatePeacefulPedestrians(1);
+
+  expect(store.activeObjects[1].worldX).toBe(1000);
+  expect(store.activeObjects[1].pedestrian.driftSpeedX).toBe(0);
+});
+
+test('MapStore: updatePeacefulPedestrians resets drift after aggr leaves screen', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.offsetX = 0;
+  store.activeObjects = [
+    {
+      uid: 'aggr',
+      typeId: 'human_aggr1',
+      worldX: 1000,
+      appeared: true,
+    },
+    {
+      uid: 'solo_human',
+      typeId: 'human1',
+      worldX: 1000,
+      appeared: true,
+      pedestrian: createFleePedestrian({ reactionToAggr: 'watch' }),
+    },
+  ];
+
+  store.updatePeacefulPedestrians(1);
+  expect(store.activeObjects[1].pedestrian.driftSpeedX).toBe(0);
+
+  store.activeObjects[0].worldX = 3000;
+  store.updatePeacefulPedestrians(1);
+
+  expect(store.activeObjects[1].pedestrian.driftSpeedX).toBe(-20);
+  expect(store.activeObjects[1].worldX).toBe(980);
+});
+
+test('MapStore: updatePeacefulPedestrians ignores off-screen peaceful human', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.offsetX = 5000;
+  store.activeObjects = [
+    {
+      uid: 'aggr',
+      typeId: 'human_aggr1',
+      worldX: 5100,
+      appeared: true,
+    },
+    {
+      uid: 'solo_human',
+      typeId: 'human1',
+      worldX: 1000,
+      appeared: true,
+      pedestrian: createFleePedestrian(),
+    },
+  ];
+
+  store.updatePeacefulPedestrians(1);
+
+  expect(store.activeObjects[1].worldX).toBe(980);
+});
+
+test('MapStore: updatePeacefulPedestrians syncs follower during leader flee', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.offsetX = 0;
+  store.activeObjects = [
+    {
+      uid: 'aggr',
+      typeId: 'human_aggr1',
+      worldX: 1000,
+      appeared: true,
+    },
+    {
+      uid: 'leader',
+      typeId: 'human1',
+      worldX: 1000,
+      appeared: true,
+      pedestrian: createFleePedestrian({
+        groupId: 'group_test',
+        pairRole: 'leader',
+      }),
+    },
+    {
+      uid: 'follower',
+      typeId: 'human2',
+      worldX: 1080,
+      appeared: true,
+      pedestrian: createFleePedestrian({
+        groupId: 'group_test',
+        pairRole: 'follower',
+        groupFollowOffsetX: 80,
+      }),
+    },
+  ];
+
+  store.updatePeacefulPedestrians(1);
+
+  expect(store.activeObjects[1].worldX).toBe(940);
+  expect(store.activeObjects[2].worldX).toBe(1020);
+});
+
+test('MapStore: updatePeacefulPedestrians blocks civilian at quest crossing boundary', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.lastViewportWidth = 1024;
+  store.offsetX = 900;
+  const crossingRight = 1000 + 230;
+  store.activeObjects = [
+    {
+      uid: 'crossing_uid',
+      typeId: 'traffic_light_quest_crossing',
+      worldX: 1000,
+      appeared: true,
+    },
+    {
+      uid: 'solo_human',
+      typeId: 'human1',
+      worldX: crossingRight + 20,
+      appeared: true,
+      pedestrian: createFleePedestrian({
+        driftSpeedX: -40,
+        baseDriftSpeedX: -40,
+        isWalking: true,
+      }),
+    },
+  ];
+
+  store.updatePeacefulPedestrians(1);
+
+  expect(store.activeObjects[1].worldX).toBe(crossingRight);
+  expect(store.activeObjects[1].pedestrian.driftSpeedX).toBe(0);
+});
+
+test('MapStore: spawnEnvironmentObjects skips traffic_light when parking zone visible', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.offsetX = 16000;
+  store.nextSpawnDistances.traffic_light = 0;
+  store.activeObjects = [
+    {
+      uid: 'parking_uid',
+      typeId: 'parking_zone',
+      worldX: 16000,
+      appeared: true,
+      parkingZone: {
+        totalWidth: 764,
+        spotHeight: 122,
+        spots: [],
+      },
+    },
+  ];
+
+  store.spawnEnvironmentObjects(1024);
+
+  const trafficLights = store.activeObjects.filter(
+    (obj) => obj.typeId === 'traffic_light',
+  );
+  expect(trafficLights.length).toBe(0);
 });
 
 test('MapStore: initParkingZone creates 4-8 spots with civilian cars only', () => {
@@ -980,6 +1414,86 @@ test('MapStore: active orientation radio shows already message without roll', ()
 
   randomSpy.mockRestore();
   vi.useRealTimers();
+});
+
+test('MapStore: orientation quest stays active while target is still on screen after passing', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.offsetX = 5000;
+  store.gameMode = 'free';
+
+  vi.spyOn(Math, 'random').mockReturnValue(0);
+  store.spawnOrientationTarget();
+  vi.restoreAllMocks();
+
+  const target = store.activeObjects.find((obj) => obj.orientationSpawn);
+  const viewportWidth = 1024;
+
+  store.offsetX = target.worldX + 50;
+  store.despawnObjects(viewportWidth);
+
+  expect(store.orientationQuest.active).toBe(true);
+  expect(store.activeObjects.some((obj) => obj.uid === target.uid)).toBe(true);
+});
+
+test('MapStore: orientation quest ends when target human_aggr leaves viewport', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.offsetX = 5000;
+  store.gameMode = 'free';
+
+  vi.spyOn(Math, 'random').mockReturnValue(0);
+  store.spawnOrientationTarget();
+  vi.restoreAllMocks();
+
+  const target = store.activeObjects.find((obj) => obj.orientationSpawn);
+  const config = objectConfigByType[target.typeId];
+  const viewportWidth = 1024;
+
+  store.offsetX = target.worldX + config.width + 50;
+  store.despawnObjects(viewportWidth);
+  store.updateOrientationQuest();
+
+  expect(store.orientationQuest.active).toBe(false);
+  expect(store.activeObjects.some((obj) => obj.orientationSpawn)).toBe(false);
+});
+
+test('MapStore: orientation quest not cancelled while police arrest modal is active', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.offsetX = 5000;
+  store.gameMode = 'free';
+
+  vi.spyOn(Math, 'random').mockReturnValue(0);
+  store.spawnOrientationTarget();
+  vi.restoreAllMocks();
+
+  const target = store.activeObjects.find((obj) => obj.orientationSpawn);
+  const config = objectConfigByType[target.typeId];
+  const viewportWidth = 1024;
+
+  store.startQuest(target);
+  store.offsetX = target.worldX + config.width + 50;
+  store.despawnObjects(viewportWidth);
+  store.updateOrientationQuest();
+
+  expect(store.isPoliceQuestActive).toBe(true);
+  expect(store.orientationQuest.active).toBe(true);
+});
+
+test('MapStore: startQuest activates police quest for orientation-spawned human_aggr', () => {
+  const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
+  store.offsetX = 5000;
+  store.gameMode = 'free';
+
+  vi.spyOn(Math, 'random').mockReturnValue(0);
+  store.spawnOrientationTarget();
+  vi.restoreAllMocks();
+
+  const target = store.activeObjects.find((obj) => obj.orientationSpawn);
+  expect(target).toBeTruthy();
+
+  store.startQuest(target);
+
+  expect(store.isPoliceQuestActive).toBe(true);
+  expect(store.questTargetObject).toBe(target);
 });
 
 test('MapStore: finishQuest clears orientation quest for orientation target', () => {

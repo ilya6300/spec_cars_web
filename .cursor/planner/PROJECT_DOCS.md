@@ -1,7 +1,7 @@
 # Техническая документация spec_cars_web
 
 > Постоянная документация для разработчиков. Дополняет `.cursor/planner/PROJECT_PRINCIPLES.md`.
-> Обновляется **только после завершения задачи** (последнее: TASK-060, 17 авг. 2026).
+> Обновляется **только после завершения задачи** (последнее: TASK-073, 20 авг. 2026).
 
 ---
 
@@ -104,13 +104,18 @@
 
 ## Система очков помощи (сессия)
 
-| Тип | Вес | Иконка HUD |
-|-----|-----|------------|
-| `enemyChase` | +4 | help-badge-enemy |
-| `criminalArrest` | +3 | help-badge-criminal |
-| `pedestrianFine` | +1 | help-badge-pedestrian |
+| Тип | Вес (free) | Вес (timed) | Иконка HUD |
+|-----|------------|-------------|------------|
+| `enemyChase` | +4 | +4 | help-badge-enemy |
+| `criminalArrest` | +3 | +3 | help-badge-criminal |
+| `pedestrianFine` | +1 | +2 | help-badge-pedestrian |
+| `parkingFine` | +2 | +2 | help-badge-parking |
+| `roadsideHelp` | +2 | +2 | — |
+| `orientationMatch` | +1 | 0 | — |
 
-Звёзды по `sessionScore`: 1★ ≥4, 2★ ≥8, 3★ ≥14. Сброс при входе в режим (`resetSessionHelp` в bootstrap).
+Источник весов: `HELP_POINTS_BY_MODE` в `modeScoring.js`. `parkingFine` = **2** очка с TASK-073 (было 4 в TASK-059).
+
+Звёзды по `sessionScore`: 1★ ≥4, 2★ ≥8, 3★ ≥14 (free). Сброс при входе в режим (`resetSessionHelp` в bootstrap).
 
 ---
 
@@ -1699,5 +1704,334 @@ TASK-060 снижает **CSS paint/composite** cost wet-слоя и rain на m
 - **Не** расширять landscape HUD-query (`mode.css:383-384`) perf-правилами rain — иначе HUD-правила применятся к portrait некорректно
 - **Не** возвращать gate `night && rain` для `.road-wet` или `RainLayer`
 - **Не** вешать на `.car-ui` stacking context (TASK-049)
+
+---
+
+## [TASK-069] Peaceful human idle animation (human1–16)
+
+**Дата:** 2026-08-20  
+**Контекст:** ui-ux
+
+### Описание
+
+Лёгкое CSS-покачивание на месте (`translateY` 2–4 px) для мирных пешеходов `human1`–`human16` в `Maps.jsx`. Амплитуда, длительность и фаза анимации уникальны per-instance (от `obj.uid`). Без изменений MobX, game loop, спавна и квестовой логики.
+
+### Условия применения
+
+Класс `.game-object--peaceful-idle` и inline-стили — **только** если одновременно:
+
+```text
+isPeacefulHumanType(obj.typeId)   // /^human\d+$/ — human1…human16, не human_aggr*
+&& !isQuestCrossing
+&& !isNightChaseContext(map)      // chase или night
+```
+
+Исключения: `human_aggr*`, quest crossing (`traffic_light_quest_crossing`), chase/night (мирные human уже не спавнятся), пешеход квеста перехода (`PedestrianCrossingLayer` — отдельный компонент).
+
+### CSS (`peaceful_human_idle.css`)
+
+| Элемент | Значение |
+|---------|----------|
+| Класс | `.game-object--peaceful-idle` |
+| Keyframes | `peaceful-human-idle-sway` — `translateY(0)` ↔ `translateY(-var(--peaceful-idle-amplitude))` |
+| Базовая анимация | `3s ease-in-out infinite` |
+| `prefers-reduced-motion` | `animation: none` |
+
+### Утилита hash (`peacefulHumanIdle.js`)
+
+| Функция | Назначение |
+|---------|------------|
+| `hashUidString(uid)` | Детерминированный hash строки `uid` (polynomial ×31, `| 0`, `Math.abs`) |
+| `getPeacefulIdleAnimationStyle(uid)` | Inline-стили для `Maps.jsx` |
+
+Per-instance параметры из hash:
+
+| Свойство | Формула | Диапазон |
+|----------|---------|----------|
+| `--peaceful-idle-amplitude` | `2 + (hash % 3)` px | 2–4 px |
+| `animationDuration` | `(25 + (hash % 11)) / 10` s | 2.5–3.5 s |
+| `animationDelay` | `-((hash >> 4) % 35) / 10` s | отрицательный offset фазы |
+
+### Реализация
+
+| Файл | Действие |
+|------|----------|
+| `src/style/peaceful_human_idle.css` | Keyframes, класс, reduced-motion |
+| `src/state/peacefulHumanIdle.js` | `hashUidString`, `getPeacefulIdleAnimationStyle` |
+| `src/state/peacefulHumanIdle.test.js` | Vitest: hash, диапазоны, детерминизм |
+| `src/components/map/Maps.jsx` | Условный класс + spread inline-стилей, импорт CSS |
+
+### Влияние
+
+- Game loop / `deltaTime` / spawn / квесты — **не затронуты**
+- z-index мирных human (`zIndex: 1`) — без изменений
+- Анимация чисто CSS, не привязана к rAF
+
+---
+
+## [TASK-070] Peaceful human spawn — sidewalkSlot, spawnTier, cap 6/4
+
+**Дата:** 2026-08-20  
+**Контекст:** logic  
+**Зависимости:** TASK-069 (idle CSS)
+
+### Описание
+
+Переработан спавн мирных пешеходов `human1`–`human16`: per-type интервалы через `spawnTier`, профиль `activeObjects[].pedestrian` с уровнем тротуара (`sidewalkSlot`), cap видимых инстансов на экране. Позиция X — справа от viewport без `lastObjectEndMeter`; при cap — defer (без push и без сдвига `nextSpawnDistances`).
+
+### Spawn tiers (`PEACEFUL_SPAWN_TIERS`, world px)
+
+| Tier | Типы | minDistance | maxDistance | Игровые метры |
+|------|------|-------------|-------------|---------------|
+| `frequent` | human2, human8, human9, human13 | 600 | 3600 | 30–180 м |
+| `medium` | human1, human3, human5, human6, human12, human16 | 1000 | 6000 | 50–300 м |
+| `rare` | human4, human7, human10, human11, human14, human15 | 1600 | 8000 | 80–400 м |
+
+`initialSpawnDistance` per type: `4000 + i * 280 + floor(random() * 400)` → ~**200–600 м** (i = 0…15).
+
+`worldX`: `offsetX + viewportWidth + random() * min(240, viewportWidth * 0.25)`.
+
+### Cap на экране
+
+| Viewport | Cap |
+|----------|-----|
+| Desktop (`viewportWidth > 900`) | **6** |
+| Mobile (`viewportWidth ≤ 900`) | **4** |
+
+Считаются уникальные `pedestrian.capSlotId` среди visible peaceful human (`screenX` в `(-60, viewportWidth)`). Solo: `capSlotId = uid`; группа — один слот на `groupId` (TASK-071).
+
+### Профиль `pedestrian`
+
+| Поле | Назначение |
+|------|------------|
+| `sidewalkSlot` | 0…4 — индекс уровня `bottom` |
+| `spawnWorldX` | `worldX` при спавне |
+| `spawnSidewalkSlot` | `sidewalkSlot` при спавне |
+| `capSlotId` | uid (solo) или `groupId` (группа) |
+
+`SIDEWALK_SLOT_BOTTOM_PERCENT = [61, 63, 65, 67, 69]` → `getSidewalkBottomPercent(sidewalkSlot)` в `Maps.jsx` (вместо единого `65%`).
+
+### API (`peacefulHumanSpawn.js`)
+
+| Функция | Назначение |
+|---------|------------|
+| `getSidewalkBottomPercent` | slot → `%` bottom |
+| `getPeacefulHumanCap` | cap по `viewportWidth` |
+| `getPeacefulHumanInitialSpawnDistance` | per-type initial offset |
+| `computePeacefulHumanWorldX` | X справа от viewport |
+| `pickSidewalkSlot` | случайный slot 0…4 |
+| `createPeacefulPedestrianProfile` | объект `pedestrian` |
+| `getPeacefulSpawnInterval` | `minDistance + random * (max - min)` |
+| `countVisiblePeacefulCapSlots` / `isPeacefulHumanCapReached` | cap guard |
+
+### Реализация
+
+| Файл | Действие |
+|------|----------|
+| `src/state/peacefulHumanSpawn.js` | pure helpers, константы tiers/cap |
+| `src/state/peacefulHumanSpawn.test.js` | Vitest |
+| `src/state/subobject.jsx` | `spawnTier` в `HUMAN_DEFS`, `ObjectConfigHuman` |
+| `src/state/mapStore.jsx` | отдельная ветка peaceful human в `spawnEnvironmentObjects` |
+| `src/components/map/Maps.jsx` | `bottom` из `getSidewalkBottomPercent` |
+| `src/state/mapStore.test.jsx` | profile, cap defer, без `lastObjectEndMeter`, skip chase |
+
+### Влияние
+
+- Game loop / `deltaTime` — без изменений; spawn в `spawnEnvironmentObjects` как раньше
+- Chase/night — peaceful human по-прежнему не спавнятся (`isNightChaseContext`)
+- `human_aggr*`, pedestrian quest, trees — без изменений
+- TASK-069 idle CSS — совместим (`sidewalkSlot` задаёт `bottom`)
+
+---
+
+## [TASK-071] Peaceful human — drift по тротуару + группы 2–3
+
+**Дата:** 2026-08-20  
+**Контекст:** logic  
+**Зависимости:** TASK-070 (spawn profile, cap)
+
+### Описание
+
+Мирные пешеходы `human1`–`human16` движутся по тротуару: горизонтальный drift `worldX` в game loop; редкий сдвиг между `sidewalkSlot` (Y). Спавн групп 2–3 с leader/follower, общий `capSlotId = groupId`. Реакция на `human_aggr*` — TASK-072.
+
+### Drift X (`updatePeacefulPedestrians`)
+
+Вызывается из `tickWorld` **после** `spawnEnvironmentObjects`, **до** `despawnObjects`. Gate: `isNightChaseContext` → no-op.
+
+```text
+worldX += driftSpeedX * deltaTime
+```
+
+| Параметр | Значение (world px/s) | Игровые м/с |
+|----------|----------------------|-------------|
+| Обычный drift | **−40…−8** | **−2…−0.4** |
+| Редкий «против течения» (15%) | **+8…+40** | **+0.4…+2** |
+
+### Y-drift между sidewalkSlot
+
+| Поле | Назначение |
+|------|------------|
+| `driftSpeedY` | интервал между сдвигами, **12–36 с** (инициализируется в `yDriftCooldownSec`) |
+| `tickPeacefulYDriftSlot` | countdown; по истечении — `sidewalkSlot ± 1` (clamp 0…4), таймер сброс |
+
+Follower копирует `sidewalkSlot` с leader каждый кадр. `Maps.jsx` — `bottom` через `getSidewalkBottomPercent` (TASK-070).
+
+### Группы (spawn + sync)
+
+| Константа | Значение |
+|-----------|----------|
+| `PEACEFUL_GROUP_SPAWN_CHANCE` | **35%** при eligible spawn |
+| Размер | **2** или **3** (25% на тройку) |
+| `groupFollowOffsetX` | **60–120** world px (**3–6 м**) между членами |
+| `pairRole` | `leader` / `follower` |
+| `capSlotId` | **`groupId`** у всех членов группы |
+
+Leader: drift X + Y-slot как solo. Follower: `worldX = computeFollowerWorldX(leaderWorldX, driftSpeedX, groupFollowOffsetX)`; `driftSpeedX` и `sidewalkSlot` — с leader.
+
+### Новые поля `pedestrian`
+
+| Поле | Solo | Группа |
+|------|------|--------|
+| `driftSpeedX`, `driftSpeedY`, `yDriftCooldownSec` | да | да (общие у группы) |
+| `groupId`, `pairRole` | `null` | id + role |
+| `groupFollowOffsetX` | — | follower only |
+| `capSlotId` | `uid` | `groupId` |
+
+### API (`peacefulHumanSpawn.js` — дополнение TASK-070)
+
+| Функция | Назначение |
+|---------|------------|
+| `pickDriftSpeedX` / `pickYDriftIntervalSec` | случайные скорости/интервалы |
+| `tickPeacefulDriftX` | `worldX += speed * deltaTime` |
+| `tickPeacefulYDriftSlot` | редкий сдвиг slot + reset cooldown |
+| `shouldSpawnPeacefulGroup` / `pickPeacefulGroupSize` | 35% / size 2\|3 |
+| `buildPeacefulGroupMembers` / `createGroupId` | leader + followers, shared profile |
+| `computeFollowerWorldX` | позиция follower от leader и offset |
+
+### Реализация
+
+| Файл | Действие |
+|------|----------|
+| `src/state/peacefulHumanSpawn.js` | drift/group helpers, константы |
+| `src/state/peacefulHumanSpawn.test.js` | Vitest drift, groups, cap |
+| `src/state/mapStore.jsx` | групповой spawn; `updatePeacefulPedestrians` |
+| `src/state/mapStore.test.jsx` | drift, follower sync, group cap, chase no-op |
+
+### Влияние
+
+- Game loop: новый шаг в `tickWorld` с `deltaTime`; MobX `runInAction`
+- Cap 6/4 — группа = **1** cap-слот (не N пешеходов)
+- Chase/night — drift и spawn peaceful без изменений (no-op / skip)
+- TASK-069 idle CSS — совместим (движение `worldX`, slot меняет `bottom`)
+- `human_aggr*`, pedestrian quest — без изменений
+
+---
+
+## [TASK-072] Peaceful human — реакция на human_aggr (flee / watch)
+
+**Дата:** 2026-08-20  
+**Контекст:** logic  
+**Зависимости:** TASK-070 (profile), TASK-071 (drift, группы)
+
+### Описание
+
+Мирные пешеходы реагируют на видимый на экране `human_aggr*`: **70% flee** (убегают от агрессора), **30% watch** (останавливают drift). Логика в `updatePeacefulPedestrians` (`mapStore.jsx`), pure helpers — `peacefulHumanSpawn.js`. Без новых CSS/UI.
+
+### Условия срабатывания
+
+```text
+visibleAggrs = getVisibleHumanAggrObjects(activeObjects, offsetX, viewportWidth)
+&& isPeacefulHumanVisibleOnScreen(ped)
+&& |ped.worldX - aggr.worldX| <= fleeRadius
+```
+
+Если `human_aggr*` нет на экране — `resetPeacefulAggrReaction` восстанавливает `driftSpeedX` из `baseDriftSpeedX`.
+
+### Константы (world px → игровые метры)
+
+| Константа | world px | Игра |
+|-----------|----------|------|
+| `PEACEFUL_REACTION_FLEE_RADIUS` | 180 | **9 м** |
+| `PEACEFUL_REACTION_FLEE_MAX_DISTANCE` | 100 | **±5 м** от `spawnWorldX` |
+| `PEACEFUL_REACTION_FLEE_SPEED` | 60 px/s | **3 м/с** |
+| `PEACEFUL_REACTION_WATCH_CHANCE` | 0.3 | 30% watch / 70% flee при спавне |
+
+### Поведение по типу реакции
+
+| `reactionToAggr` | В радиусе aggr | Вне радиуса / aggr ушёл |
+|------------------|----------------|-------------------------|
+| `flee` | `worldX` от aggr (`computeFleeSpeedX` + `clampFleeWorldX`) | обычный drift |
+| `watch` | `driftSpeedX = 0` (стоп) | `resetPeacefulAggrReaction` если был стоп |
+
+Y-drift и обычный drift **не** тикают, пока `reactionActive`. Follower синхронизирует `driftSpeedX` с leader (в т.ч. flee/watch).
+
+### Новые поля `pedestrian`
+
+| Поле | Назначение |
+|------|------------|
+| `reactionToAggr` | `"flee"` \| `"watch"` — `pickReactionToAggr` при spawn |
+| `baseDriftSpeedX` | исходный drift до реакции |
+| `fleeRadius`, `fleeSpeed`, `fleeMaxDistance` | параметры flee |
+
+### API (`peacefulHumanSpawn.js`)
+
+| Функция | Назначение |
+|---------|------------|
+| `pickReactionToAggr` | 30% watch |
+| `getVisibleHumanAggrObjects` | on-screen `human_aggr*` |
+| `findNearestAggrWithinRadius` | ближайший aggr в радиусе |
+| `computeFleeSpeedX` / `clampFleeWorldX` | направление и clamp flee |
+| `resetPeacefulAggrReaction` | restore `baseDriftSpeedX` |
+
+### Реализация
+
+| Файл | Действие |
+|------|----------|
+| `src/state/peacefulHumanSpawn.js` | константы + reaction helpers |
+| `src/state/peacefulHumanSpawn.test.js` | Vitest flee/watch/clamp |
+| `src/state/mapStore.jsx` | ветка reaction в `updatePeacefulPedestrians` |
+| `src/state/mapStore.test.jsx` | flee, watch stop, clamp, follower sync |
+
+### Влияние
+
+- Game loop: расширен существующий шаг `updatePeacefulPedestrians`
+- Police quest (`human_aggr*`), pedestrian quest — без изменений
+- TASK-069 idle CSS — совместим (движение через `worldX`)
+
+---
+
+## [TASK-073] Баланс — parkingFine 2 очка
+
+**Дата:** 2026-08-20  
+**Контекст:** logic  
+**Зависимости:** TASK-059 (квест парковки), TASK-062…063 (рация / two-step evacuation)
+
+### Описание
+
+Вес help-типа `parkingFine` снижен с **4** до **2** очков в режимах `free` и `timed`. Логика квеста парковки (`ParkingZoneLayer`, `ratioStore`, two-step evacuation) **не менялась** — только таблица баллов.
+
+### Изменение
+
+**Файл:** `src/state/modeScoring.js`
+
+```js
+HELP_POINTS_BY_MODE.free.parkingFine   // 4 → 2
+HELP_POINTS_BY_MODE.timed.parkingFine   // 4 → 2
+```
+
+Chase: `parkingFine: 0` (без изменений). `carStore.addHelp("parkingFine")` и `quests.jsx` helpType — без изменений.
+
+### Реализация
+
+| Файл | Действие |
+|------|----------|
+| `src/state/modeScoring.js` | `parkingFine: 2` free/timed |
+| `src/state/modeScoring.test.js` | assertions на 2 очка |
+
+### Влияние
+
+- HUD `HelpBadges` — счётчик `helpCounts.parkingFine` без изменений UI
+- `calculateSessionScore` / `sessionStars` / `recordsStore` — пересчёт score при эвакуации
+- Vitest: **289/289**
 
 ---

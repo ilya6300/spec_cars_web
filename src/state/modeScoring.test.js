@@ -23,7 +23,7 @@ test("modeScoring: roadsideHelp awards 2 points in free/timed", () => {
   expect(calculateSessionScore(counts, GAME_MODES.CHASE)).toBe(0);
 });
 
-test("modeScoring: parkingFine awards 4 points in free/timed", () => {
+test("modeScoring: parkingFine awards 2 points in free/timed", () => {
   const counts = {
     criminalArrest: 0,
     pedestrianFine: 0,
@@ -31,8 +31,8 @@ test("modeScoring: parkingFine awards 4 points in free/timed", () => {
     enemyChase: 0,
     orientationMatch: 0,
   };
-  expect(calculateSessionScore(counts, GAME_MODES.FREE)).toBe(4);
-  expect(calculateSessionScore(counts, GAME_MODES.TIMED)).toBe(4);
+  expect(calculateSessionScore(counts, GAME_MODES.FREE)).toBe(2);
+  expect(calculateSessionScore(counts, GAME_MODES.TIMED)).toBe(2);
   expect(calculateSessionScore(counts, GAME_MODES.CHASE)).toBe(0);
 });
 

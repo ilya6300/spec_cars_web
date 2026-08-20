@@ -3,7 +3,6 @@ import { CarModel } from "../car/CarModel";
 import {
   getParkingIllegalClass,
   isParkingZoneType,
-  PARKING_UNIT_IMAGE,
 } from "../../state/parkingZoneConstants";
 import "../../style/parking_zone_layer.css";
 
@@ -25,7 +24,10 @@ export const ParkingZoneLayer = observer(({ mapStore, tutorialStore = null }) =>
   const evacuation = mapStore.parkingEvacuation;
 
   return (
-    <div className="parking-zone-layer" data-type="parking-zone-layer">
+    <div
+      className="parking-zone-cars-layer"
+      data-type="parking-zone-cars-layer"
+    >
       {parkingZones.map((zoneObj) => {
         const pz = zoneObj.parkingZone;
         const screenX = zoneObj.worldX - mapStore.offsetX;
@@ -33,7 +35,7 @@ export const ParkingZoneLayer = observer(({ mapStore, tutorialStore = null }) =>
 
         return (
           <div
-            key={zoneObj.uid}
+            key={`cars-${zoneObj.uid}`}
             className="parking-zone"
             data-type="parking-zone"
             data-uid={zoneObj.uid}
@@ -59,12 +61,6 @@ export const ParkingZoneLayer = observer(({ mapStore, tutorialStore = null }) =>
                     height: `${pz.spotHeight}px`,
                   }}
                 >
-                  <img
-                    src={PARKING_UNIT_IMAGE}
-                    alt=""
-                    className="parking-zone-spot-marking"
-                    draggable={false}
-                  />
                   {spot.carData && !carOnEvacuator && (
                     <div
                       className={`parking-zone-car${

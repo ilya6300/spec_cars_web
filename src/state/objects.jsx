@@ -30,6 +30,7 @@ import {
   ROADSIDE_BREAKDOWN_Z_INDEX,
 } from "./roadsideBreakdownConstants";
 import whiteLine from "../assets/objects/road_white_line.png";
+import { POLICE_AGGRO_Z_INDEX } from "./peacefulHumanSpawn";
 import { getDataSubObects, dataObjectsSub } from "./subobject";
 import humanAggr1Img from "../assets/objects/\police_quest/human_aggr1.png";
 import humanAggr2Img from "../assets/objects/\police_quest/human_aggr2.png";
@@ -75,7 +76,7 @@ function createPoliceAggroConfig({ type, image, initialSpawnDistance }) {
     id: type,
     type,
     image,
-    zIndex: 2,
+    zIndex: POLICE_AGGRO_Z_INDEX,
     width: 110,
     height: 100,
     minDistance: 8000,

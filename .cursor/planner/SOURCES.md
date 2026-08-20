@@ -13,6 +13,7 @@
 | Игровой цикл | `src/components/game/Game.jsx` | rAF, связка сторов, рендер слоёв |
 | Физика машины | `src/state/carStore.jsx` | Скорость, топливо, КПП, аудио |
 | Мир и квесты | `src/state/mapStore.jsx` | Спавн, offsetX, светофор, квесты |
+| **Баланс: шансы и дистанции** | `src/state/event.config.js` | Единый реестр спавна/квестов (`event-config.mdc`) |
 | AI-трафик | `src/state/questCarStore.jsx` | Quest-машины |
 | Объекты окружения | `src/state/objects.jsx` | Конфиги спавна |
 | Данные машин | `src/state/cars.jsx` | Полиция + otherCars |
@@ -38,6 +39,7 @@
 | Логирование | `.cursor/rules/logging.mdc` | Отладка игры |
 | Техдокументация | `.cursor/rules/technical-documentation.mdc` | Technical Documentation Writer |
 | Источники документации | `.cursor/rules/documentation-sources.mdc` | @docs, @web, запрет выдумывания |
+| **Шансы и дистанции** | `.cursor/rules/event-config.mdc` | Единый реестр `event.config.js` |
 | Orchestrator | `.cursor/agents/orchestrator.md` | Координация задач |
 | Planner | `.cursor/agents/planer.md` | Проработка плана, декомпозиция |
 | Architect | `.cursor/agents/architect.md` | Архитектура, SPEC.md |

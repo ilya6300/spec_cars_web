@@ -17,6 +17,11 @@ import human13 from "../assets/objects/\human/\human_13.png";
 import human14 from "../assets/objects/\human/\human_14.png";
 import human15 from "../assets/objects/\human/\human_15.png";
 import human16 from "../assets/objects/\human/\human_16.png";
+import {
+  getPeacefulHumanInitialSpawnDistance,
+  PEACEFUL_HUMAN_Z_INDEX,
+  PEACEFUL_SPAWN_TIERS,
+} from "./peacefulHumanSpawn";
 
 const dataObjectsSub = [];
 
@@ -39,12 +44,15 @@ class ObjectConfigHuman {
     this.id = config.id;
     this.type = config.type;
     this.image = config.image;
-    this.zIndex = 1;
+    this.zIndex = PEACEFUL_HUMAN_Z_INDEX;
     this.width = 60;
     this.height = 100;
-    this.minDistance = 100;
-    this.maxDistance = 12000;
-    this.initialSpawnDistance = config.initialSpawnDistance ?? 0;
+    const tier =
+      PEACEFUL_SPAWN_TIERS[config.spawnTier] ?? PEACEFUL_SPAWN_TIERS.medium;
+    this.minDistance = tier.minDistance;
+    this.maxDistance = tier.maxDistance;
+    const humanIndex = parseInt(config.type.replace("human", ""), 10) - 1;
+    this.initialSpawnDistance = getPeacefulHumanInitialSpawnDistance(humanIndex);
   }
 }
 
@@ -55,22 +63,22 @@ const TREE_DEFS = [
 ];
 
 const HUMAN_DEFS = [
-  { id: 4, type: "human1", image: human1, initialSpawnDistance: 150 },
-  { id: 5, type: "human2", image: human2, initialSpawnDistance: 50 },
-  { id: 6, type: "human3", image: human3, initialSpawnDistance: 350 },
-  { id: 7, type: "human4", image: human4, initialSpawnDistance: 550 },
-  { id: 8, type: "human5", image: human5, initialSpawnDistance: 250 },
-  { id: 9, type: "human6", image: human6, initialSpawnDistance: 180 },
-  { id: 10, type: "human7", image: human7, initialSpawnDistance: 800 },
-  { id: 11, type: "human8", image: human8, initialSpawnDistance: 100 },
-  { id: 12, type: "human9", image: human9, initialSpawnDistance: 50 },
-  { id: 13, type: "human10", image: human10, initialSpawnDistance: 550 },
-  { id: 15, type: "human11", image: human11, initialSpawnDistance: 1000 },
-  { id: 16, type: "human12", image: human12, initialSpawnDistance: 250 },
-  { id: 17, type: "human13", image: human13, initialSpawnDistance: 80 },
-  { id: 18, type: "human14", image: human14, initialSpawnDistance: 1950 },
-  { id: 19, type: "human15", image: human15, initialSpawnDistance: 400 },
-  { id: 20, type: "human16", image: human16, initialSpawnDistance: 200 },
+  { id: 4, type: "human1", image: human1, spawnTier: "medium" },
+  { id: 5, type: "human2", image: human2, spawnTier: "frequent" },
+  { id: 6, type: "human3", image: human3, spawnTier: "medium" },
+  { id: 7, type: "human4", image: human4, spawnTier: "rare" },
+  { id: 8, type: "human5", image: human5, spawnTier: "medium" },
+  { id: 9, type: "human6", image: human6, spawnTier: "medium" },
+  { id: 10, type: "human7", image: human7, spawnTier: "rare" },
+  { id: 11, type: "human8", image: human8, spawnTier: "frequent" },
+  { id: 12, type: "human9", image: human9, spawnTier: "frequent" },
+  { id: 13, type: "human10", image: human10, spawnTier: "rare" },
+  { id: 15, type: "human11", image: human11, spawnTier: "rare" },
+  { id: 16, type: "human12", image: human12, spawnTier: "medium" },
+  { id: 17, type: "human13", image: human13, spawnTier: "frequent" },
+  { id: 18, type: "human14", image: human14, spawnTier: "rare" },
+  { id: 19, type: "human15", image: human15, spawnTier: "rare" },
+  { id: 20, type: "human16", image: human16, spawnTier: "medium" },
 ];
 
 const getDataSubObects = () => {

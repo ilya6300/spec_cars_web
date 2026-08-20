@@ -39,8 +39,9 @@ alwaysApply: false
 ## Перед началом работы
 
 1. Прочитай `.cursor/planner/PROJECT_PRINCIPLES.md`, `.cursor/planner/SPEC.md` и активную задачу в `.cursor/planner/TASKS.md`.
-2. **Фаза анализа** — см. `evidence-based-work.mdc` (чтение файлов, grep, таблица влияния, gate).
-3. **Только после gate** — приступай к коду.
+2. При спавне/квестах/балансе — **`src/state/event.config.js`** и **`event-config.mdc`**: шансы и дистанции только там.
+3. **Фаза анализа** — см. `evidence-based-work.mdc` (чтение файлов, grep, таблица влияния, gate).
+4. **Только после gate** — приступай к коду.
 
 **Строго запрещено додумывать.** Нет данных → **`Needs Clarification`**.
 

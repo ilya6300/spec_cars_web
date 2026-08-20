@@ -14,10 +14,11 @@
 
 1. **`.cursor/planner/PROJECT_PRINCIPLES.md`**
 2. **`.cursor/planner/GAME_UNITS.md`** — дистанции: world px ÷ 20 = игровые метры
-3. **`.cursor/planner/SPEC.md`** и активная задача в **`.cursor/planner/TASKS.md`**
-3. **Реальный код** затронутых файлов (прочитать, не предполагать содержимое)
+3. **`src/state/event.config.js`** + **`event-config.mdc`** — шансы и дистанции спавна/квестов (если задача их затрагивает)
+4. **`.cursor/planner/SPEC.md`** и активная задача в **`.cursor/planner/TASKS.md`**
+5. **Реальный код** затронутых файлов (прочитать, не предполагать содержимое)
 
-Правила: `evidence-based-work.mdc`, `safe-changes.mdc`, `game-development.mdc`.
+Правила: `evidence-based-work.mdc`, `safe-changes.mdc`, `game-development.mdc`, `event-config.mdc`.
 
 ---
 
@@ -65,6 +66,12 @@
 
 Приступать к коду **только** если выполнен checklist gate из `evidence-based-work.mdc`.
 
+**Gate event.config.js** (если задача про спавн, квесты, объекты или баланс):
+
+- новые/изменённые шансы и дистанции — **сначала** в `src/state/event.config.js`;
+- `objects.jsx`, `*Constants.js`, сторы — **import**, без дублирующих литералов;
+- SPEC ссылается на **имена констант** из `event.config.js`.
+
 При противоречии SPEC ↔ код — **`Needs Clarification`**, не выбирать самому.
 
 ---
@@ -72,6 +79,7 @@
 ## Фаза 2: Реализация
 
 - Минимальный diff по SPEC.
+- **event.config.js:** не добавлять литералы `*_CHANCE`, `minDistance`, `maxDistance`, `initialSpawnDistance`, gate/интервалов спавна вне `src/state/event.config.js` (`event-config.mdc`).
 - MobX: `observer`, `runInAction`, мутации через методы сторов.
 - Движение и физика — `deltaTime`.
 - **Адаптивная разработка (обязательно):** игра работает на ПК и телефонах с разным экраном. Размеры и позиции — относительно viewport (`100dvh`, `vw`/`vh`, `clamp()`, `viewportWidth` в game loop), не хардкод «под один размер». Media queries — в `src/style/media.css` или рядом с компонентом по образцу проекта. Touch targets — достаточные для пальца (см. PROJECT_PRINCIPLES §12).
@@ -95,6 +103,7 @@
 
 - Писать код до завершения фазы анализа.
 - Утверждать поведение без цитаты из кода или SPEC.
+- Добавлять шансы/дистанции спавна вне `src/state/event.config.js`.
 - Выполнять Code Review.
 - Менять `TASKS.md`, статусы.
 - Добавлять npm-пакеты без `SPEC.md`.
@@ -112,6 +121,7 @@
 
 - **`evidence-based-work.mdc`** — анализ до кода
 - **`.cursor/planner/PROJECT_PRINCIPLES.md`**
+- **`event-config.mdc`** — шансы и дистанции в `src/state/event.config.js`
 - `safe-changes.mdc`
 - `workflow.mdc`
 - `documentation-sources.mdc`

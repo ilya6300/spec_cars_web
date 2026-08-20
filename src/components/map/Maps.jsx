@@ -4,15 +4,25 @@ import { observer } from "mobx-react-lite";
 
 import Objects, { objectConfigByType } from "../../state/objects";
 
-import { isNightChaseContext } from "../../state/modeScoring";
+import {
+  isNightChaseContext,
+  isPeacefulHumanType,
+} from "../../state/modeScoring";
+import { getPeacefulIdleAnimationStyle } from "../../state/peacefulHumanIdle";
+import { getSidewalkBottomPercent } from "../../state/peacefulHumanSpawn";
 
 import { isQuestCrossingType } from "../../state/questCrossingConstants";
-import { isParkingZoneType } from "../../state/parkingZoneConstants";
+import {
+  isParkingZoneType,
+  PARKING_UNIT_IMAGE,
+} from "../../state/parkingZoneConstants";
 import { isRoadsideBreakdownType } from "../../state/roadsideBreakdownConstants";
 
 import { useMapScrollSync } from "../../hooks/useMapScrollSync";
 
 import "../../style/quest_crossing_object.css";
+import "../../style/peaceful_human_idle.css";
+import "../../style/parking_zone_layer.css";
 
 
 
@@ -72,6 +82,47 @@ export const Maps = observer(({ map, carStore, onClickObject }) => {
 
 
 
+        {activeObjects
+          .filter((obj) => isParkingZoneType(obj.typeId) && obj.parkingZone)
+          .map((zoneObj) => {
+            const pz = zoneObj.parkingZone;
+
+            return (
+              <div
+                key={`parking-markings-${zoneObj.uid}`}
+                className="parking-zone-markings-in-map"
+                data-type="parking-zone-markings"
+                data-uid={zoneObj.uid}
+                style={{
+                  left: `${zoneObj.worldX}px`,
+                  width: `${pz.totalWidth}px`,
+                  height: `${pz.spotHeight}px`,
+                }}
+              >
+                {pz.spots.map((spot) => (
+                  <div
+                    key={spot.index}
+                    className="parking-zone-spot"
+                    style={{
+                      left: `${spot.index * pz.spotWidth}px`,
+                      width: `${pz.spotWidth}px`,
+                      height: `${pz.spotHeight}px`,
+                    }}
+                  >
+                    <img
+                      src={PARKING_UNIT_IMAGE}
+                      alt=""
+                      className="parking-zone-spot-marking"
+                      draggable={false}
+                    />
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+
+
+
         {activeObjects.map((obj) => {
 
           const config = objectConfigByType[obj.typeId];
@@ -114,6 +165,10 @@ export const Maps = observer(({ map, carStore, onClickObject }) => {
           if (isRoadsideBreakdownType(obj.typeId)) return null;
 
           const isQuestCrossing = isQuestCrossingType(obj.typeId);
+          const isPeacefulIdle =
+            isPeacefulHumanType(obj.typeId) &&
+            !isQuestCrossing &&
+            !isNightChaseContext(map);
 
           return (
 
@@ -121,7 +176,7 @@ export const Maps = observer(({ map, carStore, onClickObject }) => {
 
               key={obj.uid}
 
-              className={`game-object${isQuestCrossing ? " game-object--quest-crossing" : ""}`}
+              className={`game-object${isQuestCrossing ? " game-object--quest-crossing" : ""}${isPeacefulIdle ? " game-object--peaceful-idle" : ""}`}
 
               data-type={obj.typeId}
 
@@ -137,21 +192,37 @@ export const Maps = observer(({ map, carStore, onClickObject }) => {
 
                   ? {}
 
-                  : {
+                  : isPeacefulIdle
 
-                      bottom: "65%",
+                    ? {
 
-                      zIndex: config.zIndex,
+                        bottom: `${getSidewalkBottomPercent(obj.pedestrian?.sidewalkSlot)}%`,
 
-                      width: `${config.width}px`,
+                        zIndex: config.zIndex,
 
-                      height: `${config.height}px`,
+                        width: `${config.width}px`,
 
-                    }),
+                        height: `${config.height}px`,
+
+                      }
+
+                    : {
+
+                        bottom: "65%",
+
+                        zIndex: config.zIndex,
+
+                        width: `${config.width}px`,
+
+                        height: `${config.height}px`,
+
+                      }),
 
                 backgroundSize: "contain",
 
                 backgroundRepeat: "no-repeat",
+
+                ...(isPeacefulIdle ? getPeacefulIdleAnimationStyle(obj.uid) : {}),
 
               }}
 

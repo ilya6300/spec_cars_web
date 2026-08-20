@@ -10,10 +10,20 @@
 
 ---
 
-## PLAN: Radio Quest System
+## PLAN: Оживление мира (PLAN.md § «В работу»)
 
-**Статус PLAN:** `Approved` — **волна закрыта** (TASK-062…068 → DONE.md)  
-**Осталось:** TASK-061 (backlog, Low)
+**Статус PLAN:** `Complete` — все волны закрыты 20 авг. 2026  
+**Порядок внедрения:** A1 → A0 spawn → A2+группы → A0 реакция → баланс парковки ✅
+
+| Задача | Волна | Статус |
+|--------|-------|--------|
+| TASK-069 | 1 — A1 idle CSS | **DONE** |
+| TASK-070 | 2 — A0 spawn/sidewalk/cap | **DONE** |
+| TASK-071 | 3 — A2 drift + группы | **DONE** |
+| TASK-072 | 4 — A0 реакция human_aggr | **DONE** |
+| TASK-073 | 5 — баланс парковки 2 очка | **DONE** |
+
+**Backlog (другой план):** TASK-061 (Maps.jsx scroll)
 
 ---
 

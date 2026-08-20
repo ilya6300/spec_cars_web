@@ -1,0 +1,61 @@
+---
+description: Единый реестр шансов и дистанций спавна/квестов — src/state/event.config.js
+alwaysApply: true
+---
+
+# Настройки шансов и расстояний — event.config.js
+
+**Единственный источник правды:** `src/state/event.config.js`.
+
+## Что обязано быть в event.config.js
+
+Все **игровые** настройки с **шансом** или **расстоянием/интервалом**:
+
+| Категория | Примеры |
+|---|---|
+| **Шансы** | `*_CHANCE`, `*_SPAWN_CHANCE`, вероятность события/ветки |
+| **Дистанции спавна** | `minDistance`, `maxDistance`, `initialSpawnDistance`, `*_MIN_DISTANCE`, `*_MAX_DISTANCE` (в **world px**) |
+| **Временные gate спавна** | `*_SPAWN_GATE_SEC`, `*_RESPAWN_*_SEC`, интервалы появления квестов/объектов |
+| **Интервалы проверки** | `*_CHECK_INTERVAL_SEC`, если влияют на частоту событий |
+
+Комментарий к дистанции в world px — **игровые метры** по `GAME_UNITS.md` (÷ 20).
+
+## Что остаётся в *Constants.js / objects.jsx
+
+- типы объектов, z-index, размеры спрайтов (width/height);
+- CSS-классы, строковые enum, чистые геометрические хелперы;
+- **без** литералов шанса и **без** литералов дистанции спавна.
+
+`*Constants.js` и `objects.jsx` **импортируют** значения из `event.config.js`, не дублируют.
+
+## Паттерн в коде
+
+```javascript
+// event.config.js — объявление
+export const PARKING_ILLEGAL_CHANCE = 0.2;
+
+// parkingZoneConstants.js — re-export или import
+import { PARKING_ILLEGAL_CHANCE } from "./event.config.js";
+export { PARKING_ILLEGAL_CHANCE };
+```
+
+Новые настройки шанса/дистанции — **сначала** в `event.config.js`, затем import в модуль потребителя.
+
+## Кто проверяет
+
+| Агент | Обязанность |
+|---|---|
+| **Architect** | В SPEC — ссылка на константы `event.config.js`, не «магические числа» |
+| **Developer** | Не добавлять литералы шанса/дистанции вне `event.config.js` |
+| **Orchestrator** | Gate перед `IN_DEVELOPMENT` и `REVIEW_APPROVED`: SPEC/ diff ссылаются на `event.config.js` |
+| **Reviewer** | **Блокирующий reject**, если новые/изменённые шансы или дистанции не из `event.config.js` |
+
+## Проверка Reviewer (grep)
+
+При diff в `src/state/`, `objects.jsx`, квест-модулях:
+
+1. Найти новые литералы `CHANCE`, `minDistance`, `maxDistance`, `initialSpawnDistance`, `*_DISTANCE`, `*_GATE_SEC`, `*_INTERVAL_*`.
+2. Убедиться: значение объявлено в `event.config.js` и импортировано потребителем.
+3. SPEC/TASKS с балансом — имена констант из `event.config.js`.
+
+Связанные правила: `game-units.mdc`, `evidence-based-work.mdc`, `documentation-sources.mdc`.

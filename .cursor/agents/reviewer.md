@@ -12,11 +12,12 @@
 
 1. **`.cursor/planner/PROJECT_PRINCIPLES.md`**
 2. **`.cursor/planner/GAME_UNITS.md`** — при проверке дистанций в SPEC
-3. **`.cursor/planner/SPEC.md`** и активная задача в **`.cursor/planner/TASKS.md`**
-4. **Diff изменений** и **исходные файлы** (прочитать затронутые участки)
-5. Отчёт Developer о прочитанных файлах и grep (если есть)
+3. **`src/state/event.config.js`** + **`event-config.mdc`** — шансы и дистанции спавна/квестов
+4. **`.cursor/planner/SPEC.md`** и активная задача в **`.cursor/planner/TASKS.md`**
+5. **Diff изменений** и **исходные файлы** (прочитать затронутые участки)
+6. Отчёт Developer о прочитанных файлах и grep (если есть)
 
-Правила: `evidence-based-work.mdc`, `game-review.mdc`, `safe-changes.mdc`.
+Правила: `evidence-based-work.mdc`, `game-review.mdc`, `safe-changes.mdc`, `event-config.mdc`.
 
 ---
 
@@ -52,7 +53,18 @@
 
 MobX, game loop, z-index, квесты, тесты, деплой.
 
-### 1.5. Адаптивность (обязательно)
+### 1.5. event.config.js (обязательно)
+
+Если diff затрагивает спавн, квесты, объекты или баланс (`src/state/`, `objects.jsx`, `*Constants.js`):
+
+1. Прочитать `src/state/event.config.js`.
+2. Grep по diff: новые литералы `CHANCE`, `minDistance`, `maxDistance`, `initialSpawnDistance`, `*_DISTANCE`, `*_GATE_SEC`, `*_INTERVAL_*`.
+3. Каждое такое значение — **объявлено** в `event.config.js` и **импортировано** потребителем.
+4. SPEC с балансом — ссылается на **имена констант**, не на числа.
+
+Нарушение — **блокирующий reject** (`game-review.mdc` § event.config.js).
+
+### 1.6. Адаптивность (обязательно)
 
 Игра — на ПК и мобильных с разными экранами. Проверить:
 

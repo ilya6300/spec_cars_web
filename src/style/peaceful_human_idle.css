@@ -1,0 +1,20 @@
+.game-object--peaceful-idle {
+  --peaceful-idle-amplitude: 3px;
+  animation: peaceful-human-idle-sway 3s ease-in-out infinite;
+}
+
+@keyframes peaceful-human-idle-sway {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(calc(-1 * var(--peaceful-idle-amplitude, 3px)));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-object--peaceful-idle {
+    animation: none;
+  }
+}

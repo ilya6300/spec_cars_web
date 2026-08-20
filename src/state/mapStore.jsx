@@ -7,9 +7,11 @@ import {
 import { dataObjectsSub } from "./subobject";
 import {
   CROSS_ON_RED_CHANCE,
+  clampPeacefulWorldXOutsideAllQuestCrossings,
   getCrosswalkStartX,
   getCrosswalkStopX,
   getQuestCrossingLayout,
+  getVisibleQuestCrossingExclusionZones,
   isQuestCrossingEngaged,
   isQuestCrossingType,
   QUEST_CROSSING_HUMAN_WIDTH,
@@ -70,6 +72,30 @@ import {
   ROAD_MARKING_STEP_PX,
   ROAD_MARKING_WIDTH_PX,
 } from "./roadMarkingConstants";
+import {
+  buildPeacefulGroupMembers,
+  clampFleeWorldX,
+  computeFollowerWorldX,
+  computeFleeSpeedX,
+  computePeacefulHumanWorldX,
+  createGroupId,
+  createPeacefulPedestrianProfile,
+  findNearestAggrWithinRadius,
+  getEffectiveDriftSpeedX,
+  getPeacefulSpawnInterval,
+  getVisibleHumanAggrObjects,
+  isPeacefulHumanCapReached,
+  isPeacefulHumanVisibleOnScreen,
+  PEACEFUL_HUMAN_WIDTH_PX,
+  pickPeacefulGroupSize,
+  pickSidewalkSlot,
+  resetPeacefulAggrReaction,
+  resolvePeacefulHumanSpawnWorldX,
+  shouldSpawnPeacefulGroup,
+  tickPeacefulDriftX,
+  tickPeacefulMovementState,
+  tickPeacefulYDriftSlot,
+} from "./peacefulHumanSpawn";
 import {
   computeRoadsideBreakdownCarScreenX,
   isRoadsideBreakdownType,
@@ -212,7 +238,9 @@ class MapStore {
     this.updateQuestCarSpawner(deltaTime);
     this.updateRoadMarkings(viewportWidth);
     this.spawnEnvironmentObjects(viewportWidth);
+    this.updatePeacefulPedestrians(deltaTime);
     this.despawnObjects(viewportWidth);
+    this.updateOrientationQuest();
     this.triggerAppearEvents(carStore);
     this.updateCollectibleStarSpawner(deltaTime, viewportWidth);
     this.checkCollectibleStarPickup();
@@ -486,6 +514,15 @@ class MapStore {
     });
   }
 
+  hasVisibleParkingZoneOnScreen(viewportWidth = this.lastViewportWidth) {
+    return this.activeObjects.some((obj) => {
+      if (!isParkingZoneType(obj.typeId) || !obj.parkingZone) return false;
+      const screenX = obj.worldX - this.offsetX;
+      const width = this.getParkingZoneWidth(obj);
+      return screenX < viewportWidth && screenX + width > 0;
+    });
+  }
+
   isEnemyQuestCarSpawnBlocked() {
     return (
       this.isPoliceQuestActive ||
@@ -546,6 +583,8 @@ class MapStore {
 
   // Спавн объектов окружения справа за экраном
   spawnEnvironmentObjects(viewportWidth) {
+    let peacefulSpawnedThisTick = false;
+
     objectConfigs.forEach((config) => {
       if (config.type === "collectible_star") {
         return;
@@ -570,6 +609,109 @@ class MapStore {
       if (isRoadsideBreakdownType(config.type)) {
         if (isNightChaseContext(this)) return;
         if (this.isEvacuationInProgress() || this.hasPendingEvacuationTarget()) {
+          return;
+        }
+      }
+
+      if (isPeacefulHumanType(config.type)) {
+        if (peacefulSpawnedThisTick) {
+          return;
+        }
+
+        const nextSpawn = this.nextSpawnDistances[config.type];
+        if (this.offsetX >= nextSpawn) {
+          if (
+            isPeacefulHumanCapReached(
+              this.activeObjects,
+              this.offsetX,
+              viewportWidth,
+            )
+          ) {
+            return;
+          }
+
+          const questCrossingZones = getVisibleQuestCrossingExclusionZones(
+            this.activeObjects,
+            this.offsetX,
+            viewportWidth,
+          );
+          const worldX = resolvePeacefulHumanSpawnWorldX(
+            this.activeObjects,
+            this.offsetX,
+            viewportWidth,
+            Math.random,
+            questCrossingZones,
+          );
+          const sidewalkSlot = pickSidewalkSlot();
+
+          if (shouldSpawnPeacefulGroup()) {
+            const groupId = createGroupId();
+            const groupSize = pickPeacefulGroupSize();
+            const humanTypes = dataObjectsSub
+              .filter((entry) => /^human\d+$/.test(entry.type))
+              .map((entry) => entry.type);
+            const followerTypeIds = [];
+            const followerPool =
+              humanTypes.length > 1
+                ? humanTypes.filter((typeId) => typeId !== config.type)
+                : humanTypes;
+
+            for (let i = 0; i < groupSize - 1; i += 1) {
+              followerTypeIds.push(
+                followerPool[Math.floor(Math.random() * followerPool.length)],
+              );
+            }
+
+            const members = buildPeacefulGroupMembers({
+              groupId,
+              leaderWorldX: worldX,
+              sidewalkSlot,
+              leaderTypeId: config.type,
+              followerTypeIds,
+            });
+
+            runInAction(() => {
+              for (const member of members) {
+                this.activeObjects.push({
+                  uid: member.uid,
+                  typeId: member.typeId,
+                  worldX: member.worldX,
+                  appeared: false,
+                  pedestrian: member.pedestrian,
+                });
+              }
+            });
+          } else {
+            const uid = `obj_${config.type}_${Date.now()}_${Math.random()}`;
+            const pedestrian = createPeacefulPedestrianProfile({
+              uid,
+              worldX,
+              sidewalkSlot,
+            });
+
+            runInAction(() => {
+              this.activeObjects.push({
+                uid,
+                typeId: config.type,
+                worldX,
+                appeared: false,
+                pedestrian,
+              });
+            });
+          }
+
+          this.nextSpawnDistances[config.type] =
+            nextSpawn + getPeacefulSpawnInterval(config);
+          peacefulSpawnedThisTick = true;
+        }
+        return;
+      }
+
+      if (config.type === "traffic_light") {
+        if (
+          this.hasVisibleParkingZoneOnScreen(viewportWidth) ||
+          this.isParkingFineActive()
+        ) {
           return;
         }
       }
@@ -613,6 +755,141 @@ class MapStore {
           nextSpawn +
           config.minDistance +
           Math.random() * (config.maxDistance - config.minDistance);
+      }
+    });
+  }
+
+  updatePeacefulPedestrians(deltaTime) {
+    if (isNightChaseContext(this)) return;
+
+    runInAction(() => {
+      const viewportWidth = this.lastViewportWidth;
+      const questCrossingZones = getVisibleQuestCrossingExclusionZones(
+        this.activeObjects,
+        this.offsetX,
+        viewportWidth,
+      );
+      const visibleAggrs = getVisibleHumanAggrObjects(
+        this.activeObjects,
+        this.offsetX,
+        viewportWidth,
+      );
+      const aggrOnScreen = visibleAggrs.length > 0;
+
+      const applyQuestCrossingBoundary = (obj, nextWorldX) => {
+        const previousWorldX = obj.worldX;
+        const clampedWorldX = clampPeacefulWorldXOutsideAllQuestCrossings(
+          nextWorldX,
+          PEACEFUL_HUMAN_WIDTH_PX,
+          questCrossingZones,
+          previousWorldX,
+        );
+        if (clampedWorldX !== nextWorldX) {
+          obj.pedestrian.driftSpeedX = 0;
+        }
+        obj.worldX = clampedWorldX;
+      };
+
+      const peaceful = this.activeObjects.filter(
+        (obj) => isPeacefulHumanType(obj.typeId) && obj.pedestrian,
+      );
+      const leadersByGroupId = new Map();
+
+      for (const obj of peaceful) {
+        const pedestrian = obj.pedestrian;
+        if (pedestrian.groupId && pedestrian.pairRole === "leader") {
+          leadersByGroupId.set(pedestrian.groupId, obj);
+        }
+      }
+
+      if (!aggrOnScreen) {
+        for (const obj of peaceful) {
+          resetPeacefulAggrReaction(obj.pedestrian);
+        }
+      }
+
+      for (const obj of peaceful) {
+        const pedestrian = obj.pedestrian;
+        if (pedestrian.pairRole === "follower") continue;
+
+        const isVisible = isPeacefulHumanVisibleOnScreen(
+          obj,
+          this.offsetX,
+          viewportWidth,
+        );
+        let reactionActive = false;
+
+        if (aggrOnScreen && isVisible) {
+          const nearestAggr = findNearestAggrWithinRadius(
+            obj.worldX,
+            visibleAggrs,
+            pedestrian.fleeRadius,
+          );
+
+          if (nearestAggr) {
+            reactionActive = true;
+
+            if (pedestrian.reactionToAggr === "watch") {
+              pedestrian.driftSpeedX = 0;
+            } else {
+              const fleeSpeedX = computeFleeSpeedX(
+                obj.worldX,
+                nearestAggr.worldX,
+                pedestrian.fleeSpeed,
+              );
+              applyQuestCrossingBoundary(
+                obj,
+                clampFleeWorldX(
+                  tickPeacefulDriftX(obj.worldX, fleeSpeedX, deltaTime),
+                  pedestrian.spawnWorldX,
+                  pedestrian.fleeMaxDistance,
+                ),
+              );
+            }
+          } else if (
+            pedestrian.reactionToAggr === "watch" &&
+            pedestrian.driftSpeedX === 0
+          ) {
+            resetPeacefulAggrReaction(pedestrian);
+          }
+        }
+
+        if (!reactionActive) {
+          tickPeacefulMovementState(pedestrian, deltaTime, Math.random);
+          const speedX = getEffectiveDriftSpeedX(pedestrian);
+          applyQuestCrossingBoundary(
+            obj,
+            tickPeacefulDriftX(obj.worldX, speedX, deltaTime),
+          );
+          if (pedestrian.isWalking) {
+            tickPeacefulYDriftSlot(pedestrian, deltaTime, Math.random);
+          }
+        }
+      }
+
+      for (const obj of peaceful) {
+        const pedestrian = obj.pedestrian;
+        if (pedestrian.pairRole !== "follower") continue;
+
+        const leader = leadersByGroupId.get(pedestrian.groupId);
+        if (!leader) continue;
+
+        pedestrian.isWalking = leader.pedestrian.isWalking;
+        pedestrian.driftSpeedX = leader.pedestrian.driftSpeedX;
+        pedestrian.sidewalkSlot = leader.pedestrian.sidewalkSlot;
+        const leaderSpeedX =
+          leader.pedestrian.reactionToAggr === "watch" &&
+          leader.pedestrian.driftSpeedX === 0
+            ? 0
+            : getEffectiveDriftSpeedX(leader.pedestrian);
+        applyQuestCrossingBoundary(
+          obj,
+          computeFollowerWorldX(
+            leader.worldX,
+            leaderSpeedX,
+            pedestrian.groupFollowOffsetX,
+          ),
+        );
       }
     });
   }
@@ -679,6 +956,22 @@ class MapStore {
               obj.longPressTimeout = null;
             }
             this.clearRoadsideBreakdownState(obj);
+            return false;
+          }
+          return true;
+        }
+
+        if (
+          this.orientationQuest.active &&
+          obj.uid === this.orientationQuest.targetUid
+        ) {
+          const visible = screenX > -config.width;
+          if (!visible) {
+            if (obj.longPressTimeout) {
+              clearTimeout(obj.longPressTimeout);
+              obj.longPressTimeout = null;
+            }
+            this.clearOrientationQuestIfTargetDespawned(obj);
             return false;
           }
           return true;
@@ -881,6 +1174,37 @@ class MapStore {
     if (this.pedestrianCrossingTargetObject?.uid === obj.uid) {
       this.isPedestrianCrossingQuestActive = false;
       this.pedestrianCrossingTargetObject = null;
+    }
+  }
+
+  clearOrientationQuestIfTargetDespawned(obj) {
+    if (!this.orientationQuest.active) return;
+    if (obj.uid !== this.orientationQuest.targetUid) return;
+    if (
+      this.isPoliceQuestActive &&
+      this.questTargetObject?.uid === this.orientationQuest.targetUid
+    ) {
+      return;
+    }
+    this.finishOrientationQuest();
+  }
+
+  updateOrientationQuest() {
+    if (!this.orientationQuest.active) return;
+    if (
+      this.isPoliceQuestActive &&
+      this.questTargetObject?.uid === this.orientationQuest.targetUid
+    ) {
+      return;
+    }
+
+    const targetExists = this.activeObjects.some(
+      (obj) => obj.uid === this.orientationQuest.targetUid,
+    );
+    if (!targetExists) {
+      runInAction(() => {
+        this.finishOrientationQuest();
+      });
     }
   }
 

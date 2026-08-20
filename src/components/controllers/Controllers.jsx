@@ -25,204 +25,207 @@ export const Controllers = observer(
     controlsBlocked = false,
     onEmptyGasPress,
   }) => {
-  const [ignitionFlash, setIgnitionFlash] = useState(null);
-  const prevIgnitionRef = useRef(activeCarStore.isIgnitionOn);
+    const [ignitionFlash, setIgnitionFlash] = useState(null);
+    const prevIgnitionRef = useRef(activeCarStore.isIgnitionOn);
 
-  useEffect(() => {
-    if (prevIgnitionRef.current !== activeCarStore.isIgnitionOn) {
-      setIgnitionFlash(
-        activeCarStore.isIgnitionOn ? "ignition-key--flash-on" : "ignition-key--flash-off",
-      );
-      prevIgnitionRef.current = activeCarStore.isIgnitionOn;
-      const timer = setTimeout(() => setIgnitionFlash(null), 400);
-      return () => clearTimeout(timer);
-    }
-    return undefined;
-  }, [activeCarStore.isIgnitionOn]);
-
-  useEffect(() => {
-    const releaseGasIfPressed = () => {
-      if (activeCarStore.isGasPressed) {
-        activeCarStore.releaseGas();
+    useEffect(() => {
+      if (prevIgnitionRef.current !== activeCarStore.isIgnitionOn) {
+        setIgnitionFlash(
+          activeCarStore.isIgnitionOn
+            ? "ignition-key--flash-on"
+            : "ignition-key--flash-off",
+        );
+        prevIgnitionRef.current = activeCarStore.isIgnitionOn;
+        const timer = setTimeout(() => setIgnitionFlash(null), 400);
+        return () => clearTimeout(timer);
       }
-    };
+      return undefined;
+    }, [activeCarStore.isIgnitionOn]);
 
-    window.addEventListener("pointerup", releaseGasIfPressed);
-    window.addEventListener("pointercancel", releaseGasIfPressed);
-    window.addEventListener("blur", releaseGasIfPressed);
-
-    return () => {
-      window.removeEventListener("pointerup", releaseGasIfPressed);
-      window.removeEventListener("pointercancel", releaseGasIfPressed);
-      window.removeEventListener("blur", releaseGasIfPressed);
-    };
-  }, [activeCarStore]);
-
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (controlsBlocked) return;
-
-      const { code, repeat } = event;
-
-      if (code === "Space") {
-        event.preventDefault();
-        if (activeCarStore.fuel <= 0) {
-          if (activeCarStore.isIgnitionOn && onEmptyGasPress) {
-            onEmptyGasPress();
-          }
-          return;
-        }
-        activeCarStore.pressGas();
-        return;
-      }
-
-      if (repeat) return;
-
-      const gear = mapKeyCodeToGear(code);
-      if (gear) {
-        activeCarStore.shiftGear(gear);
-        return;
-      }
-
-      switch (code) {
-        case "ControlLeft":
-          activeCarStore.toggleIgnition();
-          break;
-        case "ShiftLeft":
-        case "ShiftRight":
-          activeCarStore.shiftGear(shiftGearUp(activeCarStore.gear));
-          break;
-        case "KeyC":
-          activeCarStore.toggleSirena();
-          break;
-        default:
-          break;
-      }
-    };
-
-    const handleKeyUp = (event) => {
-      if (event.code === "Space") {
-        event.preventDefault();
-        if (!controlsBlocked) {
+    useEffect(() => {
+      const releaseGasIfPressed = () => {
+        if (activeCarStore.isGasPressed) {
           activeCarStore.releaseGas();
         }
-      }
-    };
+      };
 
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
+      window.addEventListener("pointerup", releaseGasIfPressed);
+      window.addEventListener("pointercancel", releaseGasIfPressed);
+      window.addEventListener("blur", releaseGasIfPressed);
 
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-    };
-  }, [activeCarStore, controlsBlocked, onEmptyGasPress]);
+      return () => {
+        window.removeEventListener("pointerup", releaseGasIfPressed);
+        window.removeEventListener("pointercancel", releaseGasIfPressed);
+        window.removeEventListener("blur", releaseGasIfPressed);
+      };
+    }, [activeCarStore]);
 
-  const ignitionClass = [
-    "ignition-key",
-    ignitionFlash,
-  ]
-    .filter(Boolean)
-    .join(" ");
+    useEffect(() => {
+      const handleKeyDown = (event) => {
+        if (controlsBlocked) return;
 
-  const handlePressGas = () => {
-    if (controlsBlocked) return;
-    if (activeCarStore.fuel <= 0) {
-      if (activeCarStore.isIgnitionOn && onEmptyGasPress) {
-        onEmptyGasPress();
-      }
-      return;
-    }
-    activeCarStore.pressGas();
-  };
+        const { code, repeat } = event;
 
-  const handleReleaseGas = () => {
-    if (controlsBlocked) return;
-    activeCarStore.releaseGas();
-  };
-
-  const handleGasPointerDown = (event) => {
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    handlePressGas();
-  };
-
-  const handleGasPointerUp = (event) => {
-    event.preventDefault();
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-    handleReleaseGas();
-  };
-
-  const handleRatioPress = () => {
-    if (ratioStore?.isFlowActive) return;
-    tutorialStore?.onRatioClicked?.();
-    mapStore?.handleRatioPress();
-  };
-
-  const showRatioController = gameMode === "free" || gameMode === "timed";
-  const ratioClassName = [
-    "ratio-img-controller",
-    mapStore?.hasPendingEvacuationTarget()
-      ? "ratio-img-controller--has-target"
-      : null,
-    ratioStore?.isFlowActive ? "ratio-img-controller--disabled" : null,
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  return (
-    <div className="controllers_container">
-      <img
-        className={ignitionClass}
-        data-type="ignition"
-        alt="Зажигание"
-        src={activeCarStore.isIgnitionOn ? keyActiveImg : keyDeactiveImg}
-        onClick={() => activeCarStore.toggleIgnition()}
-        onTouchEnd={activateControl(() => activeCarStore.toggleIgnition())}
-        onContextMenu={(e) => e.preventDefault()}
-      />
-      <GearBox
-        gear={activeCarStore.gear}
-        shiftGear={(g) => activeCarStore.shiftGear(g)}
-      />
-
-      <img
-        className={`gas_pedal ${activeCarStore.isGasPressed ? "pressed" : ""}`}
-        data-type="gas-pedal"
-        alt="Педаль газа"
-        src={gasPedal}
-        onContextMenu={(e) => e.preventDefault()}
-        onPointerDown={handleGasPointerDown}
-        onPointerUp={handleGasPointerUp}
-        onPointerCancel={handleGasPointerUp}
-      />
-      <div className="device_container">
-        <img
-          className={
-            activeCarStore.sirena ? "ignition-sirena-on" : "ignition-sirena"
+        if (code === "Space") {
+          event.preventDefault();
+          if (activeCarStore.fuel <= 0) {
+            if (activeCarStore.isIgnitionOn && onEmptyGasPress) {
+              onEmptyGasPress();
+            }
+            return;
           }
-          data-type="siren"
-          alt="Сирена"
-          src={sirenaBtn}
-          onClick={() => activeCarStore.toggleSirena()}
-          onTouchEnd={activateControl(() => activeCarStore.toggleSirena())}
+          activeCarStore.pressGas();
+          return;
+        }
+
+        if (repeat) return;
+
+        const gear = mapKeyCodeToGear(code);
+        if (gear) {
+          activeCarStore.shiftGear(gear);
+          return;
+        }
+
+        switch (code) {
+          case "ControlLeft":
+            activeCarStore.toggleIgnition();
+            break;
+          case "ShiftLeft":
+          case "ShiftRight":
+            activeCarStore.shiftGear(shiftGearUp(activeCarStore.gear));
+            break;
+          case "KeyC":
+            activeCarStore.toggleSirena();
+            break;
+          default:
+            break;
+        }
+      };
+
+      const handleKeyUp = (event) => {
+        if (event.code === "Space") {
+          event.preventDefault();
+          if (!controlsBlocked) {
+            activeCarStore.releaseGas();
+          }
+        }
+      };
+
+      window.addEventListener("keydown", handleKeyDown);
+      window.addEventListener("keyup", handleKeyUp);
+
+      return () => {
+        window.removeEventListener("keydown", handleKeyDown);
+        window.removeEventListener("keyup", handleKeyUp);
+      };
+    }, [activeCarStore, controlsBlocked, onEmptyGasPress]);
+
+    const ignitionClass = ["ignition-key", ignitionFlash]
+      .filter(Boolean)
+      .join(" ");
+
+    const handlePressGas = () => {
+      if (controlsBlocked) return;
+      if (activeCarStore.fuel <= 0) {
+        if (activeCarStore.isIgnitionOn && onEmptyGasPress) {
+          onEmptyGasPress();
+        }
+        return;
+      }
+      activeCarStore.pressGas();
+    };
+
+    const handleReleaseGas = () => {
+      if (controlsBlocked) return;
+      activeCarStore.releaseGas();
+    };
+
+    const handleGasPointerDown = (event) => {
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      handlePressGas();
+    };
+
+    const handleGasPointerUp = (event) => {
+      event.preventDefault();
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      handleReleaseGas();
+    };
+
+    const handleRatioPress = () => {
+      if (ratioStore?.isFlowActive) return;
+      tutorialStore?.onRatioClicked?.();
+      mapStore?.handleRatioPress();
+    };
+
+    const showRatioController = gameMode === "free" || gameMode === "timed";
+    const ratioClassName = [
+      "ratio-img-controller",
+      mapStore?.hasPendingEvacuationTarget()
+        ? "ratio-img-controller--has-target"
+        : null,
+      ratioStore?.isFlowActive ? "ratio-img-controller--disabled" : null,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return (
+      <div className="controllers_container">
+        <img
+          className={ignitionClass}
+          data-type="ignition"
+          alt="Зажигание"
+          src={activeCarStore.isIgnitionOn ? keyActiveImg : keyDeactiveImg}
+          onClick={() => activeCarStore.toggleIgnition()}
+          onTouchEnd={activateControl(() => activeCarStore.toggleIgnition())}
           onContextMenu={(e) => e.preventDefault()}
         />
-        {showRatioController && (
+        <GearBox
+          gear={activeCarStore.gear}
+          shiftGear={(g) => activeCarStore.shiftGear(g)}
+        />
+
+        <img
+          className={`gas_pedal ${activeCarStore.isGasPressed ? "pressed" : ""}`}
+          data-type="gas-pedal"
+          alt="Педаль газа"
+          src={gasPedal}
+          onContextMenu={(e) => e.preventDefault()}
+          onPointerDown={handleGasPointerDown}
+          onPointerUp={handleGasPointerUp}
+          onPointerCancel={handleGasPointerUp}
+        />
+        <div className="device_container">
           <img
-            className={ratioClassName}
-            data-type="ratio"
-            alt="Рация"
-            src={ratio}
-            onClick={handleRatioPress}
-            onTouchEnd={activateControl(handleRatioPress)}
+            className={
+              activeCarStore.sirena ? "ignition-sirena-on" : "ignition-sirena"
+            }
+            data-type="siren"
+            alt="Сирена"
+            src={sirenaBtn}
+            onClick={() => activeCarStore.toggleSirena()}
+            onTouchEnd={activateControl(() => activeCarStore.toggleSirena())}
             onContextMenu={(e) => e.preventDefault()}
           />
-        )}
+          {showRatioController && (
+            <div
+              className={ratioClassName}
+              onClick={handleRatioPress}
+              onTouchEnd={activateControl(handleRatioPress)}
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              <img
+                className="ratio-img-controller-img"
+                data-type="ratio"
+                alt="Рация"
+                src={ratio}
+              />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
-},
+    );
+  },
 );

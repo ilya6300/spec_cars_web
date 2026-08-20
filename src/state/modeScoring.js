@@ -13,7 +13,7 @@ export const HELP_POINTS_BY_MODE = {
   free: {
     criminalArrest: 3,
     pedestrianFine: 1,
-    parkingFine: 4,
+    parkingFine: 2,
     roadsideHelp: 2,
     enemyChase: 4,
     orientationMatch: 1,
@@ -21,7 +21,7 @@ export const HELP_POINTS_BY_MODE = {
   timed: {
     criminalArrest: 3,
     pedestrianFine: 2,
-    parkingFine: 4,
+    parkingFine: 2,
     roadsideHelp: 2,
     enemyChase: 4,
     orientationMatch: 0,

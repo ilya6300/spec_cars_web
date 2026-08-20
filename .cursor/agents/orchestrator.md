@@ -18,11 +18,13 @@
 
 Все остальные агенты возвращают результат тебе.
 
-Глобальные правила: `workflow.mdc`, `documentation-sources.mdc`, `safe-changes.mdc`, `evidence-based-work.mdc`.
+Глобальные правила: `workflow.mdc`, `documentation-sources.mdc`, `safe-changes.mdc`, `evidence-based-work.mdc`, `event-config.mdc`.
 
 **Источник правды по архитектуре:** `.cursor/planner/PROJECT_PRINCIPLES.md`
 
 **Единицы расстояния:** `.cursor/planner/GAME_UNITS.md` — все дистанции в TASKS/диалоге в игровых метрах.
+
+**Шансы и дистанции спавна/квестов:** `src/state/event.config.js` — единый реестр (`event-config.mdc`). Orchestrator **обязан** проверять это на этапах Architect, Developer и Review.
 
 ---
 
@@ -184,6 +186,14 @@ Architect:
 
 Ты записываешь `SPEC.md`. Статус задачи: `ARCHITECTURE`. Чекпоинт: `[x] Архитектура готова`.
 
+**Gate event.config.js (обязательно):** если задача затрагивает спавн, квесты, баланс или объекты — в SPEC:
+
+- шансы и дистанции заданы **именами констант** из `src/state/event.config.js`;
+- нет «магических чисел» шанса/дистанции вне этого файла;
+- новые константы перечислены в разделе SPEC «Конфигурация» / «Баланс».
+
+Без этого gate — **не** переводи в `IN_DEVELOPMENT`.
+
 ---
 
 ### Этап 2b. Art Direction → Game Art Director (`game_art_director.md`)
@@ -217,7 +227,9 @@ Game Art Director:
 
 Orchestrator **не** переводит в `IN_DEVELOPMENT`, если gate не пройден или Developer вернул `Needs Clarification`.
 
-Разработчик читает **`PROJECT_PRINCIPLES.md`**, **`SPEC.md`** (включая UI/UX и Art Direction), задачу в `TASKS.md`, **прочитанный код** и grep.
+**Gate event.config.js:** diff не содержит новых литералов шанса/дистанции вне `src/state/event.config.js`; `objects.jsx` и `*Constants.js` импортируют оттуда (`event-config.mdc`).
+
+Разработчик читает **`PROJECT_PRINCIPLES.md`**, **`SPEC.md`** (включая UI/UX и Art Direction), задачу в `TASKS.md`, **`src/state/event.config.js`** (если задача про спавн/квесты/баланс), **прочитанный код** и grep.
 
 В отчёте Developer: прочитанные файлы, таблица влияния, результат тестов.
 
@@ -228,6 +240,8 @@ Orchestrator **не** переводит в `IN_DEVELOPMENT`, если gate не
 ### Этап 4. Review → Reviewer (`reviewer.md`)
 
 Reviewer проверяет diff **по SPEC и прочитанному коду**. Замечания — только с `файл:строка` или ссылкой на PROJECT_PRINCIPLES.
+
+**Gate event.config.js (обязательно):** Reviewer подтверждает, что настройки шансов и дистанций квестов/объектов берутся из `src/state/event.config.js` (чек-лист `game-review.mdc` § event.config.js). Без подтверждения — **не** переводи в `REVIEW_APPROVED`.
 
 Статус: `IN_REVIEW` → `REVIEW_APPROVED` или возврат Developer.
 
@@ -335,6 +349,7 @@ Game Art Director проверяет ассеты в игре:
 - Architect подготовил `SPEC.md`;
 - Art Direction пройден (если `assets` / `mixed`);
 - Developer реализовал функциональность с соблюдением PROJECT_PRINCIPLES;
+- настройки шансов/дистанций квестов и объектов — в `src/state/event.config.js` (`event-config.mdc`);
 - Reviewer одобрил изменения;
 - UI/UX приёмка пройдена (если `ui-ux` / `mixed`);
 - Art приёмка пройдена (если `assets` / `mixed`);

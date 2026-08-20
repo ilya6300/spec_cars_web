@@ -24,8 +24,99 @@
 **Parking fine quest (TASK-059):** закрыта 16 авг. 2026  
 **Mobile perf portrait rain + road-wet (TASK-060):** закрыта 17 авг. 2026  
 **Radio Quest System (TASK-062…068):** закрыта 19 авг. 2026  
-**Проверка Radio Quest:** Vitest 228/228, E2E parking-quest + orientation-quest pass  
+**Оживление мира — волна 1–5 (TASK-069…073):** закрыта 20 авг. 2026  
+**Проверка:** Vitest 289/289  
 **Источник UI wave:** `UI_UX_DRAFT.md`
+
+---
+
+## TASK-073: Баланс — эвакуация при неправильной парковке 2 очка
+
+**Статус:** DONE  
+**Закрыто:** 20 авг. 2026  
+**Контекст:** logic  
+**Циклы:** 0
+
+| Критерий | Результат |
+|---|---|
+| `parkingFine: 2` free/timed | ✅ |
+| `modeScoring.test.js` обновлён | ✅ |
+| Vitest 289/289 | ✅ |
+| Review APPROVED | ✅ |
+
+---
+
+## TASK-072: Реакция пешеходов на human_aggr (A0 часть 2)
+
+**Статус:** DONE  
+**Закрыто:** 20 авг. 2026  
+**Контекст:** logic  
+**Циклы:** 0
+
+| Критерий | Результат |
+|---|---|
+| 70/30 flee/watch при спавне | ✅ |
+| flee radius 180 px, clamp ±100 px | ✅ |
+| watch driftSpeedX = 0 | ✅ |
+| Сброс после ухода aggr | ✅ |
+| Unit + mapStore integration tests | ✅ |
+| Review APPROVED | ✅ |
+
+---
+
+## TASK-071: Движение по тротуару + группы (A2 + A0 группы)
+
+**Статус:** DONE  
+**Закрыто:** 20 авг. 2026  
+**Контекст:** logic  
+**Циклы:** 0
+
+| Критерий | Результат |
+|---|---|
+| driftSpeedX в game loop | ✅ |
+| Y-drift между sidewalkSlot | ✅ |
+| Группы leader/follower 60–120 px | ✅ |
+| capSlotId = groupId | ✅ |
+| Vitest 278/278 | ✅ |
+| Review APPROVED | ✅ |
+
+---
+
+## TASK-070: Спавн пешеходов — sidewalkSlot, интервалы, cap (A0 часть 1)
+
+**Статус:** DONE  
+**Закрыто:** 20 авг. 2026  
+**Контекст:** logic  
+**Циклы:** 0
+
+| Критерий | Результат |
+|---|---|
+| Per-type spawnTier intervals | ✅ |
+| pedestrian profile (sidewalkSlot, spawnWorldX, capSlotId) | ✅ |
+| Cap 6 desktop / 4 mobile с defer | ✅ |
+| Maps.jsx bottom из sidewalkSlot | ✅ |
+| peacefulHumanSpawn.test.js + mapStore tests | ✅ |
+| Vitest 261/261 | ✅ |
+| Review APPROVED | ✅ |
+
+---
+
+## TASK-069: Idle-анимация мирных пешеходов (A1)
+
+**Статус:** DONE  
+**Закрыто:** 20 авг. 2026  
+**Контекст:** ui-ux  
+**Циклы:** 0
+
+| Критерий | Результат |
+|---|---|
+| CSS `.game-object--peaceful-idle`, keyframes | ✅ |
+| Фаза от `uid` (hash + animation-delay) | ✅ |
+| Исключения human_aggr / quest crossing / chase | ✅ |
+| `prefers-reduced-motion` | ✅ |
+| `peacefulHumanIdle.test.js` 6/6 | ✅ |
+| Vitest 248/248 | ✅ |
+| Review + UI/UX приёмка | ✅ |
 
 ---
 

@@ -65,3 +65,82 @@ export function randomGreenSwitchDelay() {
 export function randomRedWalkDelay() {
   return RED_WALK_DELAY_MIN + Math.random() * (RED_WALK_DELAY_MAX - RED_WALK_DELAY_MIN);
 }
+
+export function getQuestCrossingZoneBounds(obj, viewportWidth = 1024) {
+  const layout = getQuestCrossingLayout(viewportWidth);
+  const width = obj.questCrossing?.crossingWidth ?? layout.width;
+  return {
+    left: obj.worldX,
+    right: obj.worldX + width,
+  };
+}
+
+export function isPeacefulHumanOverlappingQuestCrossing(worldX, humanWidth, zone) {
+  return worldX + humanWidth > zone.left && worldX < zone.right;
+}
+
+export function clampPeacefulWorldXOutsideQuestCrossing(
+  worldX,
+  humanWidth,
+  zone,
+  previousWorldX,
+) {
+  if (!isPeacefulHumanOverlappingQuestCrossing(worldX, humanWidth, zone)) {
+    return worldX;
+  }
+
+  const approachingFromRight = previousWorldX >= zone.right;
+  const approachingFromLeft = previousWorldX + humanWidth <= zone.left;
+
+  if (approachingFromRight) {
+    return zone.right;
+  }
+  if (approachingFromLeft) {
+    return zone.left - humanWidth;
+  }
+
+  const outsideRight = zone.right;
+  const outsideLeft = zone.left - humanWidth;
+  return Math.abs(worldX - outsideRight) <= Math.abs(worldX - outsideLeft)
+    ? outsideRight
+    : outsideLeft;
+}
+
+export function getVisibleQuestCrossingExclusionZones(
+  activeObjects,
+  offsetX,
+  viewportWidth,
+) {
+  const zones = [];
+  for (const obj of activeObjects) {
+    if (!isQuestCrossingType(obj.typeId)) continue;
+    const { left, right } = getQuestCrossingZoneBounds(obj, viewportWidth);
+    const screenX = left - offsetX;
+    if (screenX + (right - left) < 0 || screenX > viewportWidth) {
+      continue;
+    }
+    zones.push({ left, right });
+  }
+  return zones;
+}
+
+export function clampPeacefulWorldXOutsideAllQuestCrossings(
+  worldX,
+  humanWidth,
+  zones,
+  previousWorldX,
+) {
+  let result = worldX;
+  let prev = previousWorldX;
+  for (const zone of zones) {
+    const clamped = clampPeacefulWorldXOutsideQuestCrossing(
+      result,
+      humanWidth,
+      zone,
+      prev,
+    );
+    prev = result;
+    result = clamped;
+  }
+  return result;
+}

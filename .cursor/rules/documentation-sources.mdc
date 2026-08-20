@@ -17,6 +17,7 @@ alwaysApply: true
 |---|---|---|
 | **Принципы работы проекта** | `.cursor/planner/PROJECT_PRINCIPLES.md` | **Все агенты** — React, MobX, game loop, квесты, слои |
 | **Единицы расстояния** | `.cursor/planner/GAME_UNITS.md` | **Все агенты** — спавн, баланс, дистанции в PLAN/SPEC/диалоге; `game-units.mdc` |
+| **Шансы и дистанции спавна/квестов** | `src/state/event.config.js` + `event-config.mdc` | **Architect, Developer, Orchestrator, Reviewer** — единый реестр; не дублировать в *Constants.js |
 | **Работа на основе данных** | `.cursor/rules/evidence-based-work.mdc` | **Перед изменением кода** — анализ, grep, gate |
 
 ## Файлы планирования

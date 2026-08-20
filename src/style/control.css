@@ -103,7 +103,6 @@
 
 /* Маленький тег сверху текста */
 
-
 /* Основной текст сообщения */
 .radio-text {
   margin: 0;
@@ -153,7 +152,10 @@
   -webkit-user-drag: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.1s ease, filter 0.2s ease, opacity 0.2s ease;
+  transition:
+    transform 0.1s ease,
+    filter 0.2s ease,
+    opacity 0.2s ease;
   border-radius: 50%;
   padding: 5px;
   background: rgba(255, 255, 255, 0.03);
@@ -165,8 +167,8 @@
 }
 
 .ratio-img-controller--has-target {
-  border-color: rgba(0, 212, 255, 0.65);
-  box-shadow: 0 0 12px rgba(0, 212, 255, 0.45);
+  border-color: #f91100c9;
+  box-shadow: 0 0 12px rgb(12 133 229 / 84%);
   animation: ratio-target-pulse 1.2s ease-in-out infinite;
 }
 
@@ -194,6 +196,19 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   pointer-events: none;
+}
+
+.ratio-img-controller-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 65px;
+  height: 65px;
+}
+
+.ratio-img-controller-img {
+  width: 27px;
+  height: 55px;
 }
 
 @keyframes ratio-target-pulse {

@@ -9,9 +9,10 @@ alwaysApply: false
 
 # Стандарты Code Review spec_cars_web
 
-## Обязательный источник
+## Обязательные источники
 
-Проверяй соответствие **`.cursor/planner/PROJECT_PRINCIPLES.md`**.
+- **`.cursor/planner/PROJECT_PRINCIPLES.md`**
+- **`src/state/event.config.js`** + **`event-config.mdc`** — шансы и дистанции спавна/квестов
 
 ---
 
@@ -62,6 +63,14 @@ alwaysApply: false
 - [ ] Взаимоисключение квестов сохранено
 - [ ] Новые триггеры не ломают существующие
 - [ ] Сирена/светофор/передачи — побочные эффекты учтены
+
+### event.config.js (обязательно)
+
+- [ ] Новые/изменённые **шансы** (`*_CHANCE`) объявлены в `src/state/event.config.js`
+- [ ] Новые/изменённые **дистанции спавна** (`minDistance`, `maxDistance`, `initialSpawnDistance`, `*_DISTANCE`) — в `event.config.js` (world px)
+- [ ] Gate/интервалы спавна квестов и объектов (`*_GATE_SEC`, `*_RESPAWN_*`, `*_INTERVAL_*`) — в `event.config.js`
+- [ ] `objects.jsx`, `*Constants.js`, сторы **импортируют** значения, не содержат дублирующих литералов
+- [ ] SPEC с балансом ссылается на **имена констант** из `event.config.js`
 
 ### Адаптивность (обязательно)
 
@@ -123,5 +132,6 @@ alwaysApply: false
 - Нарушение z-index / координат
 - Desktop-only размеры/позиции без адаптации под мобильные экраны
 - Сломанное взаимоисключение квестов
+- Шанс или дистанция спавна/квеста объявлены вне `src/state/event.config.js` (см. `event-config.mdc`)
 - Изменение поведения вне scope задачи
 - Замечание Reviewer без доказательства (файл:строка / SPEC / §PROJECT_PRINCIPLES)

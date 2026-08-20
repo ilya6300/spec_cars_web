@@ -35,7 +35,7 @@ import { getDataSubObects, dataObjectsSub } from "./subobject";
 import humanAggr1Img from "../assets/objects/\police_quest/human_aggr1.png";
 import humanAggr2Img from "../assets/objects/\police_quest/human_aggr2.png";
 import humanAggr3Img from "../assets/objects/\police_quest/human_aggr3.png";
-import collectibleStarImg from "../assets/ui/collectible-star.svg";
+import collectibleCoinImg from "../assets/ui/collectible-coin.svg";
 
 class ObjectsClass {
   white_line = whiteLine;
@@ -226,10 +226,10 @@ const createDataObjects = () => {
       trafficLightQuestCrossingObj,
     );
 
-    const collectibleStarObj = new ObjectConfig({
-      id: "collectible_star",
-      type: "collectible_star",
-      image: collectibleStarImg,
+    const collectibleCoinObj = new ObjectConfig({
+      id: "collectible_coin",
+      type: "collectible_coin",
+      image: collectibleCoinImg,
       zIndex: 2,
       width: 48,
       height: 48,
@@ -241,7 +241,7 @@ const createDataObjects = () => {
       onAppear: () => {},
     });
 
-    objectConfigs.push(collectibleStarObj);
+    objectConfigs.push(collectibleCoinObj);
 
     const roadsideBreakdownObj = new ObjectConfig({
       id: ROADSIDE_BREAKDOWN_TYPE,

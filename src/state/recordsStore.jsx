@@ -14,7 +14,7 @@ function sortRecords(mode, records) {
     sorted.sort((a, b) => {
       if (b.timeSec !== a.timeSec) return b.timeSec - a.timeSec;
       if (b.km !== a.km) return b.km - a.km;
-      return b.stars - a.stars;
+      return b.coins - a.coins;
     });
     return sorted;
   }
@@ -89,7 +89,7 @@ class RecordsStore {
         record = {
           timeSec: session.durationSec,
           km: session.km,
-          stars: session.starsEarned,
+          coins: session.coinsEarned,
         };
       }
     } else if (mode === GAME_MODES.TIMED && trigger === "complete") {

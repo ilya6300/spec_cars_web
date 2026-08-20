@@ -1,12 +1,19 @@
 ﻿import { observer } from "mobx-react-lite";
 import React from "react";
+import { layoutTokensToCssVars } from "../../state/cars";
 
 /**
  * @param {"player" | "traffic"} variant — спрайт и геометрия (кузов, колёса)
  * @param {boolean} nested — внутри обёртки (.quest-car-other / .quest-car), без абсолютного позиционирования
  */
 export const CarModel = observer(
-  ({ carStore, variant = "traffic", nested = false, showHeadlights = false }) => {
+  ({
+    carStore,
+    variant = "traffic",
+    nested = false,
+    showHeadlights = false,
+    layoutTokens = null,
+  }) => {
     const containerClass = [
       "car_container",
       `car_container--${variant}`,
@@ -16,8 +23,13 @@ export const CarModel = observer(
       .filter(Boolean)
       .join(" ");
 
+    const playerStyle =
+      variant === "player" && layoutTokens
+        ? layoutTokensToCssVars(layoutTokens)
+        : undefined;
+
     return (
-      <div className={containerClass}>
+      <div className={containerClass} style={playerStyle}>
         {showHeadlights && (
           <div className="car-headlight-beam" aria-hidden="true" />
         )}

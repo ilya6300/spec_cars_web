@@ -6,7 +6,7 @@ import { GAME_MODES } from "../../state/modeScoring";
 const { mockModeStore, mockBackToMenu } = vi.hoisted(() => ({
   mockModeStore: {
     isComplete: false,
-    starsEarned: 0,
+    coinsEarned: 0,
     gameMode: "timed",
     getScoreForCarStore: vi.fn(() => 0),
     getChaseProgress: vi.fn(() => ({ current: 0, target: 3 })),
@@ -38,7 +38,7 @@ const carStore = {
 describe("ModeResultModal", () => {
   beforeEach(() => {
     mockModeStore.isComplete = false;
-    mockModeStore.starsEarned = 0;
+    mockModeStore.coinsEarned = 0;
     mockModeStore.gameMode = GAME_MODES.TIMED;
     mockModeStore.getScoreForCarStore.mockReset();
     mockModeStore.getScoreForCarStore.mockReturnValue(0);
@@ -55,10 +55,10 @@ describe("ModeResultModal", () => {
     ).toBeNull();
   });
 
-  it("renders timed score and star fill states", () => {
+  it("renders timed score and coin fill states", () => {
     mockModeStore.isComplete = true;
     mockModeStore.gameMode = GAME_MODES.TIMED;
-    mockModeStore.starsEarned = 2;
+    mockModeStore.coinsEarned = 2;
     mockModeStore.getScoreForCarStore.mockReturnValue(10);
 
     render(<ModeResultModal carStore={carStore} />);
@@ -70,20 +70,20 @@ describe("ModeResultModal", () => {
       document.querySelector('[data-type="mode-result-chase"]'),
     ).toBeNull();
 
-    const stars = document.querySelectorAll('[data-type="mode-result-star"]');
-    expect(stars).toHaveLength(3);
+    const coins = document.querySelectorAll('[data-type="mode-result-coin"]');
+    expect(coins).toHaveLength(3);
     expect(
-      [...stars].filter((el) => el.getAttribute("data-filled") === "true"),
+      [...coins].filter((el) => el.getAttribute("data-filled") === "true"),
     ).toHaveLength(2);
     expect(
-      [...stars].filter((el) => el.getAttribute("data-filled") === "false"),
+      [...coins].filter((el) => el.getAttribute("data-filled") === "false"),
     ).toHaveLength(1);
   });
 
   it("renders chase progress without score block", () => {
     mockModeStore.isComplete = true;
     mockModeStore.gameMode = GAME_MODES.CHASE;
-    mockModeStore.starsEarned = 3;
+    mockModeStore.coinsEarned = 3;
     mockModeStore.getChaseProgress.mockReturnValue({ current: 3, target: 3 });
 
     render(<ModeResultModal carStore={carStore} />);
@@ -94,14 +94,14 @@ describe("ModeResultModal", () => {
     expect(
       document.querySelector('[data-type="mode-result-score"]'),
     ).toBeNull();
-    expect(document.querySelectorAll('[data-type="mode-result-star"]')).toHaveLength(
+    expect(document.querySelectorAll('[data-type="mode-result-coin"]')).toHaveLength(
       3,
     );
   });
 
   it("renders back to menu button", () => {
     mockModeStore.isComplete = true;
-    mockModeStore.starsEarned = 1;
+    mockModeStore.coinsEarned = 1;
 
     render(<ModeResultModal carStore={carStore} />);
 

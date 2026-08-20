@@ -10,20 +10,112 @@
 
 ---
 
-## PLAN: Оживление мира (PLAN.md § «В работу»)
+## PLAN: Гараж, колёса, монеты (PLAN.md §1–2)
 
-**Статус PLAN:** `Complete` — все волны закрыты 20 авг. 2026  
-**Порядок внедрения:** A1 → A0 spawn → A2+группы → A0 реакция → баланс парковки ✅
+**Статус PLAN:** `Approved` — проработан Planner в `garage_and_coins_7369f233.plan.md`  
+**Порядок внедрения:** data layer → coins migration → garage UI → tests/review
 
-| Задача | Волна | Статус |
-|--------|-------|--------|
-| TASK-069 | 1 — A1 idle CSS | **DONE** |
-| TASK-070 | 2 — A0 spawn/sidewalk/cap | **DONE** |
-| TASK-071 | 3 — A2 drift + группы | **DONE** |
-| TASK-072 | 4 — A0 реакция human_aggr | **DONE** |
-| TASK-073 | 5 — баланс парковки 2 очка | **DONE** |
+| Задача | Область | Статус |
+|--------|---------|--------|
+| **TASK-074** | Гараж + колёса + монеты (единая TASK) | **REVIEW_APPROVED** |
 
-**Backlog (другой план):** TASK-061 (Maps.jsx scroll)
+---
+
+## TASK-074: Гараж, кастомизация колёс, миграция звёзд→монеты — **ACTIVE**
+
+**Статус:** `REVIEW_APPROVED`  
+**Контекст:** `mixed` (UI экран гаража + иконки монет/гаража + данные cars/wheels + MobX stores)  
+**Приоритет:** High  
+**Зависимости:** нет (PLAN «Оживление мира» завершён)
+
+### Описание
+
+Реализация PLAN.md §1–2:
+
+1. **Data layer:** перенос CSS-токенов геометрии машины из `ui-tokens.css` в `cars.jsx` (`layoutTokens`); массив `wheels[17]`; расширение `skins`/`cars` полями `active`/`open`/`price`; MobX `garageStore` с persistence; `getResolvedPlayerCar()` для `gameBootstrap` и `CarModel`.
+2. **Coins migration:** полная замена stars→coins (store, persistence+migration, `collectible_coin`, HUD, mode result, leaderboard, E2E).
+3. **Garage UI:** экран `garage` в `appStore`, компонент `Garage.jsx`, кнопка в `StartMenu`, превью 65/35, табы «Автомобили»/«Колёса», мгновенное применение скина/колёс.
+
+**Вне scope:** магазин на дороге, покупка, `open: false` в UI (заложить в архитектуру), несколько кузовов.
+
+### Критерии готовности
+
+**Data layer**
+- [ ] `police-0` содержит `layoutTokens` (7 полей из ui-tokens §51–58); `--player-car-lane-y` остаётся глобальным
+- [ ] `wheels[]` — 17 элементов (`shell_1` + `whell_new_1…16`), поля `id`, `name`, `src`, `active`, `open`, `price`
+- [ ] `garageStore`: `selectSkin`, `selectWheel`, `getPreviewCarStore`, `getResolvedPlayerCar`; persist `spec_cars_active_skin`, `spec_cars_active_wheel`
+- [ ] `gameBootstrap` использует `garageStore.getResolvedPlayerCar()`; `CarModel` принимает `layoutTokens` для `variant="player"`
+- [ ] Mobile width 220px — merge токенов (не расходится превью/игра)
+- [ ] Unit-тесты: `garageStore`, `cars.jsx` wheels count, `getResolvedPlayerCar`
+
+**Coins migration**
+- [ ] `coinsStore` / `totalCoins`; migration из `spec_cars_total_stars` → `spec_cars_total_coins` (один раз)
+- [ ] `collectible_star` → `collectible_coin`; `GlobalCoinsDisplay`; CSS `.global-coins`, `.help-coins`, `.mode-result-coin`
+- [ ] Leaderboard: монета + `{record.coins}`; E2E `[data-type="global-coins"]`
+- [ ] Логика начисления **не меняется** (1 collectible = +1; пороги modeScoring те же)
+- [ ] Unit + E2E обновлены
+
+**Garage UI**
+- [ ] `appStore.screen`: `menu | garage | game | ui-test`; `openGarage()` / `backFromGarage()`
+- [ ] `Garage.jsx` + `garage.css`: фон `car_box.png`, превью слева 65%, панель справа 35%, табы, карточки
+- [ ] Карточка: превью src; `open===false` → grayscale filter; `active===true` → accent border; **без price**
+- [ ] Кнопка гаража в `StartMenu` (икона от Art Director); выход — паттерн `BackToMenuButton`
+- [ ] Выбор колёс/скина сохраняется после выхода и старта игры
+- [ ] E2E: open/close garage, wheel persist after game
+- [ ] Работает на ПК и мобильном (portrait/landscape)
+
+### Документация
+
+- @docs `.cursor/planner/PROJECT_PRINCIPLES.md` — MobX, game loop, слои
+- @docs `.cursor/planner/GAME_UNITS.md` — единицы (price не в event.config — ок)
+- @docs `.cursor/planner/PLAN.md` — требования пользователя
+- @docs `.cursor/planner/arhive/garage_and_coins_7369f233.plan.md` — проработка Planner
+- @docs `src/state/cars.jsx` — данные машин
+- @docs `src/state/starsStore.jsx` — текущая валюта (→ coinsStore)
+- @docs `src/state/persistence.js` — localStorage
+- @docs `src/state/gameBootstrap.js` — createGameStores
+- @docs `src/state/appStore.jsx` — навигация экранов
+- @docs `src/state/mapStore.jsx` — collectible spawn
+- @docs `src/state/objects.jsx` — типы объектов
+- @docs `src/state/modeScoring.js` — расчёт сессии
+- @docs `src/state/modeStore.jsx` — session stars/coins
+- @docs `src/state/recordsStore.jsx` — leaderboard
+- @docs `src/components/car/CarModel.jsx` — рендер машины
+- @docs `src/components/car/Car.jsx` — player car
+- @docs `src/components/menu/StartMenu.jsx` — стартовое меню
+- @docs `src/components/app/AppScreen.jsx` — роутинг экранов
+- @docs `src/components/ui/GlobalStarsDisplay.jsx` — HUD валюты
+- @docs `src/components/game/BackToMenuButton.jsx` — паттерн выхода
+- @docs `src/components/game/CollectibleStarLayer.jsx` — collectible layer
+- @docs `src/components/game/StarFlyOverlay.jsx` — fly animation
+- @docs `src/components/game/ModeResultModal.jsx` — результат режима
+- @docs `src/components/car/HelpBadges.jsx` — help badges
+- @docs `src/components/menu/LeaderboardPanel.jsx` — таблица рекордов
+- @docs `src/style/ui-tokens.css` — текущие CSS-токены машины
+- @docs `src/style/player-car.css` — CSS vars bridge
+- @docs `src/style/media.css` — mobile override width 220px
+- @docs `src/assets/background/car_box.png` — фон гаража
+- @docs `src/assets/cars/whell/` — 16 новых колёс
+
+### Чекпоинты
+
+- [x] UI/UX дизайн готов
+- [x] Архитектура / SPEC готовы
+- [x] Art direction готов
+- [x] Реализация готова
+- [x] Review одобрен
+- [ ] UI/UX приёмка пройдена
+- [ ] Art приёмка пройдена
+- [x] Тесты пройдены (315 unit)
+- [ ] Документация готова
+
+**Циклы:** 0
+
+---
+
+## PLAN: Оживление мира — **Complete**
+
+Все задачи TASK-069…073 — см. `.cursor/planner/DONE.md`.
 
 ---
 

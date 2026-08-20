@@ -157,9 +157,9 @@ export const Maps = observer(({ map, carStore, onClickObject }) => {
 
 
 
-          const isCollectibleStar = obj.typeId === "collectible_star";
+          const isCollectibleCoin = obj.typeId === "collectible_coin";
 
-          if (isCollectibleStar) return null;
+          if (isCollectibleCoin) return null;
 
           if (isParkingZoneType(obj.typeId)) return null;
           if (isRoadsideBreakdownType(obj.typeId)) return null;

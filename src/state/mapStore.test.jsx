@@ -288,7 +288,7 @@ test('MapStore: tickWorld accumulates sessionElapsedSec', () => {
   const store = new MapStore({ id: 1, name: 'Test', url: 'test.png' });
   store.carStore = {
     currentSpeed: 0,
-    isStarCollectionUnlocked: false,
+    isCoinCollectionUnlocked: false,
     totalQuestCompletions: 0,
   };
 

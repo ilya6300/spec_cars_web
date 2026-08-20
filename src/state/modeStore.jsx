@@ -3,9 +3,9 @@ import {
   GAME_MODES,
   TIMED_DURATION_SEC,
   calculateSessionScore,
-  calculateSessionStars,
+  calculateSessionCoins,
 } from "./modeScoring";
-import starsStore from "./starsStore";
+import coinsStore from "./coinsStore";
 import recordsStore from "./recordsStore";
 
 class ModeStore {
@@ -13,7 +13,7 @@ class ModeStore {
   timeRemainingSec = TIMED_DURATION_SEC;
   isPaused = false;
   isComplete = false;
-  starsEarned = 0;
+  coinsEarned = 0;
 
   constructor() {
     makeAutoObservable(this);
@@ -25,7 +25,7 @@ class ModeStore {
       this.timeRemainingSec = TIMED_DURATION_SEC;
       this.isPaused = false;
       this.isComplete = false;
-      this.starsEarned = 0;
+      this.coinsEarned = 0;
     });
   }
 
@@ -51,13 +51,13 @@ class ModeStore {
   completeMode(carStore) {
     if (this.isComplete) return;
 
-    const stars = calculateSessionStars(carStore.helpCounts, this.gameMode);
+    const coins = calculateSessionCoins(carStore.helpCounts, this.gameMode);
     runInAction(() => {
       this.isComplete = true;
       this.isPaused = true;
-      this.starsEarned = stars;
+      this.coinsEarned = coins;
     });
-    starsStore.addStars(stars);
+    coinsStore.addCoins(coins);
     recordsStore.commitSession("complete");
   }
 
@@ -70,10 +70,10 @@ class ModeStore {
     return calculateSessionScore(carStore.helpCounts, this.gameMode);
   }
 
-  getStarsForCarStore(carStore) {
+  getCoinsForCarStore(carStore) {
     if (!carStore) return 0;
-    if (this.isComplete) return this.starsEarned;
-    return calculateSessionStars(carStore.helpCounts, this.gameMode);
+    if (this.isComplete) return this.coinsEarned;
+    return calculateSessionCoins(carStore.helpCounts, this.gameMode);
   }
 
   get chaseProgress() {

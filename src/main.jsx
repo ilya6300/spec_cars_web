@@ -14,6 +14,7 @@ import "./style/refuel-modal.css";
 import "./style/settings-modal.css";
 import "./style/controls-help-modal.css";
 import "./style/quest-buttons-ui-test.css";
+import "./style/garage.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

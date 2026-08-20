@@ -1,4 +1,4 @@
-.star-fly-overlay {
+.coin-fly-overlay {
   position: fixed;
   inset: 0;
   z-index: 140;
@@ -6,7 +6,7 @@
   overflow: hidden;
 }
 
-.collectible-star-layer {
+.collectible-coin-layer {
   position: absolute;
   inset: 0;
   z-index: 55;
@@ -14,14 +14,14 @@
   overflow: visible;
 }
 
-.collectible-star {
+.collectible-coin {
   position: absolute;
   top: var(--player-car-lane-y);
   transform: translateY(calc(-100% + var(--car-wheel-offset)));
   pointer-events: none;
 }
 
-.star-fly__sprite {
+.coin-fly__sprite {
   position: fixed;
   top: 0;
   left: 0;
@@ -30,7 +30,7 @@
   will-change: transform;
 }
 
-.game-object--collectible-star {
+.game-object--collectible-coin {
   top: var(--player-car-lane-y);
   bottom: auto;
   transform: translateY(calc(-100% + var(--car-wheel-offset)));
@@ -38,7 +38,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .game-object--collectible-star {
+  .game-object--collectible-coin {
     transform: translateY(calc(-100% + var(--car-wheel-offset)));
   }
 }

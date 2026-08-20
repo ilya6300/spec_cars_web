@@ -1,6 +1,5 @@
 @media (max-height: 600px) {
   :root {
-    --player-car-width: 220px;
     --traffic-car-width: 220px;
   }
 }

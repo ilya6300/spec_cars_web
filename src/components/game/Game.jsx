@@ -23,9 +23,10 @@ import { ModeTimer, ModeChaseProgress } from "./ModeTimer";
 import { ModeResultModal } from "./ModeResultModal";
 import { RefuelModal } from "./RefuelModal";
 import { QuestCtaButton } from "../ui/QuestCtaButton";
-import { StarFlyOverlay } from "./StarFlyOverlay";
+import { CoinFlyOverlay } from "./CoinFlyOverlay";
 import Ratio from "../car/Ratio";
-import { CollectibleStarLayer } from "./CollectibleStarLayer";
+import { CollectibleCoinLayer } from "./CollectibleCoinLayer";
+import { GlobalCoinsDisplay } from "../ui/GlobalCoinsDisplay";
 import { OrientationDistanceHud } from "./OrientationDistanceHud";
 import { useGameLoop } from "../../hooks/useGameLoop";
 import { createGameStores } from "../../state/gameBootstrap";
@@ -35,7 +36,7 @@ import modeStore from "../../state/modeStore";
 import atmosphereStore from "../../state/atmosphereStore";
 import ratioStore from "../../state/ratioStore";
 import recordsStore from "../../state/recordsStore";
-import starsStore from "../../state/starsStore";
+import coinsStore from "../../state/coinsStore";
 import stateApp from "../../state/state_app";
 import { calculateSessionScore } from "../../state/modeScoring";
 
@@ -89,7 +90,7 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
 
   useEffect(() => {
     const sessionStart = performance.now();
-    const sessionStartStars = starsStore.totalStars;
+    const sessionStartCoins = coinsStore.totalCoins;
     const chaseTimeRef = { current: null };
     let frameId;
     let running = true;
@@ -100,7 +101,7 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
       const now = performance.now();
       const durationSec = (now - sessionStart) / 1000;
       const km = activeMapStore.offsetX / stateApp.distanceMetersFactor / 1000;
-      const starsEarned = starsStore.totalStars - sessionStartStars;
+      const coinsEarned = coinsStore.totalCoins - sessionStartCoins;
       const score = calculateSessionScore(activeCarStore.helpCounts, gameMode);
 
       if (
@@ -115,7 +116,7 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
         mode: gameMode,
         durationSec,
         km,
-        starsEarned,
+        coinsEarned,
         score,
         chaseTimeSec: chaseTimeRef.current,
       });
@@ -240,7 +241,12 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
           playSound={ratioStore.playSoundOnShow}
         />
       )}
-      {gameMode === "free" && <StarFlyOverlay mapStore={activeMapStore} />}
+      {gameMode === "free" && <CoinFlyOverlay mapStore={activeMapStore} />}
+      {gameMode === "free" && (
+        <div className="game-coins-hud">
+          <GlobalCoinsDisplay />
+        </div>
+      )}
       <ModeTimer carStore={activeCarStore} />
       <ModeChaseProgress carStore={activeCarStore} />
       {(gameMode === "free" || gameMode === "timed") && (
@@ -253,7 +259,7 @@ export const Game = observer(({ carId, mapId, gameMode = "free" }) => {
       />
       <AtmosphereOverlay />
       {gameMode === "free" && (
-        <CollectibleStarLayer mapStore={activeMapStore} />
+        <CollectibleCoinLayer mapStore={activeMapStore} />
       )}
       {visibleQuestCars.map((questCar) => (
         <QuestCar

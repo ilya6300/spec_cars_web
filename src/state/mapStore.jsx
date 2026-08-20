@@ -47,7 +47,7 @@ import {
   isNightChaseContext,
   isPeacefulHumanType,
 } from "./modeScoring";
-import starsStore from "./starsStore";
+import coinsStore from "./coinsStore";
 import {
   CIVILIAN_QUEST_CAR_INITIAL_TIMER_SEC,
   DISPATCH_ORIENTATION_CONFLICT_CHANCE,
@@ -208,9 +208,9 @@ class MapStore {
 
   sessionElapsedSec = 0;
 
-  questsAtLastStarEvent = 0;
-  collectibleStarSpawnTimer = null;
-  starFlies = [];
+  questsAtLastCoinEvent = 0;
+  collectibleCoinSpawnTimer = null;
+  coinFlies = [];
 
   // Сегменты дорожной разметки: { uid, worldX }
   roadMarkings = [];
@@ -242,8 +242,8 @@ class MapStore {
     this.despawnObjects(viewportWidth);
     this.updateOrientationQuest();
     this.triggerAppearEvents(carStore);
-    this.updateCollectibleStarSpawner(deltaTime, viewportWidth);
-    this.checkCollectibleStarPickup();
+    this.updateCollectibleCoinSpawner(deltaTime, viewportWidth);
+    this.checkCollectibleCoinPickup();
     this.updateQuestCars(deltaTime);
     this.updateQuestCrossings(deltaTime, viewportWidth);
     this.updateParkingEvacuation(deltaTime);
@@ -254,61 +254,61 @@ class MapStore {
     return this.parkingEvacuation.phase !== "idle";
   }
 
-  get questsSinceLastStar() {
+  get questsSinceLastCoin() {
     if (!this.carStore) return 0;
-    return this.carStore.totalQuestCompletions - this.questsAtLastStarEvent;
+    return this.carStore.totalQuestCompletions - this.questsAtLastCoinEvent;
   }
 
-  hasActiveCollectibleStar() {
-    return this.activeObjects.some((obj) => obj.typeId === "collectible_star");
+  hasActiveCollectibleCoin() {
+    return this.activeObjects.some((obj) => obj.typeId === "collectible_coin");
   }
 
-  randomCollectibleStarSpawnDelay() {
+  randomCollectibleCoinSpawnDelay() {
     return 15 + Math.random() * 10;
   }
 
-  updateCollectibleStarSpawner(deltaTime, viewportWidth) {
+  updateCollectibleCoinSpawner(deltaTime, viewportWidth) {
     if (this.gameMode !== "free") return;
-    if (!this.carStore?.isStarCollectionUnlocked) return;
-    if (this.hasActiveCollectibleStar()) return;
+    if (!this.carStore?.isCoinCollectionUnlocked) return;
+    if (this.hasActiveCollectibleCoin()) return;
 
-    if (this.questsSinceLastStar < 2) {
+    if (this.questsSinceLastCoin < 2) {
       runInAction(() => {
-        this.collectibleStarSpawnTimer = null;
+        this.collectibleCoinSpawnTimer = null;
       });
       return;
     }
 
-    if (this.collectibleStarSpawnTimer === null) {
+    if (this.collectibleCoinSpawnTimer === null) {
       runInAction(() => {
-        this.collectibleStarSpawnTimer = this.randomCollectibleStarSpawnDelay();
+        this.collectibleCoinSpawnTimer = this.randomCollectibleCoinSpawnDelay();
       });
       return;
     }
 
     runInAction(() => {
-      this.collectibleStarSpawnTimer -= deltaTime;
-      if (this.collectibleStarSpawnTimer <= 0) {
-        this.spawnCollectibleStar(viewportWidth);
-        this.collectibleStarSpawnTimer = null;
+      this.collectibleCoinSpawnTimer -= deltaTime;
+      if (this.collectibleCoinSpawnTimer <= 0) {
+        this.spawnCollectibleCoin(viewportWidth);
+        this.collectibleCoinSpawnTimer = null;
       }
     });
   }
 
-  spawnCollectibleStar(viewportWidth) {
-    if (this.hasActiveCollectibleStar()) return;
+  spawnCollectibleCoin(viewportWidth) {
+    if (this.hasActiveCollectibleCoin()) return;
 
-    const config = objectConfigByType.collectible_star;
+    const config = objectConfigByType.collectible_coin;
     if (!config) return;
 
     const spawnScreenX = viewportWidth;
     const worldX = this.offsetX + spawnScreenX;
-    const uid = `obj_collectible_star_${Date.now()}_${Math.random()}`;
+    const uid = `obj_collectible_coin_${Date.now()}_${Math.random()}`;
 
     runInAction(() => {
       this.activeObjects.push({
         uid,
-        typeId: "collectible_star",
+        typeId: "collectible_coin",
         worldX,
         appeared: false,
       });
@@ -316,7 +316,7 @@ class MapStore {
 
     // #region agent log
     starDebugLog(
-      "mapStore.jsx:spawnCollectibleStar",
+      "mapStore.jsx:spawnCollectibleCoin",
       "star spawned",
       {
         uid,
@@ -330,12 +330,12 @@ class MapStore {
     // #endregion
   }
 
-  checkCollectibleStarPickup() {
+  checkCollectibleCoinPickup() {
     if (this.gameMode !== "free") return;
-    if (!this.carStore?.isStarCollectionUnlocked) return;
+    if (!this.carStore?.isCoinCollectionUnlocked) return;
 
     const star = this.activeObjects.find(
-      (obj) => obj.typeId === "collectible_star",
+      (obj) => obj.typeId === "collectible_coin",
     );
     if (!star) return;
 
@@ -349,7 +349,7 @@ class MapStore {
       const rect = el?.getBoundingClientRect();
       const cs = el ? getComputedStyle(el) : null;
       starDebugLog(
-        "mapStore.jsx:checkCollectibleStarPickup",
+        "mapStore.jsx:checkCollectibleCoinPickup",
         "star active on map",
         {
           uid: star.uid,
@@ -378,7 +378,7 @@ class MapStore {
 
     if (screenX < STAR_PICKUP_MIN_X || screenX > STAR_PICKUP_MAX_X) return;
 
-    const config = objectConfigByType.collectible_star;
+    const config = objectConfigByType.collectible_coin;
     let startX = screenX + (config?.width ?? 48) / 2;
     let startY = window.innerHeight * 0.62;
 
@@ -395,7 +395,7 @@ class MapStore {
 
     // #region agent log
     starDebugLog(
-      "mapStore.jsx:checkCollectibleStarPickup",
+      "mapStore.jsx:checkCollectibleCoinPickup",
       "star pickup triggered",
       {
         uid: star.uid,
@@ -409,19 +409,19 @@ class MapStore {
     );
     // #endregion
 
-    this.beginStarPickup(star.uid, startX, startY);
+    this.beginCoinPickup(star.uid, startX, startY);
   }
 
-  beginStarPickup(uid, startX, startY) {
+  beginCoinPickup(uid, startX, startY) {
     if (!this.carStore) return;
 
     runInAction(() => {
-      this.questsAtLastStarEvent = this.carStore.totalQuestCompletions;
-      this.collectibleStarSpawnTimer = null;
+      this.questsAtLastCoinEvent = this.carStore.totalQuestCompletions;
+      this.collectibleCoinSpawnTimer = null;
       this.removeObjectByUid(uid);
 
-      const flyId = `star_fly_${Date.now()}_${Math.random()}`;
-      this.starFlies.push({
+      const flyId = `coin_fly_${Date.now()}_${Math.random()}`;
+      this.coinFlies.push({
         id: flyId,
         startX,
         startY,
@@ -429,11 +429,11 @@ class MapStore {
     });
   }
 
-  completeStarFly(flyId) {
+  completeCoinFly(flyId) {
     runInAction(() => {
-      this.starFlies = this.starFlies.filter((fly) => fly.id !== flyId);
+      this.coinFlies = this.coinFlies.filter((fly) => fly.id !== flyId);
     });
-    starsStore.addStars(1);
+    coinsStore.addCoins(1);
   }
 
   updateQuestCarSpawner(deltaTime) {
@@ -586,7 +586,7 @@ class MapStore {
     let peacefulSpawnedThisTick = false;
 
     objectConfigs.forEach((config) => {
-      if (config.type === "collectible_star") {
+      if (config.type === "collectible_coin") {
         return;
       }
 
@@ -1100,9 +1100,9 @@ class MapStore {
     }
     this.questCars = [];
     this.questCarForArrest = null;
-    this.questsAtLastStarEvent = 0;
-    this.collectibleStarSpawnTimer = null;
-    this.starFlies = [];
+    this.questsAtLastCoinEvent = 0;
+    this.collectibleCoinSpawnTimer = null;
+    this.coinFlies = [];
     this.pendingEvacuationTarget = null;
     this.finishOrientationQuest();
     ratioStore.clearRatioTimers();
@@ -1893,7 +1893,7 @@ class MapStore {
     }
   }
 
-  collectCollectibleStar(uid) {
+  collectCollectibleCoin(uid) {
     runInAction(() => {
       this.removeObjectByUid(uid);
     });

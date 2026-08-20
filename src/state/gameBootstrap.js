@@ -1,14 +1,20 @@
 import CarStore from "./carStore";
 import MapStore from "./mapStore";
-import { getCarById, getDefaultCar } from "./cars";
-import { getMapById, getDefaultMap } from "./maps";
+import { getDefaultMap, getMapById } from "./maps";
+import garageStore from "./garageStore";
 
 export function createGameStores({
-  carId = getDefaultCar().id,
   mapId = getDefaultMap().id,
   gameMode = "free",
 } = {}) {
-  const carConfig = getCarById(carId);
+  const viewportWidth =
+    typeof window !== "undefined" ? window.innerWidth : 1024;
+  const viewportHeight =
+    typeof window !== "undefined" ? window.innerHeight : 768;
+  const carConfig = garageStore.getResolvedPlayerCar(
+    viewportWidth,
+    viewportHeight,
+  );
   const mapConfig = getMapById(mapId);
 
   const carStore = new CarStore(carConfig);

@@ -62,7 +62,7 @@ test("loadRecords: validates free records", () => {
       { timeSec: 30, km: "bad", stars: 1 },
     ]),
   );
-  expect(loadRecords("free")).toEqual([{ timeSec: 60, km: 1.2, stars: 2 }]);
+  expect(loadRecords("free")).toEqual([{ timeSec: 60, km: 1.2, coins: 2 }]);
 });
 
 test("loadRecords: validates timed records", () => {
@@ -83,8 +83,8 @@ test("loadRecords: validates chase records", () => {
 
 test("saveRecords and loadRecords round-trip", () => {
   const records = [
-    { timeSec: 120, km: 2.5, stars: 3 },
-    { timeSec: 90, km: 1.1, stars: 1 },
+    { timeSec: 120, km: 2.5, coins: 3 },
+    { timeSec: 90, km: 1.1, coins: 1 },
   ];
   saveRecords("free", records);
   expect(loadRecords("free")).toEqual(records);

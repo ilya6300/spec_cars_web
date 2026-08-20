@@ -1,18 +1,18 @@
 import React from "react";
 import { observer } from "mobx-react-lite";
-import collectibleStarImg from "../../assets/ui/collectible-star.svg";
+import collectibleCoinImg from "../../assets/ui/collectible-coin.svg";
 import appStore from "../../state/appStore";
 import modeStore from "../../state/modeStore";
 import { GAME_MODES } from "../../state/modeScoring";
 import { QuestCtaButton } from "../ui/QuestCtaButton";
 
-const STAR_COUNT = 3;
+const COIN_COUNT = 3;
 const titleId = "mode-result-title";
 
 export const ModeResultModal = observer(({ carStore }) => {
   if (!modeStore.isComplete) return null;
 
-  const stars = modeStore.starsEarned;
+  const coins = modeStore.coinsEarned;
   const score =
     modeStore.gameMode === GAME_MODES.TIMED
       ? modeStore.getScoreForCarStore(carStore)
@@ -35,19 +35,19 @@ export const ModeResultModal = observer(({ carStore }) => {
           Молодец!
         </h2>
         <div
-          className="mode-result-card__stars"
-          data-type="mode-result-stars"
-          aria-label={`Заработано звёзд: ${stars}`}
+          className="mode-result-card__coins"
+          data-type="mode-result-coins"
+          aria-label={`Заработано монет: ${coins}`}
         >
-          {Array.from({ length: STAR_COUNT }, (_, i) => {
-            const filled = i < stars;
+          {Array.from({ length: COIN_COUNT }, (_, i) => {
+            const filled = i < coins;
             return (
               <img
                 key={i}
-                src={collectibleStarImg}
+                src={collectibleCoinImg}
                 alt=""
-                className={`mode-result-star${filled ? " mode-result-star--filled" : " mode-result-star--empty"}`}
-                data-type="mode-result-star"
+                className={`mode-result-coin${filled ? " mode-result-coin--filled" : " mode-result-coin--empty"}`}
+                data-type="mode-result-coin"
                 data-filled={filled ? "true" : "false"}
                 aria-hidden="true"
               />

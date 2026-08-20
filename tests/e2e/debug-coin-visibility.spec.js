@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { enablePlaywrightTestState, navigateToFreeMode } from "./helpers.js";
 
-test("debug collectible star visibility", async ({ page }) => {
+test("debug collectible coin visibility", async ({ page }) => {
   await enablePlaywrightTestState(page);
   await navigateToFreeMode(page);
 
@@ -15,19 +15,19 @@ test("debug collectible star visibility", async ({ page }) => {
     carStore.helpCounts.enemyChase = 0;
 
     const viewportWidth = window.innerWidth;
-    mapStore.spawnCollectibleStar(viewportWidth);
+    mapStore.spawnCollectibleCoin(viewportWidth);
 
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-    const star = mapStore.activeObjects.find(
-      (o) => o.typeId === "collectible_star",
+    const coin = mapStore.activeObjects.find(
+      (o) => o.typeId === "collectible_coin",
     );
-    if (!star) return { error: "star not spawned" };
+    if (!coin) return { error: "coin not spawned" };
 
-    const el = document.querySelector(`[data-uid="${star.uid}"]`);
+    const el = document.querySelector(`[data-uid="${coin.uid}"]`);
     const rect = el?.getBoundingClientRect();
     const cs = el ? getComputedStyle(el) : null;
-    const screenX = star.worldX - mapStore.offsetX;
+    const screenX = coin.worldX - mapStore.offsetX;
     const centerX = rect ? rect.left + rect.width / 2 : null;
     const centerY = rect ? rect.top + rect.height / 2 : null;
     const stack =
@@ -48,7 +48,7 @@ test("debug collectible star visibility", async ({ page }) => {
     return {
       viewportWidth,
       screenX,
-      worldX: star.worldX,
+      worldX: coin.worldX,
       offsetX: mapStore.offsetX,
       domFound: Boolean(el),
       rect: rect
@@ -80,7 +80,7 @@ test("debug collectible star visibility", async ({ page }) => {
     };
   });
 
-  console.log("STAR_DEBUG_REPORT", JSON.stringify(report, null, 2));
+  console.log("COIN_DEBUG_REPORT", JSON.stringify(report, null, 2));
   expect(report.error).toBeUndefined();
   expect(report.domFound).toBe(true);
   expect(report.rect?.width).toBeGreaterThan(0);

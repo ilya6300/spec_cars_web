@@ -1,14 +1,14 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Start Menu", () => {
-  test("Menu renders with three mode cards and global stars", async ({ page }) => {
+  test("Menu renders with three mode cards and global coins", async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector('[data-type="start-menu"]', { timeout: 10000 });
 
     expect(await page.$('[data-type="mode-free"]')).toBeTruthy();
     expect(await page.$('[data-type="mode-timed"]')).toBeTruthy();
     expect(await page.$('[data-type="mode-chase"]')).toBeTruthy();
-    expect(await page.$('[data-type="global-stars"]')).toBeTruthy();
+    expect(await page.$('[data-type="global-coins"]')).toBeTruthy();
   });
 
   test("Selecting free mode opens game viewport", async ({ page }) => {

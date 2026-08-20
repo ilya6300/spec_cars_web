@@ -14,6 +14,10 @@
   --ui-text-primary: rgba(255, 255, 255, 0.95);
   --ui-text-muted: rgba(255, 255, 255, 0.55);
 
+  --ui-coin-primary: #e8a820;
+  --ui-coin-highlight: #f5c842;
+  --ui-coin-stroke: #1a1208;
+
   /* Мягкая палитра HUD (без неонового cyan) */
   --ui-hud-fg: rgba(230, 240, 245, 0.92);
   --ui-hud-accent: #9ebfd4;
@@ -48,14 +52,7 @@
   /* Колёса — компенсация для посадки на асфальт (контейнер) */
   --car-wheel-offset: 11%;
 
-  /* --- Машина игрока (police/body.png) --- */
-  --player-car-width: 250px;
-  --player-car-wheel-offset: 11%;
-  --player-car-body-lift: -1%;
-  --player-car-wheel-bottom: -11%;
-  --player-car-wheel-size: 20.5%;
-  --player-car-wheel-left: 9%;
-  --player-car-wheel-right: 69%;
+  /* --- Машина игрока (police/body.png) — runtime via CarModel layoutTokens --- */
 
   /* --- Квестовый трафик (other/*.png) --- */
   --traffic-car-width: 250px;

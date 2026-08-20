@@ -52,7 +52,7 @@ export function calculateSessionScore(helpCounts, gameMode) {
   );
 }
 
-export function calculateSessionStars(helpCounts, gameMode) {
+export function calculateSessionCoins(helpCounts, gameMode) {
   if (gameMode === GAME_MODES.TIMED) {
     const score = calculateSessionScore(helpCounts, gameMode);
     if (score >= 10) return 3;

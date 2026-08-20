@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { observer } from "mobx-react-lite";
-import collectibleStarImg from "../../assets/ui/collectible-star.svg";
-import "../../style/star-fly.css";
+import collectibleCoinImg from "../../assets/ui/collectible-coin.svg";
+import "../../style/coin-fly.css";
 
 const FLY_DURATION_SEC = 0.6;
 
@@ -9,8 +9,8 @@ function easeOutCubic(t) {
   return 1 - (1 - t) ** 3;
 }
 
-function getGlobalStarsTarget() {
-  const el = document.querySelector('[data-type="global-stars"]');
+function getGlobalCoinsTarget() {
+  const el = document.querySelector('[data-type="global-coins"]');
   if (!el) return null;
   const rect = el.getBoundingClientRect();
   return {
@@ -19,7 +19,7 @@ function getGlobalStarsTarget() {
   };
 }
 
-const StarFlyItem = ({ fly, mapStore }) => {
+const CoinFlyItem = ({ fly, mapStore }) => {
   const ref = useRef(null);
   const lastTimeRef = useRef(performance.now());
   const progressRef = useRef(0);
@@ -41,12 +41,12 @@ const StarFlyItem = ({ fly, mapStore }) => {
         1,
       );
 
-      const target = getGlobalStarsTarget();
+      const target = getGlobalCoinsTarget();
       const el = ref.current;
       if (!target || !el) {
         if (progressRef.current >= 1) {
           completedRef.current = true;
-          mapStore.completeStarFly(fly.id);
+          mapStore.completeCoinFly(fly.id);
         } else {
           requestAnimationFrame(animate);
         }
@@ -66,7 +66,7 @@ const StarFlyItem = ({ fly, mapStore }) => {
 
       if (progressRef.current >= 1) {
         completedRef.current = true;
-        mapStore.completeStarFly(fly.id);
+        mapStore.completeCoinFly(fly.id);
         return;
       }
 
@@ -82,9 +82,9 @@ const StarFlyItem = ({ fly, mapStore }) => {
   return (
     <img
       ref={ref}
-      src={collectibleStarImg}
+      src={collectibleCoinImg}
       alt=""
-      className="star-fly__sprite"
+      className="coin-fly__sprite"
       aria-hidden="true"
       style={{
         transform: `translate(${fly.startX}px, ${fly.startY}px) translate(-50%, -50%)`,
@@ -93,18 +93,18 @@ const StarFlyItem = ({ fly, mapStore }) => {
   );
 };
 
-export const StarFlyOverlay = observer(({ mapStore }) => {
-  const starFlies = mapStore.starFlies ?? [];
-  if (!starFlies.length) return null;
+export const CoinFlyOverlay = observer(({ mapStore }) => {
+  const coinFlies = mapStore.coinFlies ?? [];
+  if (!coinFlies.length) return null;
 
   return (
     <div
-      className="star-fly-overlay"
-      data-type="star-fly-overlay"
+      className="coin-fly-overlay"
+      data-type="coin-fly-overlay"
       aria-hidden="true"
     >
-      {starFlies.map((fly) => (
-        <StarFlyItem key={fly.id} fly={fly} mapStore={mapStore} />
+      {coinFlies.map((fly) => (
+        <CoinFlyItem key={fly.id} fly={fly} mapStore={mapStore} />
       ))}
     </div>
   );

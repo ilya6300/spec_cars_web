@@ -109,6 +109,7 @@ export const Car = observer(({ carStore, showHeadlights = false }) => {
         carStore={carStore}
         variant="player"
         showHeadlights={showHeadlights}
+        layoutTokens={carStore.layoutTokens}
       />
     </div>
   );

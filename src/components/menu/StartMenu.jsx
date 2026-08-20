@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import appStore from "../../state/appStore";
 import { getDefaultCar } from "../../state/cars";
-import { GlobalStarsDisplay } from "../ui/GlobalStarsDisplay";
+import { GlobalCoinsDisplay } from "../ui/GlobalCoinsDisplay";
+import garageIcon from "../../assets/ui/garage.svg";
 import { MenuFuelGauge } from "./MenuFuelGauge";
 import { GAME_MODES } from "../../state/modeScoring";
 import menuBackground from "../../assets/background/background_police_day_1.png";
@@ -67,12 +68,21 @@ export const StartMenu = observer(() => {
       />
       <div className="start-menu__hud" data-type="start-menu-hud">
         <MenuFuelGauge maxFuel={defaultCar.fuel} carId={defaultCar.id} />
-        <GlobalStarsDisplay />
+        <GlobalCoinsDisplay />
       </div>
       <div className="start-menu__content">
         <header className="start-menu__header">
           <h1 className="start-menu__title">Машины специального назначения</h1>
           <div className="start-menu__header-actions">
+            <button
+              type="button"
+              className="start-menu__garage-btn"
+              data-type="open-garage"
+              aria-label="Гараж"
+              onClick={() => appStore.openGarage()}
+            >
+              <img src={garageIcon} alt="" className="start-menu__garage-icon" />
+            </button>
             <button
               type="button"
               className="start-menu__settings-btn"
@@ -83,14 +93,14 @@ export const StartMenu = observer(() => {
             >
               Настройки
             </button>
-            <button
+            {/* <button
               type="button"
               className="start-menu__ui-test-link"
               data-type="open-quest-buttons-ui-test"
               onClick={() => appStore.openUiTest()}
             >
               UI: квестовые кнопки
-            </button>
+            </button> */}
           </div>
         </header>
         <div className="start-menu__modes">

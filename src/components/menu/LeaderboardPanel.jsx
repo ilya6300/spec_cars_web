@@ -1,6 +1,7 @@
 import { observer } from "mobx-react-lite";
 import recordsStore from "../../state/recordsStore";
 import { GAME_MODES } from "../../state/modeScoring";
+import collectibleCoinImg from "../../assets/ui/collectible-coin.svg";
 import { formatDuration, formatKm, formatScore } from "./LeaderboardPanel.format";
 
 const EMPTY_TEXT = "Пока нет рекордов";
@@ -13,7 +14,18 @@ function renderRecord(mode, record) {
         <span className="leaderboard-panel__sep">·</span>
         <span className="leaderboard-panel__value">{formatKm(record.km)}</span>
         <span className="leaderboard-panel__sep">·</span>
-        <span className="leaderboard-panel__value">★ {record.stars}</span>
+        <span
+          className="leaderboard-panel__value leaderboard-panel__coins"
+          data-type="leaderboard-coins"
+        >
+          <img
+            src={collectibleCoinImg}
+            alt=""
+            className="leaderboard-panel__coin-icon"
+            aria-hidden="true"
+          />
+          {record.coins}
+        </span>
       </>
     );
   }

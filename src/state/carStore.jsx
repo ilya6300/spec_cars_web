@@ -10,7 +10,7 @@ import {
 } from "./persistence";
 import {
   calculateSessionScore,
-  calculateSessionStars,
+  calculateSessionCoins,
   GAME_MODES,
   isNightChaseContext,
 } from "./modeScoring";
@@ -28,6 +28,7 @@ class CarStore {
   name = "";
   urlBody = "";
   urlShell = "";
+  layoutTokens = null;
   mapStore = null;
 
   disposed = false;
@@ -106,8 +107,8 @@ class CarStore {
     return calculateSessionScore(this.helpCounts, this.gameMode);
   }
 
-  get sessionStars() {
-    return calculateSessionStars(this.helpCounts, this.gameMode);
+  get sessionCoins() {
+    return calculateSessionCoins(this.helpCounts, this.gameMode);
   }
 
   get totalQuestCompletions() {
@@ -116,7 +117,7 @@ class CarStore {
     return criminalArrest + pedestrianFine + parkingFine + enemyChase;
   }
 
-  get isStarCollectionUnlocked() {
+  get isCoinCollectionUnlocked() {
     return this.totalQuestCompletions >= 2;
   }
 

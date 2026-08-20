@@ -71,6 +71,28 @@
   flex-shrink: 0;
 }
 
+.start-menu__garage-btn {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ui-glass-border, rgba(255, 255, 255, 0.12));
+  border-radius: 999px;
+  background: var(--ui-glass-bg, rgba(20, 25, 35, 0.65));
+  backdrop-filter: blur(var(--ui-glass-blur, 12px));
+  -webkit-backdrop-filter: blur(var(--ui-glass-blur, 12px));
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.start-menu__garage-icon {
+  width: 26px;
+  height: 26px;
+}
+
 .start-menu__settings-btn {
   min-height: 44px;
   padding: 10px 16px;
@@ -221,7 +243,7 @@
   bottom: 3vw;
 }
 
-.global-stars {
+.global-coins {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -234,8 +256,10 @@
   font-size: 1rem;
 }
 
-.global-stars__icon {
-  font-size: 1.1rem;
+.global-coins__icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
 }
 
 @media (max-width: 900px) and (orientation: landscape), (max-height: 500px) {
@@ -245,7 +269,7 @@
     gap: clamp(6px, 1vw, 8px);
   }
 
-  .start-menu__hud .global-stars {
+  .start-menu__hud .global-coins {
     padding: 4px 10px;
     font-size: 0.85rem;
   }
@@ -342,10 +366,30 @@
   pointer-events: none;
 }
 
-.start-menu__hud .global-stars {
+.start-menu__hud .global-coins {
   border: none;
 }
 
-[data-type="menu-fuel-gauge"] {
+.leaderboard-panel__coins {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.leaderboard-panel__coin-icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.game-coins-hud {
+  position: fixed;
+  top: clamp(12px, 2vh, 20px);
+  right: clamp(56px, 8vw, 72px);
+  z-index: 120;
   pointer-events: none;
+}
+
+.game-coins-hud .global-coins {
+  pointer-events: auto;
 }

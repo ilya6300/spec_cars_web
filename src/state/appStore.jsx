@@ -68,6 +68,20 @@ class AppStore {
     });
   }
 
+  openGarage() {
+    runInAction(() => {
+      this.isSettingsModalOpen = false;
+      this.isControlsHelpOpen = false;
+      this.screen = "garage";
+    });
+  }
+
+  backFromGarage() {
+    runInAction(() => {
+      this.screen = "menu";
+    });
+  }
+
   backToMenu() {
     flushPendingFuelSave();
     recordsStore.commitSession("menu");

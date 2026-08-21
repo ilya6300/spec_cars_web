@@ -333,6 +333,16 @@ export function layoutTokensToCssVars(tokens) {
   };
 }
 
+export function getPlayerCarInlineStyle(
+  layoutTokens,
+  viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1024,
+  viewportHeight = typeof window !== "undefined" ? window.innerHeight : 768,
+) {
+  return layoutTokensToCssVars(
+    getEffectiveLayoutTokens(layoutTokens, viewportWidth, viewportHeight),
+  );
+}
+
 export function getDefaultCar() {
   return Cars.cars[0];
 }

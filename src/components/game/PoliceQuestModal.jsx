@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useCallback, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { CarModel } from "../car/CarModel";
 import CarStore from "../../state/carStore";
-import { getDefaultCar } from "../../state/cars";
+import { getPlayerCarInlineStyle } from "../../state/cars";
+import garageStore from "../../state/garageStore";
 import { objectConfigByType } from "../../state/objects";
 import { getHelpTypeForPoliceObject } from "../../state/quests";
 import { runInAction } from "mobx";
@@ -16,7 +17,7 @@ import { QuestCtaButton } from "../ui/QuestCtaButton";
 export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
   const policeCarStore = useRef(null);
   if (!policeCarStore.current) {
-    policeCarStore.current = new CarStore(getDefaultCar());
+    policeCarStore.current = new CarStore(garageStore.getResolvedPlayerCar());
   }
   const animationRef = useRef(null);
   const lastTimeRef = useRef(performance.now());
@@ -219,7 +220,10 @@ export const PoliceQuestModal = observer(({ mapStore, carStore }) => {
       <div
         ref={carRef}
         className="quest-car"
-        style={{ left: `${mapStore.questCarPosition}px` }}
+        style={{
+          left: `${mapStore.questCarPosition}px`,
+          ...getPlayerCarInlineStyle(policeCarStore.current.layoutTokens),
+        }}
       >
         <CarModel
           carStore={policeCarStore.current}

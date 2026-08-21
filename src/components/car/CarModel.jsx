@@ -1,6 +1,10 @@
 ﻿import { observer } from "mobx-react-lite";
 import React from "react";
-import { layoutTokensToCssVars } from "../../state/cars";
+import {
+  getEffectiveLayoutTokens,
+  layoutTokensToCssVars,
+  PLAYER_LAYOUT_TOKENS,
+} from "../../state/cars";
 
 /**
  * @param {"player" | "traffic"} variant — спрайт и геометрия (кузов, колёса)
@@ -23,10 +27,16 @@ export const CarModel = observer(
       .filter(Boolean)
       .join(" ");
 
-    const playerStyle =
-      variant === "player" && layoutTokens
-        ? layoutTokensToCssVars(layoutTokens)
-        : undefined;
+    const resolvedPlayerTokens =
+      variant === "player"
+        ? getEffectiveLayoutTokens(
+            layoutTokens ?? carStore?.layoutTokens ?? PLAYER_LAYOUT_TOKENS,
+          )
+        : null;
+
+    const playerStyle = resolvedPlayerTokens
+      ? layoutTokensToCssVars(resolvedPlayerTokens)
+      : undefined;
 
     return (
       <div className={containerClass} style={playerStyle}>

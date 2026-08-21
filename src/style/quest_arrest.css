@@ -42,8 +42,6 @@
   height: 100px;
   --quest-lane-lift: 0%;
   --quest-car-tilt: 0deg;
-  transform: translateY(calc(-100% + var(--car-wheel-offset)))
-    rotate(var(--quest-car-tilt));
 }
 
 .quest-arrest-target-car {
@@ -51,6 +49,8 @@
   pointer-events: none;
   animation: targetCarDrive 3s linear forwards;
   top: calc(var(--car-lane-y) - var(--quest-lane-lift));
+  transform: translateY(calc(-100% + var(--traffic-car-wheel-offset)))
+    rotate(var(--quest-car-tilt));
 }
 
 .quest-arrest-police-car {
@@ -58,6 +58,8 @@
   pointer-events: none;
   animation: policeCarDrive 2.5s linear forwards;
   top: calc(var(--player-car-lane-y) - var(--quest-lane-lift));
+  transform: translateY(calc(-100% + var(--player-car-wheel-offset)))
+    rotate(var(--quest-car-tilt));
 }
 
 @keyframes targetCarDrive {

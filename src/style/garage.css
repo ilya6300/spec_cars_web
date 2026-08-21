@@ -28,9 +28,14 @@
 .garage-screen__preview {
   flex: 0 0 65%;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   min-width: 0;
+}
+
+.garage-screen__preview .car_container--player {
+  margin-top: 10%;
+  scale: 2;
 }
 
 .garage-screen__panel {
@@ -148,6 +153,10 @@
 
   .garage-screen__preview {
     flex: 0 0 45%;
+  }
+
+  .garage-screen__preview .car_container--player {
+    scale: 1.6;
   }
 
   .garage-screen__panel {

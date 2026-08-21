@@ -41,7 +41,7 @@
   top: var(--player-car-lane-y);
   width: var(--player-car-width);
   height: auto;
-  transform: translateY(calc(-100% + var(--car-wheel-offset)));
+  transform: translateY(calc(-100% + var(--player-car-wheel-offset)));
   transition: none;
   z-index: 1005;
   left: 0;

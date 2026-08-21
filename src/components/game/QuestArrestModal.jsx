@@ -3,7 +3,8 @@ import { runInAction } from "mobx";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { CarModel } from "../car/CarModel";
 import CarStore from "../../state/carStore";
-import { getDefaultCar } from "../../state/cars";
+import { getPlayerCarInlineStyle } from "../../state/cars";
+import garageStore from "../../state/garageStore";
 import arrestBgImage from "../../assets/quest_location/police_arrest_modal.png";
 import QuestCarStore from "../../state/questCarStore";
 import { QuestFinishOverlay } from "./QuestFinishOverlay";
@@ -15,7 +16,9 @@ import { QuestCtaButton } from "../ui/QuestCtaButton";
 const WHEEL_SPEED = 450;
 
 export const QuestArrestModal = observer(({ mapStore, carStore }) => {
-  const [policeCarStore] = useState(() => new CarStore(getDefaultCar()));
+  const [policeCarStore] = useState(() =>
+    new CarStore(garageStore.getResolvedPlayerCar()),
+  );
   const finishTimerRef = useRef(null);
   const dismissCalledRef = useRef(false);
   const [finishPhase, setFinishPhase] = useState("idle");
@@ -136,7 +139,10 @@ export const QuestArrestModal = observer(({ mapStore, carStore }) => {
         )}
       </div>
 
-      <div className="quest-arrest-police-car">
+      <div
+        className="quest-arrest-police-car"
+        style={getPlayerCarInlineStyle(policeCarStore.layoutTokens)}
+      >
         <CarModel
           carStore={policeCarStore}
           variant="player"
